@@ -3,7 +3,7 @@ CFLAGS = -g -Wall -ansi
 SRC = processor.c
 OBJ = $(SRC:.c=.o)
 BACKUP = $(SRC:.c=.c~)
-MAIN = processor
+MAIN = processor.exe
 TEST = "ls -lah"
 
 all: $(MAIN)
