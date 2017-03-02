@@ -1,8 +1,8 @@
-Utexas
-------
+Ronny's Install Directions
+--------------------------
 
-run "make" to attempt a library install and build.
-run make clean to clean up library and build directories.
+run "make" to attempt a library install and build.  
+run make clean to clean up library and build directories.  
 
 
 zsim
