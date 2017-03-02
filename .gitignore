@@ -27,3 +27,6 @@
 *.exe
 *.out
 *.app
+
+#libraries
+lib/pin3.2
