@@ -1,8 +1,14 @@
 #!/bin/bash
 set -x
 # extract tarballs
-mkdir lib/pin3.2
-tar xf lib/pin3.2.tar.gz -C lib/pin3.2
+libraries="
+pin3.2.tar.gz
+libconfig1.5.tar.gz"
+mkdir -p lib/
+
+for lib in $libraries; do
+	tar zxf tar/$lib -C lib/
+done
 
 # set the pinpath
 oooe_dir=`pwd`
