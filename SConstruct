@@ -139,6 +139,13 @@ def buildSim(cppFlags, dir, type, pgo=None):
         env["CPPPATH"] += [DRAMSIMPATH]
         env["PINLIBS"] += ["dramsim"]
         env["CPPFLAGS"] += " -D_WITH_DRAMSIM_=1 "
+	
+    # Use non-standard library paths if defined
+    if "HDF5PATH" in os.environ:
+        HDF5PATH = os.environ["HDF5PATH"]
+        env["LINKFLAGS"] += " -Wl,-R" + joinpath(HDF5PATH, "lib")
+        env["LIBPATH"] += [joinpath(HDF5PATH, "lib")]
+        env["CPPPATH"] += [joinpath(HDF5PATH, "include")]
 
     env["CPPPATH"] += ["."]
 
