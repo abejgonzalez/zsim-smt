@@ -1,4 +1,4 @@
-all:
+a:
 	./configure.sh
 	scons -j16
 
