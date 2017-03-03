@@ -147,6 +147,14 @@ def buildSim(cppFlags, dir, type, pgo=None):
         env["LIBPATH"] += [joinpath(HDF5PATH, "lib")]
         env["CPPPATH"] += [joinpath(HDF5PATH, "include")]
 
+	# Use non-standard library paths if defined
+    if "XEDPATH" in os.environ:
+        XEDPATH = os.environ["XEDPATH"]
+        env["LINKFLAGS"] += " -Wl,-R" + joinpath(XEDPATH, "lib")
+        env["LIBPATH"] += [joinpath(XEDPATH, "lib")]
+        env["CPPPATH"] += [joinpath(XEDPATH, "include")]
+
+
     env["CPPPATH"] += ["."]
 
     # HDF5

@@ -4,9 +4,10 @@ oooe_dir=`pwd`
 
 # extract tarballs
 libraries="
-pin3.2
+pin2.14
 libconfig1.5
-hdf5"
+hdf5
+xed"
 mkdir -p lib/
 
 for lib in $libraries; do
@@ -16,7 +17,7 @@ for lib in $libraries; do
 done
 
 # setup pin
-export PINPATH=$oooe_dir/lib/pin3.2/
+export PINPATH=$oooe_dir/lib/pin2.14/
 
 # setup libconfig
 lcpath=lib/libconfig1.5
@@ -31,7 +32,9 @@ fi
 # point ld to hdf5 and elfg0
 libhdf5=${oooe_dir}/lib/hdf5
 libelfg=${oooe_dir}/lib/elfg0
+libxed=${oooe_dir}/lib/xed
 export HDF5PATH=${libhdf5}
+export XEDPATH=${libxed}
 
 # cleanup
 unset lcpath
