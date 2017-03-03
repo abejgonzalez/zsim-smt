@@ -1,9 +1,9 @@
-Ronny's Install Directions
---------------------------
+Ronny's Install Directions  
+==========================
 
-`sudo apt-get install scons
-sudo apt-get install libelfg0
-source configure.sh`
+`sudo apt-get install scons  
+sudo apt-get install libelfg0  
+source configure.sh  `  
 run "make" to attempt a library install and build.  
 run make clean to clean up library and build directories.  
 
