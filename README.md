@@ -2,7 +2,6 @@ Ronny's Install Directions
 ==========================
 
 ```bash
-sudo apt-get install scons  
 sudo apt-get install libelfg0-dev 
 source configure.sh  
 make

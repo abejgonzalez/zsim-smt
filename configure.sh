@@ -7,7 +7,8 @@ libraries="
 pin2.14
 libconfig1.5
 hdf5
-xed"
+xed
+scons2.5"
 mkdir -p lib/
 
 for lib in $libraries; do
@@ -23,11 +24,22 @@ export PINPATH=$oooe_dir/lib/pin2.14/
 lcpath=lib/libconfig1.5
 export LIBCONFIGPATH=${oooe_dir}/${lcpath}/install
 
-if [ ! -d "lib/libconfig1.5/install" ] ; then
+if [ ! -d $LIBCONFIGPATH ] ; then
 	cd $lcpath
 	./configure --prefix=$LIBCONFIGPATH && make install
 	cd $oooe_dir
 fi
+
+# setup scons2.5
+sconspath=lib/scons2.5
+export SCONSPATH=${oooe_dir}/${sconspath}/install
+
+if [ ! -d $SCONSPATH ] ; then
+	cd $sconspath
+	python setup.py install --prefix=$SCONSPATH
+	cd $oooe_dir
+fi
+
 
 # point ld to hdf5 and elfg0
 libhdf5=${oooe_dir}/lib/hdf5

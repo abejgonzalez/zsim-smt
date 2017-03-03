@@ -1,6 +1,6 @@
 a:
 	./configure.sh
-	scons -j16
+	${SCONSPATH}/bin/scons -j16
 
 
 clean:
