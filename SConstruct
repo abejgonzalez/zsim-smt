@@ -122,6 +122,14 @@ def buildSim(cppFlags, dir, type, pgo=None):
         env["LINKFLAGS"] += " -Wl,-R" + joinpath(LIBCONFIGPATH, "lib")
         env["LIBPATH"] += [joinpath(LIBCONFIGPATH, "lib")]
         env["CPPPATH"] += [joinpath(LIBCONFIGPATH, "include")]
+	
+	# Use non-standard library paths if defined
+    if "LIBELFPATH" in os.environ:
+        LIBELFPATH = os.environ["LIBELFPATH"]
+        env["LINKFLAGS"] += " -Wl,-R" + joinpath(LIBELFPATH, "lib")
+        env["LIBPATH"] += [joinpath(LIBELFPATH, "lib")]
+        env["CPPPATH"] += [joinpath(LIBELFPATH, "include")]
+
 
 
     if "POLARSSLPATH" in os.environ:
@@ -146,7 +154,7 @@ def buildSim(cppFlags, dir, type, pgo=None):
         env["LINKFLAGS"] += " -Wl,-R" + joinpath(HDF5PATH, "lib")
         env["LIBPATH"] += [joinpath(HDF5PATH, "lib")]
         env["CPPPATH"] += [joinpath(HDF5PATH, "include")]
-
+	
 	# Use non-standard library paths if defined
     if "XEDPATH" in os.environ:
         XEDPATH = os.environ["XEDPATH"]

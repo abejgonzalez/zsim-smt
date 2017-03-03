@@ -6,6 +6,7 @@ oooe_dir=`pwd`
 libraries="
 pin2.14
 libconfig1.5
+libelf0.8.13
 hdf5
 xed
 scons2.5"
@@ -30,6 +31,16 @@ if [ ! -d $LIBCONFIGPATH ] ; then
 	cd $oooe_dir
 fi
 
+# setup libelf 
+lepath=lib/libelf0.8.13
+export LIBELFPATH=${oooe_dir}/${lepath}/install
+
+if [ ! -d $LIBELFPATH ] ; then
+	cd $lepath
+	./configure --prefix=$LIBELFPATH && make install
+	cd $oooe_dir
+fi
+
 # setup scons2.5
 sconspath=lib/scons2.5
 export SCONSPATH=${oooe_dir}/${sconspath}/install
@@ -43,12 +54,12 @@ fi
 
 # point ld to hdf5 and elfg0
 libhdf5=${oooe_dir}/lib/hdf5
-libelfg=${oooe_dir}/lib/elfg0
 libxed=${oooe_dir}/lib/xed
 export HDF5PATH=${libhdf5}
 export XEDPATH=${libxed}
 
 # cleanup
+unset lepath
 unset lcpath
 unset libraries
 unset oooe_dir
