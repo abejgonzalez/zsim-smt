@@ -5,9 +5,10 @@ Ronny's Install Directions
 sudo apt-get install scons  
 sudo apt-get install libelfg0  
 source configure.sh  
+make
 ```  
-run "make" to attempt a library install and build.  
-run make clean to clean up library and build directories.  
+"make" attempts a library install and build.  
+run `make clean` to clean up library and build directories.  
 
 
 zsim
