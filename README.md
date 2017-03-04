@@ -1,9 +1,15 @@
-Ronny's Install Directions  
+Ronny's Install Directions
 ==========================
 
+### seting up your TACC machine  
+1. Make a TACC account [here.](https://portal.tacc.utexas.edu/)  
+2. Set up Multi-Tier authentication on your TACC user portal (use your cell phone)  
+3. (Optional) Skim the Stampede tutorial on the tacc website to learn how stampede works.  
+4. Follow the directions [here.](https://github.com/ronny-macmaster/oooe/releases/tag/v0.2) to setup the opt binaries for installing zsim  
+
+### building zsim
 ```bash
-source configure.sh  
-make
+source configure.sh && make
 ```  
 "make" attempts a library install and build.  
 run `make clean` to clean up library and build directories.  
