@@ -1,7 +1,7 @@
 # configure and build
 CONFIGURE = ./configure.sh
-MAKE = ${SCONSPATH}/bin/scons
-MAKEFLAGS = -j16
+SCONS = ${SCONSPATH}/bin/scons
+SCONSFLAGS = -j16
 
 # outputs
 BUILDDIR = build/
@@ -10,7 +10,7 @@ OUTPUT = *.h5 .scons*
 
 build: 
 	$(CONFIGURE)
-	$(MAKE) $(MAKEFLAGS)
+	$(SCONS) $(SCONSFLAGS)
 
 clean:
-	$(RM) $(BUILDDIR) $(LIBDIR) $(OUTPUT)
+	$(RM) -rf  $(BUILDDIR) $(LIBDIR) $(OUTPUT)

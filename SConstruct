@@ -130,7 +130,11 @@ def buildSim(cppFlags, dir, type, pgo=None):
         env["LIBPATH"] += [joinpath(LIBELFPATH, "lib")]
         env["CPPPATH"] += [joinpath(LIBELFPATH, "include")]
 
-
+	# use a custom OPTLIB
+	if "OPTLIB" in os.environ:
+		OPTLIB = os.environ["OPTLIB"]
+		env["LINKFLAGS"] += " -Wl,-R" + OPTLIB 
+		env["LIBPATH"] += [OPTLIB]
 
     if "POLARSSLPATH" in os.environ:
         POLARSSLPATH = os.environ["POLARSSLPATH"]
