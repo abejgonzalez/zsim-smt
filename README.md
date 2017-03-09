@@ -1,7 +1,7 @@
 Ronny's Install Directions
 ==========================
 
-### seting up your TACC machine  
+### setting up your TACC machine  
 1. Make a TACC account [here.](https://portal.tacc.utexas.edu/)  
 2. Set up Multi-Tier authentication on your TACC user portal (use your cell phone)  
 3. (Optional) Skim the Stampede tutorial on the tacc website to learn how stampede works.  
