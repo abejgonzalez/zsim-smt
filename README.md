@@ -1,6 +1,8 @@
 Install Directions
 ==========================
 
+These install instructions are mainly for the TACC machines at the University of Texas at Austin. However, many of these steps can be generalized for setting up ZSIM on other environments.
+
 ### Setting up your TACC machine  
 1. Make a TACC account [here.](https://portal.tacc.utexas.edu/)  
 2. Set up Multi-Tier authentication on your TACC user portal 
@@ -35,7 +37,7 @@ Install Directions
   * `gcc -v` should be gcc 4.9.2 or higher
   * `ld -v` should be ld with binutils 2.27
   * `python --version` should be python 2.7
-17. Then now you should be able to build ZSim with `source configure.sh && make`
+17. Then now you should be able to build ZSIM with `source configure.sh && make`
  
 ### building zsim
 ```bash
