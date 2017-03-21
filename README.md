@@ -22,7 +22,7 @@ These install instructions are mainly for the TACC machines at the University of
   3. Give a title to the key
   4. For the key field, do the following
     * Navigate to the ssh directory using `cd ~/.ssh/` after being logged out of the node
-    * From this directory enter the `id_rsa` file using `vim id_rsa`
+    * From this directory enter the `id_rsa.pub` file using `vim id_rsa.pub`
     * In this file copy the ssh key and paste it into the key field
     * Note: You can choose to add a passphrase to your ssh key using `ssh-keygen -p`
   5. Finish adding the key
