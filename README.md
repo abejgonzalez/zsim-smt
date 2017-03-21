@@ -6,7 +6,7 @@ These install instructions are mainly for the TACC machines at the University of
 ### Setting up your TACC machine  
 1. Make a TACC account [here.](https://portal.tacc.utexas.edu/)  
 2. Set up Multi-Tier authentication on your TACC user portal 
-  * Can either be set up with cell phone or with an authentication app
+  1. Can either be set up with cell phone or with an authentication app
 3. (Optional) Skim the Stampede tutorial on the tacc website to learn how stampede works.  
 4. Download the `opt.tar.gz` and `p.txt` files from this link [here](https://github.com/ronny-macmaster/oooe/releases/tag/v0.2)
 5. Upload them to the server `scp opt.tar.gz profile.txt username@stampede.tacc.utexas.edu:~`
@@ -17,26 +17,26 @@ These install instructions are mainly for the TACC machines at the University of
 10. Move to your work directory and unzip the files using `cd $WORK` and `tar xzvf opt.tar.gz`
 11. Source the profile script once `source ~/.profile`
 12. Clone the git repository using ssh cloning
-   1. First in Github settings navigate to SSH and GPG keys
-   2. Click New SSH key 
-   3. Give a title to the key
-   4. For the key field, do the following
-     * Navigate to the ssh directory using `cd ~/.ssh/` after being logged out of the node
-     * From this directory enter the `id_rsa.pub` file using `vim id_rsa.pub`
-     * In this file copy the ssh key and paste it into the key field
-     * Note: You can choose to add a passphrase to your ssh key using `ssh-keygen -p`
-   5. Finish adding the key
-   6. Test that the ssh key was added correctly
-     * Run `ssh -T git@github.com` and say yes to continue connecting
-     * You should see your github username at this point
-   7. Now you should be able to clone the git repo. using `git clone git@github.com:ronny-macmaster/oooe.git`
+  1. First in Github settings navigate to SSH and GPG keys
+  2. Click New SSH key 
+  3. Give a title to the key
+  4. For the key field, do the following
+    1. Navigate to the ssh directory using `cd ~/.ssh/` after being logged out of the node
+    2. From this directory enter the `id_rsa.pub` file using `vim id_rsa.pub`
+    3. In this file copy the ssh key and paste it into the key field
+    4. Note: You can choose to add a passphrase to your ssh key using `ssh-keygen -p`
+  5. Finish adding the key
+  6. Test that the ssh key was added correctly
+    1. Run `ssh -T git@github.com` and say yes to continue connecting
+    2. You should see your github username at this point
+  7. Now you should be able to clone the git repo. using `git clone git@github.com:ronny-macmaster/oooe.git`
 13. (Optional) Do `cd oooe` then `git config --global user.name [github username]` then `git config --global user.email [github email]`
 14. Clean directory using `make clean`
 15. Now get a new version of gcc using `ml gcc/4.9.3`
 16. (Optional) At this point you can test the compiler, linker, glib, and python libraries
-   * `gcc -v` should be gcc 4.9.2 or higher
-   * `ld -v` should be ld with binutils 2.27
-   * `python --version` should be python 2.7
+   1. `gcc -v` should be gcc 4.9.2 or higher
+   2. `ld -v` should be ld with binutils 2.27
+   3. `python --version` should be python 2.7
 17. Then now you should be able to build ZSIM with `source configure.sh && make`
  
 ### building zsim
