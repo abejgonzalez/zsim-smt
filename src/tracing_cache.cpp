@@ -26,26 +26,25 @@
 #include "tracing_cache.h"
 #include "zsim.h"
 
-TracingCache::TracingCache(uint32_t _numLines, CC* _cc, CacheArray* _array, ReplPolicy* _rp, uint32_t _accLat, uint32_t _invLat, g_string& _tracefile, g_string& _name) :
-    Cache(_numLines, _cc, _array, _rp, _accLat, _invLat, _name), tracefile(_tracefile)
+ TracingCache::TracingCache(uint32_t _numLines, CC * _cc, CacheArray * _array, ReplPolicy * _rp, uint32_t _accLat, uint32_t _invLat, g_string & _tracefile, g_string & _name):
+Cache(_numLines, _cc, _array, _rp, _accLat, _invLat, _name), tracefile(_tracefile) 
 {
-    futex_init(&traceLock);
+	futex_init(&traceLock);
 }
 
-void TracingCache::setChildren(const g_vector<BaseCache*>& children, Network* network) {
-    Cache::setChildren(children, network);
-    //We need to initialize the trace writer here because it needs the number of children
-    atw = new AccessTraceWriter(tracefile, children.size());
-    zinfo->traceWriters->push_back(atw); //register it so that it gets flushed when the simulation ends
+void TracingCache::setChildren(const g_vector < BaseCache * >&children, Network * network) {
+	Cache::setChildren(children, network);
+	//We need to initialize the trace writer here because it needs the number of children
+	atw = new AccessTraceWriter(tracefile, children.size());
+	zinfo->traceWriters->push_back(atw);	//register it so that it gets flushed when the simulation ends
 }
 
-uint64_t TracingCache::access(MemReq& req) {
-    uint64_t respCycle = Cache::access(req);
-    futex_lock(&traceLock);
-    uint32_t lat = respCycle - req.cycle;
-    AccessRecord acc = {req.lineAddr, req.cycle, lat, req.childId, req.type};
-    atw->write(acc);
-    futex_unlock(&traceLock);
-    return respCycle;
+uint64_t TracingCache::access(MemReq & req) {
+	uint64_t respCycle = Cache::access(req);
+	futex_lock(&traceLock);
+	uint32_t lat = respCycle - req.cycle;
+	AccessRecord acc = { req.lineAddr, req.cycle, lat, req.childId, req.type };
+	atw->write(acc);
+	futex_unlock(&traceLock);
+	return respCycle;
 }
-

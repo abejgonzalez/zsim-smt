@@ -28,37 +28,36 @@
 #include "process_tree.h"
 #include "zsim.h"
 
-uint32_t CorePartMapper::getPartition(const MemReq& req) {
-    return req.srcId;
+uint32_t CorePartMapper::getPartition(const MemReq & req) {
+	return req.srcId;
 }
 
-uint32_t InstrDataPartMapper::getPartition(const MemReq& req) {
-    return req.flags & MemReq::IFETCH;
+uint32_t InstrDataPartMapper::getPartition(const MemReq & req) {
+	return req.flags & MemReq::IFETCH;
 }
 
-uint32_t InstrDataCorePartMapper::getPartition(const MemReq& req) {
-    bool instr = req.flags & MemReq::IFETCH;
-    return req.srcId + (instr ? numCores : 0); //all instruction partitions come after data partitions
+uint32_t InstrDataCorePartMapper::getPartition(const MemReq & req) {
+	bool instr = req.flags & MemReq::IFETCH;
+	return req.srcId + (instr ? numCores : 0);	//all instruction partitions come after data partitions
 }
 
-uint32_t ProcessPartMapper::getPartition(const MemReq& req) {
-    assert(procIdx < numProcs);
-    return procIdx;
+uint32_t ProcessPartMapper::getPartition(const MemReq & req) {
+	assert(procIdx < numProcs);
+	return procIdx;
 }
 
-uint32_t InstrDataProcessPartMapper::getPartition(const MemReq& req) {
-    assert(procIdx < numProcs);
-    bool instr = req.flags & MemReq::IFETCH;
-    return procIdx + (instr ? numProcs : 0);
+uint32_t InstrDataProcessPartMapper::getPartition(const MemReq & req) {
+	assert(procIdx < numProcs);
+	bool instr = req.flags & MemReq::IFETCH;
+	return procIdx + (instr ? numProcs : 0);
 }
 
 uint32_t ProcessGroupPartMapper::getNumPartitions() {
-    return zinfo->numProcGroups;
+	return zinfo->numProcGroups;
 }
 
-uint32_t ProcessGroupPartMapper::getPartition(const MemReq& req) {
-    uint32_t groupIdx = zinfo->procArray[procIdx]->getGroupIdx();
-    assert(groupIdx < zinfo->numProcGroups);
-    return groupIdx;
+uint32_t ProcessGroupPartMapper::getPartition(const MemReq & req) {
+	uint32_t groupIdx = zinfo->procArray[procIdx]->getGroupIdx();
+	assert(groupIdx < zinfo->numProcGroups);
+	return groupIdx;
 }
-

@@ -25,28 +25,33 @@
 
 #include "memory_hierarchy.h"
 
-static const char* accessTypeNames[] = {"GETS", "GETX", "PUTS", "PUTX"};
-static const char* invTypeNames[] = {"INV", "INVX"};
-static const char* mesiStateNames[] = {"I", "S", "E", "M"};
+static const char *accessTypeNames[] = { "GETS", "GETX", "PUTS", "PUTX" };
+static const char *invTypeNames[] = { "INV", "INVX" };
+static const char *mesiStateNames[] = { "I", "S", "E", "M" };
 
-const char* AccessTypeName(AccessType t) {
-    assert_msg(t >= 0 && (size_t)t < sizeof(accessTypeNames)/sizeof(const char*), "AccessTypeName got an out-of-range input, %d", t);
-    return accessTypeNames[t];
+const char *AccessTypeName(AccessType t) {
+	assert_msg(t >= 0
+		   && (size_t) t < sizeof(accessTypeNames) / sizeof(const char *),
+		   "AccessTypeName got an out-of-range input, %d", t);
+	return accessTypeNames[t];
 }
 
-const char* InvTypeName(InvType t) {
-    assert_msg(t >= 0 && (size_t)t < sizeof(invTypeNames)/sizeof(const char*), "InvTypeName got an out-of-range input, %d", t);
-    return invTypeNames[t];
+const char *InvTypeName(InvType t) {
+	assert_msg(t >= 0
+		   && (size_t) t < sizeof(invTypeNames) / sizeof(const char *),
+		   "InvTypeName got an out-of-range input, %d", t);
+	return invTypeNames[t];
 }
 
-const char* MESIStateName(MESIState s) {
-    assert_msg(s >= 0 && (size_t)s < sizeof(mesiStateNames)/sizeof(const char*), "MESIStateName got an out-of-range input, %d", s);
-    return mesiStateNames[s];
+const char *MESIStateName(MESIState s) {
+	assert_msg(s >= 0
+		   && (size_t) s < sizeof(mesiStateNames) / sizeof(const char *),
+		   "MESIStateName got an out-of-range input, %d", s);
+	return mesiStateNames[s];
 }
 
 #include <type_traits>
 
 static inline void CompileTimeAsserts() {
-    static_assert(std::is_pod<MemReq>::value, "MemReq not POD!");
+	static_assert(std::is_pod < MemReq >::value, "MemReq not POD!");
 }
-

@@ -34,40 +34,44 @@
 #include "zsim.h"
 
 int main(int argc, char *argv[]) {
-    InitLog("[T] ");
-    if (argc < 3 || argc > 4) {
-        info("Usage: %s <ff|pause|globpause|term> <shmid> [<procIdx>]", argv[0]);
-        exit(1);
-    }
+	InitLog("[T] ");
+	if (argc < 3 || argc > 4) {
+		info("Usage: %s <ff|pause|globpause|term> <shmid> [<procIdx>]", argv[0]);
+		exit(1);
+	}
 
-    const char* cmd = argv[1];
-    int shmid = atoi(argv[2]);
-    int procIdx = (argc == 4)? atoi(argv[3]) : -1;
+	const char *cmd = argv[1];
+	int shmid = atoi(argv[2]);
+	int procIdx = (argc == 4) ? atoi(argv[3]) : -1;
 
-    gm_attach(shmid);
-    while (!gm_isready()) sched_yield(); //wait till proc idx 0 initializes everything; sched_yield to avoid livelock with lots of processes
-    GlobSimInfo* zinfo = static_cast<GlobSimInfo*>(gm_get_glob_ptr());
+	gm_attach(shmid);
+	while (!gm_isready())
+		sched_yield();	//wait till proc idx 0 initializes everything; sched_yield to avoid livelock with lots of processes
+	GlobSimInfo *zinfo = static_cast < GlobSimInfo * >(gm_get_glob_ptr());
 
-    if (strcmp(cmd, "ff") == 0) {
-        if (procIdx < 0) panic("ff needs procIdx");
-        futex_unlock(&zinfo->ffToggleLocks[procIdx]);
-        info("Toggled fast-forward on process %d", procIdx);
-    } else if (strcmp(argv[1], "pause") == 0) {
-        if (procIdx < 0) panic("pause needs procIdx");
-        futex_unlock(&zinfo->pauseLocks[procIdx]);
-        info("Unpaused process %d", procIdx);
-    } else if (strcmp(argv[1], "globpause") == 0) {
-        if (procIdx >= 0) warn("globpause pauses the whole simulation, you specified a procIdx");
-        zinfo->globalPauseFlag = !zinfo->globalPauseFlag; //you will not be stupid enough to run multiple fftoggles at the same time.
-        __sync_synchronize();
-    } else if (strcmp(argv[1], "term") == 0) {
-        if (procIdx >= 0) warn("term terminates the whole simulation, you specified a procIdx");
-        zinfo->externalTermPending = true;
-        __sync_synchronize();
-        info("Marked simulation for termination");
-    } else {
-        panic("Invalid command: %s", cmd);
-    }
-    exit(0);
+	if (strcmp(cmd, "ff") == 0) {
+		if (procIdx < 0)
+			panic("ff needs procIdx");
+		futex_unlock(&zinfo->ffToggleLocks[procIdx]);
+		info("Toggled fast-forward on process %d", procIdx);
+	} else if (strcmp(argv[1], "pause") == 0) {
+		if (procIdx < 0)
+			panic("pause needs procIdx");
+		futex_unlock(&zinfo->pauseLocks[procIdx]);
+		info("Unpaused process %d", procIdx);
+	} else if (strcmp(argv[1], "globpause") == 0) {
+		if (procIdx >= 0)
+			warn("globpause pauses the whole simulation, you specified a procIdx");
+		zinfo->globalPauseFlag = !zinfo->globalPauseFlag;	//you will not be stupid enough to run multiple fftoggles at the same time.
+		__sync_synchronize();
+	} else if (strcmp(argv[1], "term") == 0) {
+		if (procIdx >= 0)
+			warn("term terminates the whole simulation, you specified a procIdx");
+		zinfo->externalTermPending = true;
+		__sync_synchronize();
+		info("Marked simulation for termination");
+	} else {
+		panic("Invalid command: %s", cmd);
+	}
+	exit(0);
 }
-

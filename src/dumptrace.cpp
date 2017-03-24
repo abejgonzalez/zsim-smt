@@ -30,24 +30,25 @@
 
 #include "access_tracing.h"
 #include "galloc.h"
-#include "memory_hierarchy.h"  // to translate access type to strings
+#include "memory_hierarchy.h"	// to translate access type to strings
 
-int main(int argc, const char* argv[]) {
-    InitLog(""); //no log header
-    if (argc != 2) {
-        info("Prints an access trace");
-        info("Usage: %s <trace>", argv[0]);
-        exit(1);
-    }
+int main(int argc, const char *argv[]) {
+	InitLog("");		//no log header
+	if (argc != 2) {
+		info("Prints an access trace");
+		info("Usage: %s <trace>", argv[0]);
+		exit(1);
+	}
 
-    gm_init(32<<20 /*32 MB, should be enough*/);
-    AccessTraceReader tr(argv[1]);
+	gm_init(32 << 20 /*32 MB, should be enough */ );
+	AccessTraceReader tr(argv[1]);
 
-    info("%12s %6s %6s %20s %10s", "Cycle", "Src", "Type", "LineAddr", "Latency");
-    while(!tr.empty()) {
-        AccessRecord acc = tr.read();
-        info("%12ld %6d   %s %20p %10d", acc.reqCycle, acc.childId, AccessTypeName(acc.type), (uint64_t*)acc.lineAddr, acc.latency);
-    }
+	info("%12s %6s %6s %20s %10s", "Cycle", "Src", "Type", "LineAddr", "Latency");
+	while (!tr.empty()) {
+		AccessRecord acc = tr.read();
+		info("%12ld %6d   %s %20p %10d", acc.reqCycle, acc.childId, AccessTypeName(acc.type),
+		     (uint64_t *) acc.lineAddr, acc.latency);
+	}
 
-    return 0;
+	return 0;
 }

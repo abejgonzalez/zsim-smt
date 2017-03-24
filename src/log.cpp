@@ -28,32 +28,34 @@
 #include <string.h>
 #include "locks.h"
 
-const char* logHeader = "";
+const char *logHeader = "";
 
-const char* logTypeNames[] = {"Harness", "Config", "Process", "Cache", "Mem", "Sched", "FSVirt", "TimeVirt"};
+const char *logTypeNames[] = { "Harness", "Config", "Process", "Cache", "Mem", "Sched", "FSVirt", "TimeVirt" };
 
-FILE* logFdOut = stdout;
-FILE* logFdErr = stderr;
+FILE *logFdOut = stdout;
+FILE *logFdErr = stderr;
 
 static lock_t log_printLock;
 
+void InitLog(const char *header, const char *file) {
+	logHeader = strdup(header);
+	futex_init(&log_printLock);
 
-void InitLog(const char* header, const char* file) {
-    logHeader = strdup(header);
-    futex_init(&log_printLock);
-
-    if (file) {
-        FILE* fd = fopen(file, "a");
-        if (fd == nullptr) {
-            perror("fopen() failed");
-            panic("Could not open logfile %s", file); //we can panic in InitLog (will dump to stderr)
-        }
-        logFdOut = fd;
-        logFdErr = fd;
-        //NOTE: We technically never close this fd, but always flush it
-    }
+	if (file) {
+		FILE *fd = fopen(file, "a");
+		if (fd == nullptr) {
+			perror("fopen() failed");
+			panic("Could not open logfile %s", file);	//we can panic in InitLog (will dump to stderr)
+		}
+		logFdOut = fd;
+		logFdErr = fd;
+		//NOTE: We technically never close this fd, but always flush it
+	}
 }
 
-void __log_lock() {futex_lock(&log_printLock);}
-void __log_unlock() {futex_unlock(&log_printLock);}
-
+void __log_lock() {
+	futex_lock(&log_printLock);
+}
+void __log_unlock() {
+	futex_unlock(&log_printLock);
+}

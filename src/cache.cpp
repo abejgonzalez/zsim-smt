@@ -30,112 +30,118 @@
 #include "timing_event.h"
 #include "zsim.h"
 
-Cache::Cache(uint32_t _numLines, CC* _cc, CacheArray* _array, ReplPolicy* _rp, uint32_t _accLat, uint32_t _invLat, const g_string& _name)
-    : cc(_cc), array(_array), rp(_rp), numLines(_numLines), accLat(_accLat), invLat(_invLat), name(_name) {}
-
-const char* Cache::getName() {
-    return name.c_str();
+Cache::Cache(uint32_t _numLines, CC * _cc, CacheArray * _array, ReplPolicy * _rp, uint32_t _accLat, uint32_t _invLat,
+	     const g_string & _name)
+:cc(_cc), array(_array), rp(_rp), numLines(_numLines), accLat(_accLat), invLat(_invLat), name(_name) {
 }
 
-void Cache::setParents(uint32_t childId, const g_vector<MemObject*>& parents, Network* network) {
-    cc->setParents(childId, parents, network);
+const char *Cache::getName() {
+	return name.c_str();
 }
 
-void Cache::setChildren(const g_vector<BaseCache*>& children, Network* network) {
-    cc->setChildren(children, network);
+void Cache::setParents(uint32_t childId, const g_vector < MemObject * >&parents, Network * network) {
+	cc->setParents(childId, parents, network);
 }
 
-void Cache::initStats(AggregateStat* parentStat) {
-    AggregateStat* cacheStat = new AggregateStat();
-    cacheStat->init(name.c_str(), "Cache stats");
-    initCacheStats(cacheStat);
-    parentStat->append(cacheStat);
+void Cache::setChildren(const g_vector < BaseCache * >&children, Network * network) {
+	cc->setChildren(children, network);
 }
 
-void Cache::initCacheStats(AggregateStat* cacheStat) {
-    cc->initStats(cacheStat);
-    array->initStats(cacheStat);
-    rp->initStats(cacheStat);
+void Cache::initStats(AggregateStat * parentStat) {
+	AggregateStat *cacheStat = new AggregateStat();
+	cacheStat->init(name.c_str(), "Cache stats");
+	initCacheStats(cacheStat);
+	parentStat->append(cacheStat);
 }
 
-uint64_t Cache::access(MemReq& req) {
-    uint64_t respCycle = req.cycle;
-    bool skipAccess = cc->startAccess(req); //may need to skip access due to races (NOTE: may change req.type!)
-    if (likely(!skipAccess)) {
-        bool updateReplacement = (req.type == GETS) || (req.type == GETX);
-        int32_t lineId = array->lookup(req.lineAddr, &req, updateReplacement);
-        respCycle += accLat;
+void Cache::initCacheStats(AggregateStat * cacheStat) {
+	cc->initStats(cacheStat);
+	array->initStats(cacheStat);
+	rp->initStats(cacheStat);
+}
 
-        if (lineId == -1 && cc->shouldAllocate(req)) {
-            //Make space for new line
-            Address wbLineAddr;
-            lineId = array->preinsert(req.lineAddr, &req, &wbLineAddr); //find the lineId to replace
-            trace(Cache, "[%s] Evicting 0x%lx", name.c_str(), wbLineAddr);
+uint64_t Cache::access(MemReq & req) {
+	uint64_t respCycle = req.cycle;
+	bool skipAccess = cc->startAccess(req);	//may need to skip access due to races (NOTE: may change req.type!)
+	if (likely(!skipAccess)) {
+		bool updateReplacement = (req.type == GETS) || (req.type == GETX);
+		int32_t lineId = array->lookup(req.lineAddr, &req, updateReplacement);
+		respCycle += accLat;
 
-            //Evictions are not in the critical path in any sane implementation -- we do not include their delays
-            //NOTE: We might be "evicting" an invalid line for all we know. Coherence controllers will know what to do
-            cc->processEviction(req, wbLineAddr, lineId, respCycle); //1. if needed, send invalidates/downgrades to lower level
+		if (lineId == -1 && cc->shouldAllocate(req)) {
+			//Make space for new line
+			Address wbLineAddr;
+			lineId = array->preinsert(req.lineAddr, &req, &wbLineAddr);	//find the lineId to replace
+			trace(Cache, "[%s] Evicting 0x%lx", name.c_str(), wbLineAddr);
 
-            array->postinsert(req.lineAddr, &req, lineId); //do the actual insertion. NOTE: Now we must split insert into a 2-phase thing because cc unlocks us.
-        }
-        // Enforce single-record invariant: Writeback access may have a timing
-        // record. If so, read it.
-        EventRecorder* evRec = zinfo->eventRecorders[req.srcId];
-        TimingRecord wbAcc;
-        wbAcc.clear();
-        if (unlikely(evRec && evRec->hasRecord())) {
-            wbAcc = evRec->popRecord();
-        }
+			//Evictions are not in the critical path in any sane implementation -- we do not include their delays
+			//NOTE: We might be "evicting" an invalid line for all we know. Coherence controllers will know what to do
+			cc->processEviction(req, wbLineAddr, lineId, respCycle);	//1. if needed, send invalidates/downgrades to lower level
 
-        respCycle = cc->processAccess(req, lineId, respCycle);
+			array->postinsert(req.lineAddr, &req, lineId);	//do the actual insertion. NOTE: Now we must split insert into a 2-phase thing because cc unlocks us.
+		}
+		// Enforce single-record invariant: Writeback access may have a timing
+		// record. If so, read it.
+		EventRecorder *evRec = zinfo->eventRecorders[req.srcId];
+		TimingRecord wbAcc;
+		wbAcc.clear();
+		if (unlikely(evRec && evRec->hasRecord())) {
+			wbAcc = evRec->popRecord();
+		}
 
-        // Access may have generated another timing record. If *both* access
-        // and wb have records, stitch them together
-        if (unlikely(wbAcc.isValid())) {
-            if (!evRec->hasRecord()) {
-                // Downstream should not care about endEvent for PUTs
-                wbAcc.endEvent = nullptr;
-                evRec->pushRecord(wbAcc);
-            } else {
-                // Connect both events
-                TimingRecord acc = evRec->popRecord();
-                assert(wbAcc.reqCycle >= req.cycle);
-                assert(acc.reqCycle >= req.cycle);
-                DelayEvent* startEv = new (evRec) DelayEvent(0);
-                DelayEvent* dWbEv = new (evRec) DelayEvent(wbAcc.reqCycle - req.cycle);
-                DelayEvent* dAccEv = new (evRec) DelayEvent(acc.reqCycle - req.cycle);
-                startEv->setMinStartCycle(req.cycle);
-                dWbEv->setMinStartCycle(req.cycle);
-                dAccEv->setMinStartCycle(req.cycle);
-                startEv->addChild(dWbEv, evRec)->addChild(wbAcc.startEvent, evRec);
-                startEv->addChild(dAccEv, evRec)->addChild(acc.startEvent, evRec);
+		respCycle = cc->processAccess(req, lineId, respCycle);
 
-                acc.reqCycle = req.cycle;
-                acc.startEvent = startEv;
-                // endEvent / endCycle stay the same; wbAcc's endEvent not connected
-                evRec->pushRecord(acc);
-            }
-        }
-    }
+		// Access may have generated another timing record. If *both* access
+		// and wb have records, stitch them together
+		if (unlikely(wbAcc.isValid())) {
+			if (!evRec->hasRecord()) {
+				// Downstream should not care about endEvent for PUTs
+				wbAcc.endEvent = nullptr;
+				evRec->pushRecord(wbAcc);
+			} else {
+				// Connect both events
+				TimingRecord acc = evRec->popRecord();
+				assert(wbAcc.reqCycle >= req.cycle);
+				assert(acc.reqCycle >= req.cycle);
+				DelayEvent *startEv = new(evRec) DelayEvent(0);
+				DelayEvent *dWbEv = new(evRec) DelayEvent(wbAcc.reqCycle - req.cycle);
+				DelayEvent *dAccEv = new(evRec) DelayEvent(acc.reqCycle - req.cycle);
+				startEv->setMinStartCycle(req.cycle);
+				dWbEv->setMinStartCycle(req.cycle);
+				dAccEv->setMinStartCycle(req.cycle);
+				startEv->addChild(dWbEv, evRec)->addChild(wbAcc.startEvent, evRec);
+				startEv->addChild(dAccEv, evRec)->addChild(acc.startEvent, evRec);
 
-    cc->endAccess(req);
+				acc.reqCycle = req.cycle;
+				acc.startEvent = startEv;
+				// endEvent / endCycle stay the same; wbAcc's endEvent not connected
+				evRec->pushRecord(acc);
+			}
+		}
+	}
 
-    assert_msg(respCycle >= req.cycle, "[%s] resp < req? 0x%lx type %s childState %s, respCycle %ld reqCycle %ld",
-            name.c_str(), req.lineAddr, AccessTypeName(req.type), MESIStateName(*req.state), respCycle, req.cycle);
-    return respCycle;
+	cc->endAccess(req);
+
+	assert_msg(respCycle >= req.cycle, "[%s] resp < req? 0x%lx type %s childState %s, respCycle %ld reqCycle %ld",
+		   name.c_str(), req.lineAddr, AccessTypeName(req.type), MESIStateName(*req.state), respCycle,
+		   req.cycle);
+	return respCycle;
 }
 
 void Cache::startInvalidate() {
-    cc->startInv(); //note we don't grab tcc; tcc serializes multiple up accesses, down accesses don't see it
+	cc->startInv();		//note we don't grab tcc; tcc serializes multiple up accesses, down accesses don't see it
 }
 
-uint64_t Cache::finishInvalidate(const InvReq& req) {
-    int32_t lineId = array->lookup(req.lineAddr, nullptr, false);
-    assert_msg(lineId != -1, "[%s] Invalidate on non-existing address 0x%lx type %s lineId %d, reqWriteback %d", name.c_str(), req.lineAddr, InvTypeName(req.type), lineId, *req.writeback);
-    uint64_t respCycle = req.cycle + invLat;
-    trace(Cache, "[%s] Invalidate start 0x%lx type %s lineId %d, reqWriteback %d", name.c_str(), req.lineAddr, InvTypeName(req.type), lineId, *req.writeback);
-    respCycle = cc->processInv(req, lineId, respCycle); //send invalidates or downgrades to children, and adjust our own state
-    trace(Cache, "[%s] Invalidate end 0x%lx type %s lineId %d, reqWriteback %d, latency %ld", name.c_str(), req.lineAddr, InvTypeName(req.type), lineId, *req.writeback, respCycle - req.cycle);
+uint64_t Cache::finishInvalidate(const InvReq & req) {
+	int32_t lineId = array->lookup(req.lineAddr, nullptr, false);
+	assert_msg(lineId != -1, "[%s] Invalidate on non-existing address 0x%lx type %s lineId %d, reqWriteback %d",
+		   name.c_str(), req.lineAddr, InvTypeName(req.type), lineId, *req.writeback);
+	uint64_t respCycle = req.cycle + invLat;
+	trace(Cache, "[%s] Invalidate start 0x%lx type %s lineId %d, reqWriteback %d", name.c_str(), req.lineAddr,
+	      InvTypeName(req.type), lineId, *req.writeback);
+	respCycle = cc->processInv(req, lineId, respCycle);	//send invalidates or downgrades to children, and adjust our own state
+	trace(Cache, "[%s] Invalidate end 0x%lx type %s lineId %d, reqWriteback %d, latency %ld", name.c_str(),
+	      req.lineAddr, InvTypeName(req.type), lineId, *req.writeback, respCycle - req.cycle);
 
-    return respCycle;
+	return respCycle;
 }

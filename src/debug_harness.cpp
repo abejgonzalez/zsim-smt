@@ -40,23 +40,25 @@
  * seem to be conflicts between those and some system headers.
  */
 
-int launchXtermDebugger(int targetPid, LibInfo* libzsimAddrs) {
-    int childPid = fork();
-    if (childPid == 0) {
-        std::string targetPidStr = Str(targetPid);
-        char symbolCmdStr[2048];
-        snprintf(symbolCmdStr, sizeof(symbolCmdStr), "add-symbol-file %s %p -s .data %p -s .bss %p", QUOTED(ZSIM_PATH), libzsimAddrs->textAddr, libzsimAddrs->dataAddr, libzsimAddrs->bssAddr);
+int launchXtermDebugger(int targetPid, LibInfo * libzsimAddrs) {
+	int childPid = fork();
+	if (childPid == 0) {
+		std::string targetPidStr = Str(targetPid);
+		char symbolCmdStr[2048];
+		snprintf(symbolCmdStr, sizeof(symbolCmdStr), "add-symbol-file %s %p -s .data %p -s .bss %p",
+			 QUOTED(ZSIM_PATH), libzsimAddrs->textAddr, libzsimAddrs->dataAddr, libzsimAddrs->bssAddr);
 
-        const char* const args[] = {"xterm", "-e", "gdb", "-p", targetPidStr.c_str(),
-            "-ex", "set confirm off", //we know what we're doing in the following 2 commands
-            "-ex", symbolCmdStr,
-            "-ex", "handle SIGTRAP nostop noprint", // For some reason we receive a lot of spurious sigtraps
-            "-ex", "set confirm on", //reenable confirmations
-            "-ex", "c", //start running
-            nullptr};
-        execvp(args[0], (char* const*)args);
-        panic("shouldn't reach this...");
-    } else {
-        return childPid;
-    }
+		const char *const args[] = { "xterm", "-e", "gdb", "-p", targetPidStr.c_str(),
+			"-ex", "set confirm off",	//we know what we're doing in the following 2 commands
+			"-ex", symbolCmdStr,
+			"-ex", "handle SIGTRAP nostop noprint",	// For some reason we receive a lot of spurious sigtraps
+			"-ex", "set confirm on",	//reenable confirmations
+			"-ex", "c",	//start running
+			nullptr
+		};
+		execvp(args[0], (char *const *)args);
+		panic("shouldn't reach this...");
+	} else {
+		return childPid;
+	}
 }

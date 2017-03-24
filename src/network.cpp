@@ -31,51 +31,51 @@
 using std::ifstream;
 using std::string;
 
-Network::Network(const char* filename) {
-    ifstream inFile(filename);
+Network::Network(const char *filename) {
+	ifstream inFile(filename);
 
-    if (!inFile) {
-        panic("Could not open network description file %s", filename);
-    }
+	if (!inFile) {
+		panic("Could not open network description file %s", filename);
+	}
 
-    while (inFile.good()) {
-        string src, dst;
-        uint32_t delay;
-        inFile >> src;
-        inFile >> dst;
-        inFile >> delay;
+	while (inFile.good()) {
+		string src, dst;
+		uint32_t delay;
+		inFile >> src;
+		inFile >> dst;
+		inFile >> delay;
 
-        if (inFile.eof()) break;
+		if (inFile.eof())
+			break;
 
-        string s1 = src + " " + dst;
-        string s2 = dst + " " + src;
+		string s1 = src + " " + dst;
+		string s2 = dst + " " + src;
 
-        assert((delayMap.find(s1) == delayMap.end()));
-        assert((delayMap.find(s2) == delayMap.end()));
+		assert((delayMap.find(s1) == delayMap.end()));
+		assert((delayMap.find(s2) == delayMap.end()));
 
-        delayMap[s1] = delay;
-        delayMap[s2] = delay;
+		delayMap[s1] = delay;
+		delayMap[s2] = delay;
 
-        //info("Parsed %s %s %d", src.c_str(), dst.c_str(), delay);
-    }
+		//info("Parsed %s %s %d", src.c_str(), dst.c_str(), delay);
+	}
 
-    inFile.close();
+	inFile.close();
 }
 
-uint32_t Network::getRTT(const char* src, const char* dst) {
-    string key(src);
-    key += " ";
-    key += dst;
+uint32_t Network::getRTT(const char *src, const char *dst) {
+	string key(src);
+	key += " ";
+	key += dst;
 /* dsm: Be sloppy, deadline deadline deadline
     assert_msg(delayMap.find(key) != delayMap.end(), "%s and %s cannot communicate, according to the network description file", src, dst);
     return 2*delayMap[key];
     */
 
-    if (delayMap.find(key) != delayMap.end()) {
-        return 2*delayMap[key];
-    } else {
-        warn("%s and %s have no entry in network description file, returning 0 latency", src, dst);
-        return 0;
-    }
+	if (delayMap.find(key) != delayMap.end()) {
+		return 2 * delayMap[key];
+	} else {
+		warn("%s and %s have no entry in network description file, returning 0 latency", src, dst);
+		return 0;
+	}
 }
-

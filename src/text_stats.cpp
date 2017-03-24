@@ -32,57 +32,55 @@
 
 using std::endl;
 
-class TextBackendImpl : public GlobAlloc {
-    private:
-        const char* filename;
-        AggregateStat* rootStat;
+class TextBackendImpl:public GlobAlloc {
+ private:
+	const char *filename;
+	AggregateStat *rootStat;
 
-        void dumpStat(Stat* s, uint32_t level, std::ofstream* out) {
-            for (uint32_t i = 0; i < level; i++) *out << " ";
-            *out << s->name() << ": ";
-            if (AggregateStat* as = dynamic_cast<AggregateStat*>(s)) {
-                *out << "# " << as->desc() << endl;
-                for (uint32_t i = 0; i < as->size(); i++) {
-                    dumpStat(as->get(i), level+1, out);
-                }
-            } else if (ScalarStat* ss = dynamic_cast<ScalarStat*>(s)) {
-                *out << ss->get() << " # " << ss->desc() << endl;
-            } else if (VectorStat* vs = dynamic_cast<VectorStat*>(s)) {
-                *out << "# " << vs->desc() << endl;
-                for (uint32_t i = 0; i < vs->size(); i++) {
-                    for (uint32_t j = 0; j < level+1; j++) *out << " ";
-                    if (vs->hasCounterNames()) {
-                        *out << vs->counterName(i) << ": " << vs->count(i) << endl;
-                    } else {
-                        *out << i << ": " << vs->count(i) << endl;
-                    }
-                }
-            } else {
-                panic("Unrecognized stat type");
-            }
-        }
+	void dumpStat(Stat * s, uint32_t level, std::ofstream * out) {
+		for (uint32_t i = 0; i < level; i++)
+			*out << " ";
+		*out << s->name() << ": ";
+		if (AggregateStat * as = dynamic_cast < AggregateStat * >(s)) {
+			*out << "# " << as->desc() << endl;
+			for (uint32_t i = 0; i < as->size(); i++) {
+				dumpStat(as->get(i), level + 1, out);
+		}} else if (ScalarStat * ss = dynamic_cast < ScalarStat * >(s)) {
+			*out << ss->get() << " # " << ss->desc() << endl;
+		} else if (VectorStat * vs = dynamic_cast < VectorStat * >(s)) {
+			*out << "# " << vs->desc() << endl;
+			for (uint32_t i = 0; i < vs->size(); i++) {
+				for (uint32_t j = 0; j < level + 1; j++)
+					*out << " ";
+				if (vs->hasCounterNames()) {
+					*out << vs->counterName(i) << ": " << vs->count(i) << endl;
+				} else {
+					*out << i << ": " << vs->count(i) << endl;
+				}
+			}
+		} else {
+			panic("Unrecognized stat type");
+		}
+	}
 
-    public:
-        TextBackendImpl(const char* _filename, AggregateStat* _rootStat) :
-            filename(_filename), rootStat(_rootStat)
-        {
-            std::ofstream out(filename, std::ios_base::out);
-            out << "# zsim stats" << endl;
-            out << "===" << endl;
-        }
+ public:
+	TextBackendImpl(const char *_filename, AggregateStat * _rootStat):filename(_filename), rootStat(_rootStat) {
+		std::ofstream out(filename, std::ios_base::out);
+		out << "# zsim stats" << endl;
+		out << "===" << endl;
+	}
 
-        void dump(bool buffered) {
-            std::ofstream out(filename, std::ios_base::app);
-            dumpStat(rootStat, 0, &out);
-            out << "===" << endl;
-        }
+	void dump(bool buffered) {
+		std::ofstream out(filename, std::ios_base::app);
+		dumpStat(rootStat, 0, &out);
+		out << "===" << endl;
+	}
 };
 
-TextBackend::TextBackend(const char* filename, AggregateStat* rootStat) {
-    backend = new TextBackendImpl(filename, rootStat);
+TextBackend::TextBackend(const char *filename, AggregateStat * rootStat) {
+	backend = new TextBackendImpl(filename, rootStat);
 }
 
 void TextBackend::dump(bool buffered) {
-    backend->dump(buffered);
+	backend->dump(buffered);
 }
-

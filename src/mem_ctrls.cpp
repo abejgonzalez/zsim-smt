@@ -28,24 +28,25 @@
 #include "mem_ctrls.h"
 #include "zsim.h"
 
-uint64_t SimpleMemory::access(MemReq& req) {
-    switch (req.type) {
-        case PUTS:
-        case PUTX:
-            *req.state = I;
-            break;
-        case GETS:
-            *req.state = req.is(MemReq::NOEXCL)? S : E;
-            break;
-        case GETX:
-            *req.state = M;
-            break;
+uint64_t SimpleMemory::access(MemReq & req) {
+	switch (req.type) {
+	 case PUTS:
+	 case PUTX:
+		 *req.state = I;
+		 break;
+	 case GETS:
+		 *req.state = req.is(MemReq::NOEXCL) ? S : E;
+		 break;
+	 case GETX:
+		 *req.state = M;
+		 break;
 
-        default: panic("!?");
-    }
+	 default:
+		 panic("!?");
+	}
 
-    uint64_t respCycle = req.cycle + latency;
-    assert(respCycle > req.cycle);
+	uint64_t respCycle = req.cycle + latency;
+	assert(respCycle > req.cycle);
 /*
     if ((req.type == GETS || req.type == GETX) && eventRecorders[req.srcId]) {
         Address addr = req.lineAddr<<lineBits;
@@ -54,94 +55,92 @@ uint64_t SimpleMemory::access(MemReq& req) {
         eventRecorders[req.srcId]->pushRecord(tr);
     }
 */
-    return respCycle;
+	return respCycle;
 }
 
+MD1Memory::MD1Memory(uint32_t requestSize, uint32_t megacyclesPerSecond, uint32_t megabytesPerSecond,
+		     uint32_t _zeroLoadLatency, g_string & _name)
+ : zeroLoadLatency(_zeroLoadLatency), name(_name) {
+	lastPhase = 0;
 
+	double bytesPerCycle = ((double)megabytesPerSecond) / ((double)megacyclesPerSecond);
+	maxRequestsPerCycle = bytesPerCycle / requestSize;
+	assert(maxRequestsPerCycle > 0.0);
 
+	zeroLoadLatency = _zeroLoadLatency;
 
-MD1Memory::MD1Memory(uint32_t requestSize, uint32_t megacyclesPerSecond, uint32_t megabytesPerSecond, uint32_t _zeroLoadLatency, g_string& _name)
-    : zeroLoadLatency(_zeroLoadLatency), name(_name)
-{
-    lastPhase = 0;
+	smoothedPhaseAccesses = 0.0;
+	curPhaseAccesses = 0;
+	curLatency = zeroLoadLatency;
 
-    double bytesPerCycle = ((double)megabytesPerSecond)/((double)megacyclesPerSecond);
-    maxRequestsPerCycle = bytesPerCycle/requestSize;
-    assert(maxRequestsPerCycle > 0.0);
-
-    zeroLoadLatency = _zeroLoadLatency;
-
-    smoothedPhaseAccesses = 0.0;
-    curPhaseAccesses = 0;
-    curLatency = zeroLoadLatency;
-
-    futex_init(&updateLock);
+	futex_init(&updateLock);
 }
 
 void MD1Memory::updateLatency() {
-    uint32_t phaseCycles = (zinfo->numPhases - lastPhase)*(zinfo->phaseLength);
-    if (phaseCycles < 10000) return; //Skip with short phases
+	uint32_t phaseCycles = (zinfo->numPhases - lastPhase) * (zinfo->phaseLength);
+	if (phaseCycles < 10000)
+		return;		//Skip with short phases
 
-    smoothedPhaseAccesses =  (curPhaseAccesses*0.5) + (smoothedPhaseAccesses*0.5);
-    double requestsPerCycle = smoothedPhaseAccesses/((double)phaseCycles);
-    double load = requestsPerCycle/maxRequestsPerCycle;
+	smoothedPhaseAccesses = (curPhaseAccesses * 0.5) + (smoothedPhaseAccesses * 0.5);
+	double requestsPerCycle = smoothedPhaseAccesses / ((double)phaseCycles);
+	double load = requestsPerCycle / maxRequestsPerCycle;
 
-    //Clamp load
-    if (load > 0.95) {
-        //warn("MC: Load exceeds limit, %f, clamping, curPhaseAccesses %d, smoothed %f, phase %ld", load, curPhaseAccesses, smoothedPhaseAccesses, zinfo->numPhases);
-        load = 0.95;
-        profClampedLoads.inc();
-    }
+	//Clamp load
+	if (load > 0.95) {
+		//warn("MC: Load exceeds limit, %f, clamping, curPhaseAccesses %d, smoothed %f, phase %ld", load, curPhaseAccesses, smoothedPhaseAccesses, zinfo->numPhases);
+		load = 0.95;
+		profClampedLoads.inc();
+	}
 
-    double latMultiplier = 1.0 + 0.5*load/(1.0 - load); //See Pollancek-Khinchine formula
-    curLatency = (uint32_t)(latMultiplier*zeroLoadLatency);
+	double latMultiplier = 1.0 + 0.5 * load / (1.0 - load);	//See Pollancek-Khinchine formula
+	curLatency = (uint32_t) (latMultiplier * zeroLoadLatency);
 
-    //info("%s: Load %.2f, latency multiplier %.2f, latency %d", name.c_str(), load, latMultiplier, curLatency);
-    uint32_t intLoad = (uint32_t)(load*100.0);
-    profLoad.inc(intLoad);
-    profUpdates.inc();
+	//info("%s: Load %.2f, latency multiplier %.2f, latency %d", name.c_str(), load, latMultiplier, curLatency);
+	uint32_t intLoad = (uint32_t) (load * 100.0);
+	profLoad.inc(intLoad);
+	profUpdates.inc();
 
-    curPhaseAccesses = 0;
-    __sync_synchronize();
-    lastPhase = zinfo->numPhases;
+	curPhaseAccesses = 0;
+	__sync_synchronize();
+	lastPhase = zinfo->numPhases;
 }
 
-uint64_t MD1Memory::access(MemReq& req) {
-    if (zinfo->numPhases > lastPhase) {
-        futex_lock(&updateLock);
-        //Recheck, someone may have updated already
-        if (zinfo->numPhases > lastPhase) {
-            updateLatency();
-        }
-        futex_unlock(&updateLock);
-    }
+uint64_t MD1Memory::access(MemReq & req) {
+	if (zinfo->numPhases > lastPhase) {
+		futex_lock(&updateLock);
+		//Recheck, someone may have updated already
+		if (zinfo->numPhases > lastPhase) {
+			updateLatency();
+		}
+		futex_unlock(&updateLock);
+	}
 
-    switch (req.type) {
-        case PUTX:
-            //Dirty wback
-            profWrites.atomicInc();
-            profTotalWrLat.atomicInc(curLatency);
-            __sync_fetch_and_add(&curPhaseAccesses, 1);
-            //Note no break
-        case PUTS:
-            //Not a real access -- memory must treat clean wbacks as if they never happened.
-            *req.state = I;
-            break;
-        case GETS:
-            profReads.atomicInc();
-            profTotalRdLat.atomicInc(curLatency);
-            __sync_fetch_and_add(&curPhaseAccesses, 1);
-            *req.state = req.is(MemReq::NOEXCL)? S : E;
-            break;
-        case GETX:
-            profReads.atomicInc();
-            profTotalRdLat.atomicInc(curLatency);
-            __sync_fetch_and_add(&curPhaseAccesses, 1);
-            *req.state = M;
-            break;
+	switch (req.type) {
+	 case PUTX:
+		 //Dirty wback
+		 profWrites.atomicInc();
+		 profTotalWrLat.atomicInc(curLatency);
+		 __sync_fetch_and_add(&curPhaseAccesses, 1);
+		 //Note no break
+	 case PUTS:
+		 //Not a real access -- memory must treat clean wbacks as if they never happened.
+		 *req.state = I;
+		 break;
+	 case GETS:
+		 profReads.atomicInc();
+		 profTotalRdLat.atomicInc(curLatency);
+		 __sync_fetch_and_add(&curPhaseAccesses, 1);
+		 *req.state = req.is(MemReq::NOEXCL) ? S : E;
+		 break;
+	 case GETX:
+		 profReads.atomicInc();
+		 profTotalRdLat.atomicInc(curLatency);
+		 __sync_fetch_and_add(&curPhaseAccesses, 1);
+		 *req.state = M;
+		 break;
 
-        default: panic("!?");
-    }
-    return req.cycle + ((req.type == PUTS)? 0 /*PUTS is not a real access*/ : curLatency);
+	 default:
+		 panic("!?");
+	}
+	return req.cycle + ((req.type == PUTS) ? 0 /*PUTS is not a real access */ : curLatency);
 }
-
