@@ -1,4 +1,4 @@
-SRC = $(wildcard *.cpp)
+WSRC = $(wildcard *.cpp)
 BACKUP = $(SRC:.cpp=.cpp~)
 
 format: 

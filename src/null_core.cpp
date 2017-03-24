@@ -26,70 +26,61 @@
 #include "null_core.h"
 #include "zsim.h"
 
- NullCore::NullCore(g_string & _name):Core(_name), instrs(0), curCycle(0), phaseEndCycle(0) {
+NullCore::NullCore(g_string& _name) : Core(_name), instrs(0), curCycle(0), phaseEndCycle(0) {}
+
+void NullCore::initStats(AggregateStat* parentStat) {
+    AggregateStat* coreStat = new AggregateStat();
+    coreStat->init(name.c_str(), "Core stats");
+    ProxyStat* cyclesStat = new ProxyStat();
+    cyclesStat->init("cycles", "Simulated cycles", &instrs); //simulated instrs == simulated cycles; curCycle can be skewed forward
+    ProxyStat* instrsStat = new ProxyStat();
+    instrsStat->init("instrs", "Simulated instructions", &instrs);
+    coreStat->append(cyclesStat);
+    coreStat->append(instrsStat);
+    parentStat->append(coreStat);
 }
 
-void NullCore::initStats(AggregateStat * parentStat) {
-	AggregateStat *coreStat = new AggregateStat();
-	coreStat->init(name.c_str(), "Core stats");
-	ProxyStat *cyclesStat = new ProxyStat();
-	cyclesStat->init("cycles", "Simulated cycles", &instrs);	//simulated instrs == simulated cycles; curCycle can be skewed forward
-	ProxyStat *instrsStat = new ProxyStat();
-	instrsStat->init("instrs", "Simulated instructions", &instrs);
-	coreStat->append(cyclesStat);
-	coreStat->append(instrsStat);
-	parentStat->append(coreStat);
+uint64_t NullCore::getPhaseCycles() const {
+    return curCycle - zinfo->globPhaseCycles;
 }
 
-uint64_t NullCore::getPhaseCycles() const const {
-	return curCycle - zinfo->globPhaseCycles;
+void NullCore::bbl(BblInfo* bblInfo) {
+    instrs += bblInfo->instrs;
+    curCycle += bblInfo->instrs;
 }
 
-void NullCore::bbl(BblInfo * bblInfo) {
-	instrs += bblInfo->instrs;
-	curCycle += bblInfo->instrs;
-}
-
-void NullCore::contextSwitch(int32_t gid) {
-}
+void NullCore::contextSwitch(int32_t gid) {}
 
 void NullCore::join() {
-	curCycle = MAX(curCycle, zinfo->globPhaseCycles);
-	phaseEndCycle = zinfo->globPhaseCycles + zinfo->phaseLength;
+    curCycle = MAX(curCycle, zinfo->globPhaseCycles);
+    phaseEndCycle = zinfo->globPhaseCycles + zinfo->phaseLength;
 }
 
 //Static class functions: Function pointers and trampolines
 
 InstrFuncPtrs NullCore::GetFuncPtrs() {
-	return {
-		LoadFunc, StoreFunc, BblFunc, BranchFunc, PredLoadFunc, PredStoreFunc, FPTR_ANALYSIS, {
-		0}
-	};
+    return {LoadFunc, StoreFunc, BblFunc, BranchFunc, PredLoadFunc, PredStoreFunc, FPTR_ANALYSIS, {0}};
 }
 
-void NullCore::LoadFunc(THREADID tid, ADDRINT addr) {
-}
-void NullCore::StoreFunc(THREADID tid, ADDRINT addr) {
-}
-void NullCore::PredLoadFunc(THREADID tid, ADDRINT addr, BOOL pred) {
-}
-void NullCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
+void NullCore::LoadFunc(THREADID tid, ADDRINT addr) {}
+void NullCore::StoreFunc(THREADID tid, ADDRINT addr) {}
+void NullCore::PredLoadFunc(THREADID tid, ADDRINT addr, BOOL pred) {}
+void NullCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {}
+
+void NullCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
+    NullCore* core = static_cast<NullCore*>(cores[tid]);
+    core->bbl(bblInfo);
+
+    while (unlikely(core->curCycle > core->phaseEndCycle)) {
+        assert(core->phaseEndCycle == zinfo->globPhaseCycles + zinfo->phaseLength);
+        core->phaseEndCycle += zinfo->phaseLength;
+
+        uint32_t cid = getCid(tid);
+        //NOTE: TakeBarrier may take ownership of the core, and so it will be used by some other thread. If TakeBarrier context-switches us,
+        //the *only* safe option is to return inmmediately after we detect this, or we can race and corrupt core state. If newCid == cid,
+        //we're not at risk of racing, even if we were switched out and then switched in.
+        uint32_t newCid = TakeBarrier(tid, cid);
+        if (newCid != cid) break; /*context-switch*/
+    }
 }
 
-void NullCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo * bblInfo) {
-	NullCore *core = static_cast < NullCore * >(cores[tid]);
-	core->bbl(bblInfo);
-
-	while (unlikely(core->curCycle > core->phaseEndCycle)) {
-		assert(core->phaseEndCycle == zinfo->globPhaseCycles + zinfo->phaseLength);
-		core->phaseEndCycle += zinfo->phaseLength;
-
-		uint32_t cid = getCid(tid);
-		//NOTE: TakeBarrier may take ownership of the core, and so it will be used by some other thread. If TakeBarrier context-switches us,
-		//the *only* safe option is to return inmmediately after we detect this, or we can race and corrupt core state. If newCid == cid,
-		//we're not at risk of racing, even if we were switched out and then switched in.
-		uint32_t newCid = TakeBarrier(tid, cid);
-		if (newCid != cid)
-			break;	/*context-switch */
-	}
-}
