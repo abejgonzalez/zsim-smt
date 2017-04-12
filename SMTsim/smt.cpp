@@ -77,7 +77,18 @@ int main(){
     printf("How many cycles: ");
     scanf("%d", &cycles);
     thread threads[count];
-    int execution[count] = {0, 0, 0, 0};
+    int execution[count];
+    if (count > 2){
+        execution[0] = 0;
+        execution[1] = 0;
+        execution[2] = 0;
+        execution[3] = 0;
+        
+    }
+    else {
+        execution[0] = 0;
+        execution[1] = 0;
+    }
     for (int i = 0; i < count; i++){
         if (i == 0){
             threads[i].setpriority(priority);
@@ -122,8 +133,13 @@ int main(){
     printf("Number of Instructions Run for each Thread\n");
     printf("w: %d ", execution[0]);
     printf("x: %d ", execution[1]);
-    printf("y: %d ", execution[2]);
-    printf("z: %d\n", execution[3]);
-    printf("Total instructions run: %d\n", (execution[0]+execution[1]+execution[2]+execution[3]));
+    if (count > 2){
+        printf("y: %d ", execution[2]);
+        printf("z: %d\n", execution[3]);
+        printf("Total instructions run: %d\n", (execution[0]+execution[1]+execution[2]+execution[3]));
+    }
+    else {
+        printf("Total instructions run: %d\n", (execution[0]+execution[1]));
+    }
     return 0;
 }
