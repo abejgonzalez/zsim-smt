@@ -1,0 +1,2 @@
+kernel.shmmax = 1073741824
+kernel.yama.ptrace_scope = 0

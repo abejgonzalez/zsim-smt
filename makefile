@@ -3,6 +3,11 @@ CONFIGURE = ./configure.sh
 SCONS = ${SCONSPATH}/bin/scons
 SCONSFLAGS = -j12
 
+# testing
+TESTDIR = ./tests
+TEST = $(TESTDIR)/oooe.cfg
+ZSIM = zsim
+
 # outputs
 BUILDDIR = build/
 LIBDIR = lib/
@@ -15,6 +20,10 @@ build: src/
 
 clean:
 	$(RM) -rf  $(BUILDDIR) $(LIBDIR) $(OUTPUT)
+
+
+test: $(TEST)
+	$(ZSIM) $(TEST)	
 
 test-clean:
 	$(RM) -rf  $(OUTPUT)

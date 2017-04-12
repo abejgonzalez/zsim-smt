@@ -363,6 +363,7 @@ int main(int argc, char *argv[]) {
 	if (removedLogfiles)
 		info("Removed %d old logfiles", removedLogfiles);
 
+	/** setting up globally managed memory. ZSIM has its own implementation of malloc, calloc, and free */
 	uint32_t gmSize = conf.get < uint32_t > ("sim.gmMBytes", (1 << 10) /*default 1024MB */ );
 	info("Creating global segment, %d MBs", gmSize);
 	int shmid = gm_init(((size_t) gmSize) << 20 /*MB to Bytes */ );
@@ -440,6 +441,7 @@ int main(int argc, char *argv[]) {
 
 		int64_t numPhases = zinfo->numPhases;
 
+		/** Deadlock detection. fastforwarding handled above **/
 		if (deadlockDetection) {
 			if (simShouldAdvance) {
 				//info("In deadlock check zone");
