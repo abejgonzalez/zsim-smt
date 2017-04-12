@@ -22,6 +22,20 @@ void thread::setpriority(float x){
 void thread::setchar(char x){
     sym = x;
 }
+void excount(char *core, int *execution){
+    for (int i = 0; i < count; i++){
+        switch (core[i]) {
+            case 'w' : execution[0] += 1;
+                       break;
+            case 'x' : execution[1] += 1;
+                       break;
+            case 'y' : execution[2] += 1;
+                       break;
+            case 'z' : execution[3] += 1;
+                       break;
+        }
+    }
+}
 
 char arbitrate(thread *threads){
     char x = 0;
@@ -63,6 +77,7 @@ int main(){
     printf("How many cycles: ");
     scanf("%d", &cycles);
     thread threads[count];
+    int execution[count] = {0, 0, 0, 0};
     for (int i = 0; i < count; i++){
         if (i == 0){
             threads[i].setpriority(priority);
@@ -75,8 +90,8 @@ int main(){
         value += 1;
     }
     //printf("%c %c %c %c\n", threads[0].sym, threads[1].sym, threads[2].sym, threads[3].sym);
-    printf("Each column is an exeuction of an instruction\n");
-    printf("%d execution units for this simulation\n", count);
+    printf("Each column is an execution of an instruction\n");
+    printf("%d execution units for this simulation\n\n", count);
     while (cycles) {
         printf("| ");
         for (int j = 0; j < count; j++){
@@ -99,10 +114,16 @@ int main(){
         }
         //printf("%d\n", cycles);
         printf("|\n");
-        
+        excount(core, execution); 
         cycles -= 1 ;
     }
     
     printf("main thread: %c  latency-non-critical threads: %c %c %c\n", threads[0].sym, threads[1].sym, threads[2].sym, threads[3].sym);
+    printf("Number of Instructions Run for each Thread\n");
+    printf("w: %d ", execution[0]);
+    printf("x: %d ", execution[1]);
+    printf("y: %d ", execution[2]);
+    printf("z: %d\n", execution[3]);
+    printf("Total instructions run: %d\n", (execution[0]+execution[1]+execution[2]+execution[3]));
     return 0;
 }
