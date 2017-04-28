@@ -1,9 +1,9 @@
-Running on: goya
-Start time: Wed Apr 26 11:20:27 2017
-Heartbeat time: Wed Apr 26 11:20:35 2017
+Running on: macmaster-linux
+Start time: Thu Apr 27 20:46:28 2017
+Heartbeat time: Thu Apr 27 20:46:49 2017
 Stats since start:
- 428 phases
- 4280000 cycles
- 535000 cycles/s
-Stats since last heartbeat (1493223635s):
+ 401 phases
+ 4010000 cycles
+ 190952 cycles/s
+Stats since last heartbeat (1s):
  0 cycles/s

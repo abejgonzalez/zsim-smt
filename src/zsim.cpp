@@ -522,9 +522,16 @@ uint32_t TakeBarrier(uint32_t tid, uint32_t cid) {
 
 #if 1
 static void PrintIp(THREADID tid, ADDRINT ip) {
+	// OOOE ronny.
+	// print to custom itrace file.
+	std::ostringstream oss;
+	oss << "itrace" << tid << ".txt";
+	FILE *tfile = fopen(oss.str().c_str(), "a+");
+	fprintf(tfile, "[%d] %ld 0x%lx\n", tid, zinfo->globPhaseCycles, ip);
     if (zinfo->globPhaseCycles > 1000000000L /*&& zinfo->globPhaseCycles < 1000030000L*/) {
         info("[%d] %ld 0x%lx", tid, zinfo->globPhaseCycles, ip);
     }
+	fclose(tfile);
 }
 #endif
 

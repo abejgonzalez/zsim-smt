@@ -16,7 +16,7 @@ OUTPUT = *.out *.log *.log.3 *.h5 .scons*
 build: src/
 	$(CONFIGURE)
 	$(SCONS) $(SCONSFLAGS)
-	ln -sf ~/zsim/build/opt/zsim ~/opt/bin/zsim
+	# ln -sf ~/zsim/build/opt/zsim ~/opt/bin/zsim
 
 clean:
 	$(RM) -rf  $(BUILDDIR) $(LIBDIR) $(OUTPUT)
