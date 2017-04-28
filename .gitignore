@@ -33,3 +33,5 @@
 /build
 /benchmarks
 
+# stats / test output
+traces/*

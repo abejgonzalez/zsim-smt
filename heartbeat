@@ -1,9 +1,9 @@
 Running on: macmaster-linux
-Start time: Thu Apr 27 20:46:28 2017
-Heartbeat time: Thu Apr 27 20:46:49 2017
+Start time: Fri Apr 28 06:30:22 2017
+Heartbeat time: Fri Apr 28 06:30:48 2017
 Stats since start:
- 401 phases
- 4010000 cycles
- 190952 cycles/s
-Stats since last heartbeat (1s):
- 0 cycles/s
+ 402 phases
+ 4020000 cycles
+ 154615 cycles/s
+Stats since last heartbeat (6s):
+ 100000 cycles/s

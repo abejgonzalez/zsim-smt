@@ -60,6 +60,8 @@
 #include "trace_driver.h"
 #include "virt/virt.h"
 
+#define ROUTINE_TRACING (true)
+
 //#include <signal.h> //can't include this, conflicts with PIN's
 
 /* Command-line switches (used to pass info from harness that cannot be passed through the config file, most config is file-based) */
@@ -520,12 +522,87 @@ uint32_t TakeBarrier(uint32_t tid, uint32_t cid) {
 
 /* ===================================================================== */
 
+/******************* Routine Analysis ************************************/
+/** Routine instruementation and analysis functions.
+ * Piece together some subroutine data for the simulated program.
+ * analysis functions are called before each subroutine is run.
+ * data is logged to rtntrace${pid}.txt.
+ * reference the pin 2.14 user guide for more info.
+ *
+ * author: ronny
+ */
+
+/** Routine Data Structure.
+ * Holds static data for a routine.
+ * PIN RTN structs are garbage collected between analysis calls.
+ */
+struct RTN_STAT {
+	std::string name;
+	std::string image; // program / library it resides in.
+	ADDRINT address;
+	RTN routine;
+	UINT64 callCount, instrCount;
+	struct RTN_STAT *next;
+};
+
+// increment a counter.
+VOID countUp(UINT64 *count) {
+	*count += 1;
+}
+
+/**
+ * Called before every routine execution.
+ * routine is basically an asm subroutine.
+ * goal is to put together some stats for routine calls.
+ */
+RTN_STAT *RoutineStack = 0;
+VOID Routine(RTN routine, VOID *v){
+	// allocate new routine stat wrapper.
+	RTN_STAT *rs = new RTN_STAT;
+	rs->name = RTN_Name(routine);
+	rs->image = (IMG_Name(SEC_Img(RTN_Sec(routine))).c_str());
+	rs->address = RTN_Address(routine);
+	rs->instrCount = rs->callCount = 0;
+
+	// add to routine stack.
+	rs->next = RoutineStack;
+	RoutineStack = rs; 
+
+	// routine call and instruction count instrumentation.
+	RTN_Open(routine); // start instrumentation. call before routine.
+	RTN_InsertCall(routine, IPOINT_BEFORE, (AFUNPTR)countUp, IARG_PTR, &(rs->callCount), IARG_END);
+	for(INS ins = RTN_InsHead(routine); INS_Valid(ins); ins = INS_Next(ins)){
+		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)countUp, IARG_PTR, &(rs->instrCount), IARG_END);
+	} RTN_Close(routine);
+}
+
+/** 
+ * Called at the end of the program...
+ * Creates the routine log file.
+ */
+VOID RoutineFinish(INT32 code, VOID *v){
+	FILE *rfile = fopen("traces/rtrace.txt", "a+");
+	fprintf(rfile, "\n\n%30s %50s %18s %20s %20s\n", "Routine", "Image", "Address", "Calls", "Insturctions");
+	
+	RTN_STAT *rs = RoutineStack;
+	while(rs){
+		if(rs->callCount > 0)
+			fprintf(rfile, "%30s %50s %17lxH %20ld %20ld\n", rs->name.c_str(), rs->image.c_str(), rs->address, rs->callCount, rs->instrCount);
+		RTN_STAT *old = rs;
+		rs = rs->next;
+		delete old;
+	}
+
+	fclose(rfile);
+}
+
+
 #if 1
 static void PrintIp(THREADID tid, ADDRINT ip) {
 	// OOOE ronny.
 	// print to custom itrace file.
 	std::ostringstream oss;
-	oss << "itrace" << tid << ".txt";
+	oss << "traces/" << "itrace" << tid << ".txt";
 	FILE *tfile = fopen(oss.str().c_str(), "a+");
 	fprintf(tfile, "[%d] %ld 0x%lx\n", tid, zinfo->globPhaseCycles, ip);
     if (zinfo->globPhaseCycles > 1000000000L /*&& zinfo->globPhaseCycles < 1000030000L*/) {
@@ -1090,6 +1167,7 @@ VOID AfterForkInChild(THREADID tid, const CONTEXT* ctxt, VOID * arg) {
 VOID Fini(int code, VOID * v) {
     info("Finished, code %d", code);
     //NOTE: In fini, it appears that info() and writes to stdout in general won't work; warn() and stderr still work fine.
+	if(ROUTINE_TRACING) RoutineFinish(code, v); // OOOE: cleanup for routine tracing.
     SimEnd();
 }
 
@@ -1547,6 +1625,10 @@ int main(int argc, char *argv[]) {
     //Register instrumentation
     TRACE_AddInstrumentFunction(Trace, 0);
     VdsoInit(); //initialized vDSO patching information (e.g., where all the possible vDSO entry points are)
+
+
+	// OOOE ronny's routine tracing instrumentation.
+	RTN_AddInstrumentFunction(Routine, 0);
 
     PIN_AddThreadStartFunction(ThreadStart, 0);
     PIN_AddThreadFiniFunction(ThreadFini, 0);
