@@ -546,7 +546,7 @@ struct RTN_STAT {
 };
 
 // increment a counter.
-VOID countUp(UINT64 *count) {
+static VOID countUp(UINT64 *count) {
 	*count += 1;
 }
 
@@ -555,8 +555,8 @@ VOID countUp(UINT64 *count) {
  * routine is basically an asm subroutine.
  * goal is to put together some stats for routine calls.
  */
-RTN_STAT *RoutineStack = 0;
-VOID Routine(RTN routine, VOID *v){
+static RTN_STAT *RoutineStack = 0;
+static VOID Routine(RTN routine, VOID *v){
 	// allocate new routine stat wrapper.
 	RTN_STAT *rs = new RTN_STAT;
 	rs->name = RTN_Name(routine);
@@ -580,7 +580,7 @@ VOID Routine(RTN routine, VOID *v){
  * Called at the end of the program...
  * Creates the routine log file.
  */
-VOID RoutineFinish(INT32 code, VOID *v){
+static VOID RoutineFinish(INT32 code, VOID *v){
 	FILE *rfile = fopen("traces/rtrace.txt", "a+");
 	fprintf(rfile, "\n\n%30s %50s %18s %20s %20s\n", "Routine", "Image", "Address", "Calls", "Insturctions");
 	
@@ -602,13 +602,24 @@ static void PrintIp(THREADID tid, ADDRINT ip) {
 	// OOOE ronny.
 	// print to custom itrace file.
 	std::ostringstream oss;
-	oss << "traces/" << "itrace" << tid << ".txt";
+	oss << "traces/" << "ip_trace" << tid << ".txt";
 	FILE *tfile = fopen(oss.str().c_str(), "a+");
 	fprintf(tfile, "[%d] %ld 0x%lx\n", tid, zinfo->globPhaseCycles, ip);
     if (zinfo->globPhaseCycles > 1000000000L /*&& zinfo->globPhaseCycles < 1000030000L*/) {
         info("[%d] %ld 0x%lx", tid, zinfo->globPhaseCycles, ip);
     }
 	fclose(tfile);
+}
+
+/**
+ * logs an x86 instruction string to traces/itrace.txt
+ */
+static void PrintInstruction(INS ins){
+	static int idx = 0;
+	std::string istring = INS_Disassemble(ins);
+	FILE *itrace = fopen("traces/itrace.txt", "a+");
+	fprintf(itrace, "%5d: %s\n", idx++, istring.c_str());
+	fclose(itrace);
 }
 #endif
 
@@ -698,6 +709,7 @@ VOID Trace(TRACE trace, VOID *v) {
     //Instruction instrumentation now here to ensure proper ordering
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
+			PrintInstruction(ins);
             Instruction(ins);
         }
     }
