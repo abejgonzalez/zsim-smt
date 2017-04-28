@@ -1,6 +1,9 @@
 WSRC = $(wildcard *.cpp)
 BACKUP = $(SRC:.cpp=.cpp~)
 
+warning:
+	@echo "wrong dir to run make!"
+
 format: 
 	@echo $(SRC)
 	indent $(SRC) -nbad -bap -nbc -bbo -hnl -br -brs -brf -c33 -cd33 -ncdb -ce -ci4 \

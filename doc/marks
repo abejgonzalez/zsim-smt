@@ -1,0 +1,3 @@
+instrumentation setup: zsim.cpp 'a
+trace function : zsim.cpp 't
+instruction function : zsim.cpp 'i

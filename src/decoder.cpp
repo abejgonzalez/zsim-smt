@@ -53,7 +53,7 @@ void DynUop::clear() {
 	memset(this, 0, sizeof(DynUop));	// NOTE: This may break if DynUop becomes non-POD
 }
 
- Decoder::Instr::Instr(INS _ins):ins(_ins), numLoads(0), numInRegs(0), numOutRegs(0), numStores(0) {
+Decoder::Instr::Instr(INS _ins):ins(_ins), numLoads(0), numInRegs(0), numOutRegs(0), numStores(0) {
 	uint32_t numOperands = INS_OperandCount(ins);
 	for (uint32_t op = 0; op < numOperands; op++) {
 		bool read = INS_OperandRead(ins, op);
@@ -1388,7 +1388,8 @@ BblInfo *Decoder::decodeBbl(BBL bbl, bool oooDecoding) {
 			//if (INS_OperandSizePrefix(ins)) pcyc += 6;
 
 			predecCycle[i] = pcyc;
-			//info("PREDEC %2d: 0x%08lx %2d %d %d %d", i, instrAddr[i], instrBytes[i], instrUops[i], block, predecCycle[i]);
+            //OOOE
+			info("PREDEC %2d: 0x%08lx %2d %d %d %d", i, instrAddr[i], instrBytes[i], instrUops[i], block, predecCycle[i]);
 		}
 
 		//2. Decoding

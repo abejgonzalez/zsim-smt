@@ -252,11 +252,15 @@ void LaunchProcess(uint32_t procIdx) {
 		const char *aptrs[nargs];
 
 		trace(Harness, "Calling arguments:");
+        printf("OOOE: ");
 		for (unsigned int i = 0; i < args.size(); i++) {
 			trace(Harness, " arg%d = %s", i, args[i].c_str());
 			aptrs[i] = args[i].c_str();
+            //OOOE
+            printf("(%d, %s) ", i, aptrs[i]);
 		}
 		aptrs[nargs - 1] = nullptr;
+        printf("\n");
 
 		//Chdir to process dir if needed
 		if (perProcessDir) {
@@ -264,7 +268,7 @@ void LaunchProcess(uint32_t procIdx) {
 			dir_ss << "p" << procIdx << "/";
 			int res = chdir(dir_ss.str().c_str());
 			if (res == -1) {
-				perror("Coud not chdir");
+				perror("Could not chdir");
 				panic("chdir to %s failed", dir_ss.str().c_str());
 			}
 		}
@@ -301,7 +305,7 @@ void LaunchProcess(uint32_t procIdx) {
 			if ((newPers & ADDR_NO_RANDOMIZE) == 0)
 				panic("personality() call was not honored! old 0x%x new 0x%x", pers, newPers);
 		}
-
+        
 		if (execvp(aptrs[0], (char *const *)aptrs) == -1) {
 			perror("Could not exec, killing child");
 			panic("Could not exec %s", aptrs[0]);

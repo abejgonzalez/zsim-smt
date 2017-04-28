@@ -1,0 +1,12 @@
+(0, /home/oooe/zsim/lib/pin2.14/intel64/bin/pinbin) 
+(1, -injection) (2, child) (3, -follow_execv) (4, -tool_exit_timeout) (5, 1) 
+(6, -t) (7, /home/oooe/zsim/build/opt/libzsim.so) (8, -config) (9, /home/oooe/zsim/tests/copy.cfg) 
+(10, -outputDir) (11, /home/oooe/zsim) (12, -shmid) (13, 2752516) 
+(14, -procIdx) (15, 0) (16, --) (17, ls) (18, -alh) (19, --color) (20, tests/)
+
+
+(0, /home/oooe/zsim/lib/pin2.14/intel64/bin/pinbin) 
+(1, -injection) (2, child) (3, -follow_execv) (4, -tool_exit_timeout) (5, 1) 
+(6, -t) (7, /home/oooe/zsim/build/opt/libzsim.so) (8, -config) (9, /home/oooe/zsim/tests/copy.cfg) 
+(10, -outputDir) (11, /home/oooe/zsim) (12, -shmid) (13, 2752516) 
+(14, -procIdx) (15, 1) (16, --) (17, ls) (18, -alh) (19, --color) (20, tests/)

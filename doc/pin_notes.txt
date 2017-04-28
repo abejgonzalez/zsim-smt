@@ -1,0 +1,15 @@
+instrumentation vs. analysis.
+decide where and which code to instrument vs.
+handler routines for special events or trace parameters.
+ZSIM uses trace based instrumentation. trace based vs. instr based.
+run instrumentation and analysis every trace rather than for every instruction. much faster. 
+BBL / Trace: section of code between a branch target and unconditional branch / return / function call.
+
+for multithreaded pin-tools:
+careful with global memory. can't just use the linux posix threads. need to use pin threads for accessing global memory.
+instrumentation function executed with mutual exclusion. pin will automatically acquire the VM_LOCK.
+analysis and handler functions will execute in parallel. acquire pinlocks if these functions you write access global shared memory. 
+
+some important things to follow for avoiding deadlocks in a pin tool. 
+refer to "avoiding deadlocks in multi-threaded applications" for the pin notes.
+

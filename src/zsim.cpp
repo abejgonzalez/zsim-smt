@@ -520,7 +520,7 @@ uint32_t TakeBarrier(uint32_t tid, uint32_t cid) {
 
 /* ===================================================================== */
 
-#if 0
+#if 1
 static void PrintIp(THREADID tid, ADDRINT ip) {
     if (zinfo->globPhaseCycles > 1000000000L /*&& zinfo->globPhaseCycles < 1000030000L*/) {
         info("[%d] %ld 0x%lx", tid, zinfo->globPhaseCycles, ip);
@@ -530,7 +530,7 @@ static void PrintIp(THREADID tid, ADDRINT ip) {
 
 VOID Instruction(INS ins) {
     //Uncomment to print an instruction trace
-    //INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)PrintIp, IARG_THREAD_ID, IARG_REG_VALUE, REG_INST_PTR, IARG_END);
+    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)PrintIp, IARG_THREAD_ID, IARG_REG_VALUE, REG_INST_PTR, IARG_END);
 
     if (!procTreeNode->isInFastForward() || !zinfo->ffReinstrument) {
         AFUNPTR LoadFuncPtr = (AFUNPTR) IndirectLoadSingle;
@@ -596,6 +596,11 @@ VOID Instruction(INS ins) {
 }
 
 
+/** OOOE ronny:
+ * Intstrumentation handler for instruction TRACES.
+ * Determines where and what code should be inserted.
+ * Set as an instrumentation handler around line 1537 TRACE_AddInstrumentHandler(Trace, 0);
+ */
 VOID Trace(TRACE trace, VOID *v) {
     if (!procTreeNode->isInFastForward() || !zinfo->ffReinstrument) {
         // Visit every basic block in the trace
@@ -1427,8 +1432,12 @@ static EXCEPT_HANDLING_RESULT InternalExceptionHandler(THREADID tid, EXCEPTION_I
 
 /* ===================================================================== */
 
+/** OOOE: ronny
+ * Second main function.
+ * initializes PIN.
+ */
 int main(int argc, char *argv[]) {
-    PIN_InitSymbols();
+    PIN_InitSymbols(); // allows refering to trace functions by name.
     if (PIN_Init(argc, argv)) return Usage();
 
     //Register an internal exception handler (ASAP, to catch segfaults in init)
