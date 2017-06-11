@@ -508,6 +508,10 @@ void Decoder::dropStackRegister(Instr & instr) {
 		reportUnhandledCase(instr, "dropStackRegister (RSP found)");
 }
 
+/** OOOE
+ * Instruction decode.
+ * Decode in the pipeline as we know it..
+ */
 bool Decoder::decodeInstr(INS ins, DynUopVec & uops) {
 	uint32_t initialUops = uops.size();
 	bool inaccurate = false;
@@ -1301,7 +1305,7 @@ BblInfo *Decoder::decodeBbl(BBL bbl, bool oooDecoding) {
 		std::vector < uint32_t > instrUops;
 		std::vector < INS > instrDesc;
 
-		//Decode
+		//Decode OOOE: peek at the instructions to gather info about how long to stall for decodes.
 		for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
 			bool inaccurate = false;
 			uint32_t prevUops = uopVec.size();
