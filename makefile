@@ -11,7 +11,7 @@ ZSIM = build/opt/zsim
 # outputs
 BUILDDIR = build/
 LIBDIR = lib/
-OUTPUT = *.out *.log *.log.3 *.h5 .scons* traces/* 
+OUTPUT = *.out *.log.*  *.h5 .scons* traces/* 
 
 build: src/
 	$(CONFIGURE)
