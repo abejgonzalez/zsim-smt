@@ -1,0 +1,22 @@
+Things To Note
+
+CoreRecorder::recordAccess
+    Sees the event record and pops it off of the "stack"
+    Starts to spawn timing events and based on the type
+        chooses to add children to the event or just delay
+    
+OOOCore::bll
+    Reads the bbl input and starts to record the information in it
+
+OOOCore::BblFunc
+    Reads in the bbl that is associated with the core (given by a tid)
+    ^ Cannot find where this is called
+        ^ Seems to be passed on as a function pointer
+
+Function Pointer Data Structures
+    fPtrs[ associated with a tid ]
+    When bblPtr is called this is the BblFunc
+    Function pointers are called in zsim.cpp from line 168
+        ^ The basic block function is called in BBL_InsertCall
+
+vDSO ? (Line 718 in zsim.cpp)
