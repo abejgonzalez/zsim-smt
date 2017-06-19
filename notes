@@ -1,11 +1,14 @@
+
+================================================================================================
 Things To Note
+================================================================================================
 
 CoreRecorder::recordAccess
     Sees the event record and pops it off of the "stack"
     Starts to spawn timing events and based on the type
         chooses to add children to the event or just delay
     
-OOOCore::bll
+OOOCore::bbl
     Reads the bbl input and starts to record the information in it
 
 OOOCore::BblFunc
@@ -20,3 +23,32 @@ Function Pointer Data Structures
         ^ The basic block function is called in BBL_InsertCall
 
 vDSO ? (Line 718 in zsim.cpp)
+
+ooo_core.cpp:
+	Line 48: Lists the stages used in the Westmere microarchitecture
+				Fetch, Decode, Issue, Dispatch
+				Issue: ???
+				Dispatch: comprised of the RAT, ROB, ResStations
+
+ooo_core.h:
+	Line 419: Lists some of their vars used to profile the number of cycles for F,D,I stalls
+
+================================================================================================
+Abbreviations
+================================================================================================
+
+cRec = core recorder
+LSU  = load store unit
+RF   = register file
+IW   = instruction width (I think) (might also be instruction window)
+WSZ  = ??? (line 103 in ooo_core.h)
+
+================================================================================================
+Things to Figure Out
+================================================================================================
+
+What's the difference between Issue and Dispatch
+	my guess: issue to res_stations, dispatch to execution units?
+
+Might need to look more at the WindowStructure class and its schedule() function in ooo_core.h (line 104)
+	
