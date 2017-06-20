@@ -240,6 +240,7 @@ void LaunchProcess(uint32_t procIdx) {
 		assert(cpid > 0);
 		childInfo[procIdx].pid = cpid;
 		childInfo[procIdx].status = PS_RUNNING;
+		ArbitrationUnit.addProcess(cpid);
 	} else {		//child
 		// Set the child's vars and get the command
 		// NOTE: We set the vars first so that, when parsing the command, wordexp takes those vars into account

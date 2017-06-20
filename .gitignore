@@ -35,3 +35,8 @@
 
 # stats / test output
 tests/traces/*
+traces/*
+heartbeat
+*.swp
+*.h5
+*.sconsign.dblite
