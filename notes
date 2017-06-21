@@ -119,3 +119,8 @@ Things said with Mattan
 # vim src/zsim.cpp +699
 // DEBUG: print process parent id and id (ppid, pid).
 printf("(%d, %d)\n", getppid(), getpid());
+
+Extending the Simulator
+Important:
+When you add a new .cpp file, make sure you notify src/SConscript.
+Otherwise, you will get linking errors during compilation.

@@ -18,6 +18,9 @@
 #ifndef ARBITRATION_H
 #define ARBITRATION_H
 
+#include <vector>
+#include <mutex>
+
 class Arbitration {
 
 	// A1: pre-fetch
@@ -35,11 +38,13 @@ class Arbitration {
 
 	int bias; // range, (0,1) -> (t1, t2). 0.5 is fair.
 	int cyclePenalty;
+	std::vector<int> pids;
+	std::mutex lock;
 	
   public:
 	
 	Arbitration(/* two instruction trace pointers */);
-	Arbitration(/* two instruction trace pointers, bias */);
+	// Arbitration(/* two instruction trace pointers, bias */);
 
 	/**
 	 * calculates the cycle delay pre-execution.
@@ -56,6 +61,18 @@ class Arbitration {
 	 * TODO: document
 	 */
 	void arbitrateExecution();
+
+	/**
+	 * Adds a process to the arbitration unit.
+	 */
+	void addProcess(int pid);
+
+	/** Debugging Methods **/
+
+	/**
+	 * Prints a list of all process ids tracked by the arbitration unit.
+	 */
+	void printWorkingSet();
 
 };
 

@@ -697,6 +697,10 @@ VOID Instruction(INS ins) {
  * Set as an instrumentation handler around line 1537 TRACE_AddInstrumentHandler(Trace, 0);
  */
 VOID Trace(TRACE trace, VOID *v) {
+
+	// DEBUG: print process parent id and id (ppid, pid).
+	printf("(%d, %d)\n", getppid(), getpid());
+
     if (!procTreeNode->isInFastForward() || !zinfo->ffReinstrument) {
         // Visit every basic block in the trace
         for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {

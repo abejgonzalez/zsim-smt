@@ -4,7 +4,7 @@ SCONS = ${SCONSPATH}/bin/scons
 SCONSFLAGS = -j12
 
 # testing
-TESTDIR = ./tests
+TESTDIR = ./tests/config
 TEST = $(TESTDIR)/copy.cfg
 ZSIM = build/opt/zsim
 
@@ -27,3 +27,11 @@ test: $(TEST)
 
 test-clean:
 	$(RM) -rf  $(OUTPUT)
+
+############### unit tests ######################
+
+CC = g++
+CPPFLAGS = -Ibuild/opt -g -std=c++11
+
+testArbitration: tests/testArbitration.cpp build/opt/arbitration.o
+	$(CC) $(CPPFLAGS) -o $@ $?

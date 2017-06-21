@@ -62,7 +62,7 @@ void Arbitration::addProcess(int pid){
  * prints the current arbitration set to the screen as a list. 
  */
 void Arbitration::printWorkingSet(){
-	printf("method: printWorkingSet. \n");
+	// printf("method: printWorkingSet. \n");
 	if(pids.empty()){printf("bad pids vector!!!\n"); return;}
 	std::stringstream ss;
 	std::copy(pids.begin(), pids.end() - 1, std::ostream_iterator<int>(ss, ", "));
