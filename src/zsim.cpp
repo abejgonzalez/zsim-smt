@@ -581,7 +581,7 @@ static VOID Routine(RTN routine, VOID *v){
  * Creates the routine log file.
  */
 static VOID RoutineFinish(INT32 code, VOID *v){
-	FILE *rfile = fopen("traces/rtrace.txt", "a+");
+	FILE *rfile = fopen("tests/traces/rtrace.txt", "a+");
 	fprintf(rfile, "\n\n%30s %50s %18s %20s %20s\n", "Routine", "Image", "Address", "Calls", "Insturctions");
 	
 	RTN_STAT *rs = RoutineStack;
@@ -602,7 +602,7 @@ static void PrintIp(THREADID tid, ADDRINT ip) {
 	// OOOE ronny.
 	// print to custom itrace file.
 	std::ostringstream oss;
-	oss << "traces/" << "ip_trace" << tid << ".txt";
+	oss << "tests/traces/" << "ip_trace" << tid << ".txt";
 	FILE *tfile = fopen(oss.str().c_str(), "a+");
 	fprintf(tfile, "[%d] %ld 0x%lx\n", tid, zinfo->globPhaseCycles, ip);
     if (zinfo->globPhaseCycles > 1000000000L /*&& zinfo->globPhaseCycles < 1000030000L*/) {
@@ -617,7 +617,7 @@ static void PrintIp(THREADID tid, ADDRINT ip) {
 static void PrintInstruction(INS ins){
 	static int idx = 0;
 	std::string istring = INS_Disassemble(ins);
-	FILE *itrace = fopen("traces/itrace.txt", "a+");
+	FILE *itrace = fopen("tests/traces/itrace.txt", "a+");
 	fprintf(itrace, "%5d: %s\n", idx++, istring.c_str());
 	fclose(itrace);
 }
@@ -699,15 +699,15 @@ VOID Instruction(INS ins) {
 VOID Trace(TRACE trace, VOID *v) {
 
 	// DEBUG: print process parent id and id (ppid, pid).
-	printf("(%d, %d)\n", getppid(), getpid());
+	// printf("(%d, %d)\n", getppid(), getpid());
 
     if (!procTreeNode->isInFastForward() || !zinfo->ffReinstrument) {
         // Visit every basic block in the trace
         for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
-            BblInfo* bblInfo = Decoder::decodeBbl(bbl, zinfo->oooDecode);
-            BBL_InsertCall(bbl, IPOINT_BEFORE /*could do IPOINT_ANYWHERE if we redid load and store simulation in OOO*/, 
-					(AFUNPTR)IndirectBasicBlock, IARG_FAST_ANALYSIS_CALL,
-                 IARG_THREAD_ID, IARG_ADDRINT, BBL_Address(bbl), IARG_PTR, bblInfo, IARG_END);
+            // BblInfo* bblInfo = Decoder::decodeBbl(bbl, zinfo->oooDecode);
+            // BBL_InsertCall(bbl, IPOINT_BEFORE, /*could do IPOINT_ANYWHERE if we redid load and store simulation in OOO*/
+			// 		(AFUNPTR)IndirectBasicBlock, IARG_FAST_ANALYSIS_CALL,
+			// 		IARG_THREAD_ID, IARG_ADDRINT, BBL_Address(bbl), IARG_PTR, bblInfo, IARG_END);
         }
     }
 
@@ -715,7 +715,7 @@ VOID Trace(TRACE trace, VOID *v) {
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
 			PrintInstruction(ins);
-            Instruction(ins);
+            // Instruction(ins);
         }
     }
 }

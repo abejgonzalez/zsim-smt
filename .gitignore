@@ -37,6 +37,7 @@
 tests/traces/*
 traces/*
 heartbeat
+out.cfg
 *.swp
 *.h5
 *.sconsign.dblite
