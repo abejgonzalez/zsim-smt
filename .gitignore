@@ -35,7 +35,6 @@
 
 # stats / test output
 tests/traces/*
-traces/*
 heartbeat
 out.cfg
 *.swp

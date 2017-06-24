@@ -19,7 +19,7 @@ build: src/
 	# ln -sf ~/zsim/build/opt/zsim ~/opt/bin/zsim
 
 clean:
-	$(RM) -rf  $(BUILDDIR) $(LIBDIR) $(OUTPUT)
+	$(RM) -rf  $(BUILDDIR)  $(OUTPUT)
 
 
 test: $(TEST)
