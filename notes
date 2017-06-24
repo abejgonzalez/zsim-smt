@@ -64,3 +64,19 @@ weave_md1_mem.h
 timing_event.h
 detailed_mem.h
 ooo_core_recorder.cpp
+
+WHAT TO ASK TMRW:
+1) summarize progress in 5-10 mins or less.
+
+2) Should the scheduler (scheduler.h) be modified from the top down? or should we be adding in timingevents?
+   - the first option simulates an actual SMT on the instruction level. 
+   - the second option is a pseudo-smt done in an analysis fashion after execution.
+   - first may give more accurate results, second may be easier to implement.  
+
+3) meeting with daniel sanchez.
+   - figure out ZSIM structure
+   - timing events related to instructions
+   - how does pin fit in (just to make sure)
+   - scheduling the different threads
+   - ooocore work
+   - figure out how to debug ZSIM 
