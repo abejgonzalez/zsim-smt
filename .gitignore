@@ -34,4 +34,4 @@
 /benchmarks
 
 # stats / test output
-traces/*
+tests/traces/*

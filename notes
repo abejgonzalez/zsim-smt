@@ -52,8 +52,9 @@ What's the difference between Issue and Dispatch
 Might need to look more at the WindowStructure class and its schedule() function in ooo_core.h (line 104)
 	wtf is poisonRange()?
 
-----------------------------------
+================================================================================================
 Notes from meeting
+================================================================================================
 
 Things that are children to the TimingEvent
 
@@ -67,6 +68,7 @@ ooo_core_recorder.cpp
 
 WHAT TO ASK TMRW:
 1) summarize progress in 5-10 mins or less.
+    the results may dirty....
 
 2) Should the scheduler (scheduler.h) be modified from the top down? or should we be adding in timingevents?
    - the first option simulates an actual SMT on the instruction level. 
@@ -80,3 +82,30 @@ WHAT TO ASK TMRW:
    - scheduling the different threads
    - ooocore work
    - figure out how to debug ZSIM 
+
+-----------------------
+Things said with Mattan
+-------------------------
+- Check how branch mispredicts are done
+    - Followup for Mattan
+    - Inside the pipeline so should be helpful as a starting point to look into the pipeline
+- PAg branch predictor --> ooo_core.cpp 377, ooo_core.h 49 --> uses OOOCoreRecorder so it does model cycle delays/stalls
+- linux - address space linux? virtualization (ASLR) 
+    - feature that randomies the virtual address
+    - turn off in order to see the same addresses for each prg that is called. Turn off ASLR
+- Double check that the scheduler is running the two different processes on different cores
+    - Can we check or get the processes to run on the same core? - ^ associated with this work
+    - Mattan thinks we should avoid the scheduler files. We are looking at the set below the scheduler.
+        - just add delays
+    - Look at instruction cache misses for timing
+- How much time to add
+- Try removing L1 Cache to see what happens
+    - make the miss penalty zero
+    - make each of the cores share the cache and see if this affects current implementation (I think that's what he said)?
+- Private L1, L2, Public L3
+ 
+# print the proccesses as zsim executes them.
+# insert this at the top of the Trace function in zsim.cpp
+# vim src/zsim.cpp +699
+// DEBUG: print process parent id and id (ppid, pid).
+printf("(%d, %d)\n", getppid(), getpid());
