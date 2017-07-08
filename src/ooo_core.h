@@ -43,6 +43,7 @@ class FilterCache;
 /* 2-level branch predictor:
  *  - L1: Branch history shift registers (bshr): 2^NB entries, HB bits of history/entry, indexed by XOR'd PC
  *  - L2: Pattern history table (pht): 2^LB entries, 2-bit sat counters, indexed by XOR'd bshr contents
+ *  NOTE: 0 = Strongly Not Taken, 1 = Weakly Not Taken, 2 = Weakly Taken, 3 = Strongly Taken
  *  NOTE: Assumes LB is in [NB, HB] range for XORing (e.g., HB = 18 and NB = 10, LB = 13 is OK)
  */
 template<uint32_t NB, uint32_t HB, uint32_t LB>

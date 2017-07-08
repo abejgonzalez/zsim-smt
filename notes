@@ -90,13 +90,22 @@ Things said with Mattan
     - Followup for Mattan
     - Inside the pipeline so should be helpful as a starting point to look into the pipeline
 - PAg branch predictor --> ooo_core.cpp 377, ooo_core.h 49 --> uses OOOCoreRecorder so it does model cycle delays/stalls
+
 - linux - address space linux? virtualization (ASLR) 
     - feature that randomies the virtual address
     - turn off in order to see the same addresses for each prg that is called. Turn off ASLR
+        - To disable:
+            echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
+        - To enable:
+            echo 2 | sudo tee /proc/sys/kernel/randomize_va_space
+        NOTE: Requires superuser (we probably don't have)
+
+        - Create new shell without ASLR (I haven't tested and may not work over ssh)
+            setarch `uname -m` -R /bin/bash
+
 - Double check that the scheduler is running the two different processes on different cores
     - Can we check or get the processes to run on the same core? - ^ associated with this work
     - Mattan thinks we should avoid the scheduler files. We are looking at the set below the scheduler.
-        - just add delays
     - Look at instruction cache misses for timing
 - How much time to add
 - Try removing L1 Cache to see what happens
