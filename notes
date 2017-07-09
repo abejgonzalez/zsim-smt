@@ -67,15 +67,12 @@ detailed_mem.h
 ooo_core_recorder.cpp
 
 WHAT TO ASK TMRW:
-1) summarize progress in 5-10 mins or less.
-    the results may dirty....
-
-2) Should the scheduler (scheduler.h) be modified from the top down? or should we be adding in timingevents?
+1) Should the scheduler (scheduler.h) be modified from the top down? or should we be adding in timingevents?
    - the first option simulates an actual SMT on the instruction level. 
    - the second option is a pseudo-smt done in an analysis fashion after execution.
    - first may give more accurate results, second may be easier to implement.  
 
-3) meeting with daniel sanchez.
+2) meeting with daniel sanchez.
    - figure out ZSIM structure
    - timing events related to instructions
    - how does pin fit in (just to make sure)
@@ -83,16 +80,20 @@ WHAT TO ASK TMRW:
    - ooocore work
    - figure out how to debug ZSIM 
 
------------------------
+================================================================================================
 Things said with Mattan
--------------------------
+================================================================================================
+
 - Check how branch mispredicts are done
     - Followup for Mattan
     - Inside the pipeline so should be helpful as a starting point to look into the pipeline
-- PAg branch predictor --> ooo_core.cpp 377, ooo_core.h 49 --> uses OOOCoreRecorder so it does model cycle delays/stalls
+	- PAg branc predictor
+	  - there's a small chunk of code around ooo_core.cpp 377 that simulates a branch misprediction
+	  - line 408 records the event I believe, trace it down and you get to ooo_core_recorder.cpp 216 recordAccess() 
+	  - not sure what that function does ... pretty messy
 
 - linux - address space linux? virtualization (ASLR) 
-    - feature that randomies the virtual address
+    - feature that randomizes the virtual address
     - turn off in order to see the same addresses for each prg that is called. Turn off ASLR
         - To disable:
             echo 0 | sudo tee /proc/sys/kernel/randomize_va_space

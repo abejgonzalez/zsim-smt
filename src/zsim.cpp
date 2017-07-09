@@ -701,7 +701,8 @@ VOID Trace(TRACE trace, VOID *v) {
         // Visit every basic block in the trace
         for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
             BblInfo* bblInfo = Decoder::decodeBbl(bbl, zinfo->oooDecode);
-            BBL_InsertCall(bbl, IPOINT_BEFORE /*could do IPOINT_ANYWHERE if we redid load and store simulation in OOO*/, (AFUNPTR)IndirectBasicBlock, IARG_FAST_ANALYSIS_CALL,
+            BBL_InsertCall(bbl, IPOINT_BEFORE /*could do IPOINT_ANYWHERE if we redid load and store simulation in OOO*/, 
+					(AFUNPTR)IndirectBasicBlock, IARG_FAST_ANALYSIS_CALL,
                  IARG_THREAD_ID, IARG_ADDRINT, BBL_Address(bbl), IARG_PTR, bblInfo, IARG_END);
         }
     }
