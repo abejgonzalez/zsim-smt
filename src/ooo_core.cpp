@@ -38,8 +38,8 @@
  */
 //#define LSU_IW_BACKPRESSURE
 
-#define DEBUG_MSG(args...)
-//#define DEBUG_MSG(args...) info(args)
+// #define DEBUG_MSG(args...)
+#define DEBUG_MSG(args...) info(args)
 
 // Core parameters
 // TODO(dsm): Make OOOCore templated, subsuming these

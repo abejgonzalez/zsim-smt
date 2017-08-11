@@ -1,4 +1,4 @@
-/** $lic$
+ /** $lic$
  * Copyright (C) 2012-2015 by Massachusetts Institute of Technology
  * Copyright (C) 2010-2013 by The Board of Trustees of Stanford University
  *
@@ -143,8 +143,8 @@ Stat *ProcStats::replStat(Stat * s, const char *name, const char *desc) {
 			err("not aggregate stat");
 		if (!as->isRegular())
 			err("irregular aggregate");
-		if (as->size() != zinfo->numCores)
-			err("elems != cores");
+		// if (as->size() != zinfo->numCores)
+			// err("elems != cores");
 	}
 
 	// Initialize all the buffers

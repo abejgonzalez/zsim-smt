@@ -711,8 +711,7 @@ static void InitSystem(Config & config) {
 					CacheGroup & dgroup = *cMap[dcache];
 
 					if (assignedCaches[icache] >= igroup.size()) {
-						panic
-						    ("%s: icache group %s (%ld caches) is fully used, can't connect more cores to it",
+						panic("%s: icache group %s (%ld caches) is fully used, can't connect more cores to it",
 						     name.c_str(), icache.c_str(), igroup.size());
 					}
 					FilterCache *ic =
