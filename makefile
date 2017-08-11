@@ -5,7 +5,7 @@ SCONSFLAGS = -j4
 
 # testing
 TESTDIR = ./tests/config
-TEST = $(TESTDIR)/coarse.cfg
+TEST = $(TESTDIR)/smt.cfg
 ZSIM = build/opt/zsim
 
 # outputs

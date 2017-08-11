@@ -699,7 +699,7 @@ VOID Instruction(INS ins) {
 VOID Trace(TRACE trace, VOID *v) {
 
 	// DEBUG: print process parent id and id (ppid, pid).
-	printf("(%d, %d)\n", getppid(), getpid());
+	// printf("(%d, %d)\n", getppid(), getpid());
 
     if (!procTreeNode->isInFastForward() || !zinfo->ffReinstrument) {
         // Visit every basic block in the trace

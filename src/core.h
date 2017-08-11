@@ -85,6 +85,7 @@ class Core : public GlobAlloc {
         virtual void join() {}
 
         virtual InstrFuncPtrs GetFuncPtrs() = 0;
+        
 };
 
 #endif  // CORE_H_
