@@ -155,8 +155,23 @@ void OOOCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenN
     branchNotTakenNpc = notTakenNpc;
 }
 
+/* OOOE: AG:
+ * Seems to decode 1 BBL at a time. This function is called by PIN through
+ * a series a function pointers to this function.
+ *
+ * Starts simulation by not passing in the current BBL but by getting the
+ * previous BBL specified in a linked list sort of fashion. 
+ *
+ * What I mean by LL fashion:
+ *
+ * 1. PIN calls OOOCore::bbl(...)
+ * 2. If prevbbl is present then run it (go to 4)
+ * 3. Else make prevbbl point to new bblInfo that was passed in
+ * 4. Run prevbbl stuff and make prevbbl point to new bblInfo for the next
+ *    time this function is called.
+ */
 inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
-    if (!prevBbl) {
+    if (!prevbbl) {
         // This is the 1st BBL since scheduled, nothing to simulate
         prevBbl = bblInfo;
         // Kill lingering ops from previous BBL
@@ -164,8 +179,14 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         return;
     }
 
-    /* Simulate execution of previous BBL */
+    /* OOOE: AG:
+     * Simulate execution of previous BBL.
+     */
 
+    /* OOOE: AG:
+     * Gets the previous BBL and makes it the "one to run"
+     * Also appends the passed in bblInfo the prevBBl 
+     */
     uint32_t bblInstrs = prevBbl->instrs;
     DynBbl* bbl = &(prevBbl->oooBbl[0]);
     prevBbl = bblInfo;
@@ -176,13 +197,25 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 
+    /* OOOE: AG:
+     * For all the UOPS inside of the BBL, run each and every one. Although,
+     * they call this an instruction window? Even though the "instr
+     * window" here is fixed to only the uops inside of the BBL.
+     */
     // Run dispatch/IW
     for (uint32_t i = 0; i < bbl->uops; i++) {
         DynUop* uop = &(bbl->uop[i]);
 
+        /* OOOE: AG:
+         * Does decCycle mean "arbitrary time associated with this uops decode?"
+         * TODO: What is this section doing?
+         */
         // Decode stalls
         uint32_t decDiff = uop->decCycle - prevDecCycle;
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
+        /* OOOE: AG:
+         * curCycle is current issue cycle
+         */
         if (decodeCycle > curCycle) {
             //info("Decode stall %ld %ld | %d %d", decodeCycle, curCycle, uop->decCycle, prevDecCycle);
             uint32_t cdDiff = decodeCycle - curCycle;
@@ -191,6 +224,11 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 #endif
             curCycleIssuedUops = 0;
             curCycleRFReads = 0;
+            /* OOOE: AG:
+             * I believe this stalls the instr window of the bbl by a single cycle 
+             * based on the difference between curCycle and decodeCycle <- IDK what these are still
+             * TODO: Look into what the insWindow class does exactly 
+             */
             for (uint32_t i = 0; i < cdDiff; i++) insWindow.advancePos(curCycle);
         }
         prevDecCycle = uop->decCycle;
@@ -212,6 +250,10 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         // Using curCycle saves us two unpredictable branches in the RF read stalls code
         regScoreboard[0] = curCycle;
 
+        /* OOOE: AG:
+         * Get the scoreboard issue cycle for the source (c0) and the destination regs (c1).
+         * Not a scoreboard in the traditional sense.
+         */
         uint64_t c0 = regScoreboard[uop->rs[0]];
         uint64_t c1 = regScoreboard[uop->rs[1]];
 
@@ -373,9 +415,17 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
     uint32_t lineSize = 1 << lineBits;
 
+    /* OOOE: AG:
+     * Branch prediction location
+     */
     // Simulate branch prediction
     if (branchPc && !branchPred.predict(branchPc, branchTaken)) {
         mispredBranches++;
+        /* OOOE: AG:
+         * Note: Here they start talking about BTB (a very basic form
+         * of a branch pred) but the brach predictor object used here
+         * is a pAg predictor.
+         */
 
         /* Simulate wrong-path fetches
          *
@@ -425,6 +475,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         // Do not model fetch throughput limit here, decoder-generated stalls already include it
         // We always call fetches with curCycle to avoid upsetting the weave
         // models (but we could move to a fetch-centric recorder to avoid this)
+        /* OOOE: Fetch latency from reading the instruction from the cache */
         uint64_t fetchLat = l1i->load(fetchAddr, curCycle) - curCycle;
         cRec.record(curCycle, curCycle, curCycle + fetchLat);
         fetchCycle += fetchLat;
@@ -501,6 +552,7 @@ void OOOCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
 
 void OOOCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
     OOOCore* core = static_cast<OOOCore*>(cores[tid]);
+    /*OOOE: Function where basic blocks are analyzed on a core basis */
     core->bbl(bblAddr, bblInfo);
 
     while (core->curCycle > core->phaseEndCycle) {
