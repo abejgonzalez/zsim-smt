@@ -34,7 +34,7 @@
 /benchmarks
 
 # stats / test output
-tests/traces/*
+tests/traces/*.txt
 heartbeat
 out.cfg
 *.swp

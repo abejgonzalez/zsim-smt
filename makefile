@@ -11,7 +11,7 @@ ZSIM = build/opt/zsim
 # outputs
 BUILDDIR = build/
 LIBDIR = lib/
-OUTPUT = heartbeat out.cfg *.out *.log.*  *.h5 .scons* tests/traces/* 
+OUTPUT = heartbeat out.cfg *.out *.log* *.h5 .scons* tests/traces/*.txt
 
 build: src/
 	$(CONFIGURE)
