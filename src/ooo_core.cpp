@@ -217,6 +217,8 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
          * Seems to be that the uop->decCycle is when the uop was decoded from the PIN (actual cycle from the 
          * processor.
          */
+        /* OOOE: AG: 
+         * Set when the prevDecCycle is the decode cycle count from the prev UOP */
         uint32_t decDiff = uop->decCycle - prevDecCycle;
         /* OOOE: AG: uopQueue has amount of uops and when they are marked for retiring */
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
@@ -233,11 +235,15 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
             curCycleIssuedUops = 0;
             curCycleRFReads = 0;
             /* OOOE: AG:
-             * Moves the instruction window and moves to a next location 
+             * Moves to the next position in the instruction window but if it is at the
+             * end then moves to the next instruction window.
              */
             for (uint32_t i = 0; i < cdDiff; i++) insWindow.advancePos(curCycle);
         }
         prevDecCycle = uop->decCycle;
+        /* OOOE: AG: Appends in the queue when this UOP should finish so that
+         * in the next iteration of the for loop it has when this UOP should finish
+         * NOTE: Retrieve the previous UOP cycle (uopQueue.minAllocCycle()) */
         uopQueue.markLeave(curCycle);
 
         // Implement issue width limit --- we can only issue 4 uops/cycle
@@ -246,6 +252,8 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
             profIssueStalls.inc();
 #endif
             // info("Advancing due to uop issue width");
+            /* OOOE: AG:
+             * Why does this clear the amt of UOPS and then move to the next entry in the instr win? */
             curCycleIssuedUops = 0;
             curCycleRFReads = 0;
             insWindow.advancePos(curCycle);
@@ -257,15 +265,18 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         regScoreboard[0] = curCycle;
 
         /* OOOE: AG:
-         * Get the scoreboard issue cycle for the source (c0) and the destination regs (c1).
-         * Not a scoreboard in the traditional sense.
+         * Get the scoreboard issue cycle for the source registers
+         * Gives issue cycle where the register *CAN* be sourced 
          */
         uint64_t c0 = regScoreboard[uop->rs[0]];
         uint64_t c1 = regScoreboard[uop->rs[1]];
 
+        /* OOOE: AG: RF = Register File */
         // RF read stalls
         // if srcs are not available at issue time, we have to go thru the RF
         curCycleRFReads += ((c0 < curCycle)? 1 : 0) + ((c1 < curCycle)? 1 : 0);
+        /* OOOE: AG: Amt of times the regFile is read must be less than 3 then
+         * it reads it in and zeros out the issues UOPs and advances the instrWin */
         if (curCycleRFReads > RF_READS_PER_CYCLE) {
             curCycleRFReads -= RF_READS_PER_CYCLE;
             curCycleIssuedUops = 0;  // or 1? that's probably a 2nd-order detail
@@ -275,9 +286,11 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         uint64_t c2 = rob.minAllocCycle();
         uint64_t c3 = curCycle;
 
+        /* OOOE: AG: When the last src reg is "ready" */
         uint64_t cOps = MAX(c0, c1);
 
         // Model RAT + ROB + RS delay between issue and dispatch
+        /* OOOE: AG: Estimating the delay to dispatch to the execution units */
         uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
 
         // info("IW 0x%lx %d %ld %ld %x", bblAddr, i, c2, dispatchCycle, uop->portMask);
@@ -384,6 +397,8 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         rob.markRetire(commitCycle);
 
         // Record dependences
+        /* OOOE: AG: Seems like regscorebd puts the actual cycle # inside to
+         * when it is ready to be issued or ready to be committed */
         regScoreboard[uop->rd[0]] = commitCycle;
         regScoreboard[uop->rd[1]] = commitCycle;
 
@@ -392,6 +407,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         //info("0x%lx %3d [%3d %3d] -> [%3d %3d]  %8ld %8ld %8ld %8ld", bbl->addr, i, uop->rs[0], uop->rs[1], uop->rd[0], uop->rd[1], decCycle, c3, dispatchCycle, commitCycle);
     }
 
+    /* OOOE: AG: Counters in the core file, Im guessing just for simulation purposes */
     instrs += bblInstrs;
     uops += bbl->uops;
     bbls++;
@@ -421,9 +437,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
     uint32_t lineSize = 1 << lineBits;
 
-    /* OOOE: AG:
-     * Branch prediction location
-     */
+    /* OOOE: AG: Branch prediction location */
     // Simulate branch prediction
     if (branchPc && !branchPred.predict(branchPc, branchTaken)) {
         mispredBranches++;
@@ -431,6 +445,10 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
          * Note: Here they start talking about BTB (a very basic form
          * of a branch pred) but the brach predictor object used here
          * is a pAg predictor.
+         *
+         * Per Address there is a history register.
+         * Then there is a global storage data structure that holds the branch
+         * locations.
          */
 
         /* Simulate wrong-path fetches
@@ -457,12 +475,15 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 
         // info("Mispredicted branch, %ld %ld %ld | %ld %ld", decodeCycle, curCycle, lastCommitCycle,
         //         lastCommitCycle-decodeCycle, lastCommitCycle-curCycle);
+        /* OOOE: AG: Simulates having a wrong prediction*/
         Address wrongPathAddr = branchTaken? branchNotTakenNpc : branchTakenNpc;
         uint64_t reqCycle = fetchCycle;
         for (uint32_t i = 0; i < 5*64/lineSize; i++) {
             uint64_t fetchLat = l1i->load(wrongPathAddr + lineSize*i, curCycle) - curCycle;
+            /* OOOE: AG: TODO: FIgure out what record does */
             cRec.record(curCycle, curCycle, curCycle + fetchLat);
             uint64_t respCycle = reqCycle + fetchLat;
+            /* OOOE: AG: TODO: Fully understand this */
             if (respCycle > lastCommitCycle) {
                 break;
             }
@@ -474,6 +495,8 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     }
     branchPc = 0;  // clear for next BBL
 
+    /* OOOE: AG: Getting the next instructions in the bbl based on the branch pred
+     * (whether or not it was right or wrong */
     // Simulate current bbl ifetch
     Address endAddr = bblAddr + bblInfo->bytes;
     for (Address fetchAddr = bblAddr; fetchAddr < endAddr; fetchAddr += lineSize) {
