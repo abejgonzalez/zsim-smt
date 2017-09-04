@@ -211,10 +211,18 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
          * TODO: What is this section doing?
          */
         // Decode stalls
-        uint32_t decDiff = uop->decCycle - prevDecCycle;
-        decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
         /* OOOE: AG:
-         * curCycle is current issue cycle
+         * What is the current amount of decode difference between the prev cycle checkpoint
+         * and when the uop is supposed to run 
+         * Seems to be that the uop->decCycle is when the uop was decoded from the PIN (actual cycle from the 
+         * processor.
+         */
+        uint32_t decDiff = uop->decCycle - prevDecCycle;
+        /* OOOE: AG: uopQueue has amount of uops and when they are marked for retiring */
+        decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
+        /* OOOE: AG: curCycle is current issue cycle
+         * Maybe decodeCycle is the decode cycle that is kept track of with the simulator
+         * (when the decode is supposed to start?)
          */
         if (decodeCycle > curCycle) {
             //info("Decode stall %ld %ld | %d %d", decodeCycle, curCycle, uop->decCycle, prevDecCycle);
@@ -225,9 +233,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
             curCycleIssuedUops = 0;
             curCycleRFReads = 0;
             /* OOOE: AG:
-             * I believe this stalls the instr window of the bbl by a single cycle 
-             * based on the difference between curCycle and decodeCycle <- IDK what these are still
-             * TODO: Look into what the insWindow class does exactly 
+             * Moves the instruction window and moves to a next location 
              */
             for (uint32_t i = 0; i < cdDiff; i++) insWindow.advancePos(curCycle);
         }
