@@ -34,4 +34,8 @@
 /benchmarks
 
 # stats / test output
-tests/traces/*
+tests/traces/*.txt
+heartbeat
+*.swp
+*.h5
+*.sconsign.dblite

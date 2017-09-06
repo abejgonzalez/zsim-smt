@@ -38,8 +38,8 @@
  */
 //#define LSU_IW_BACKPRESSURE
 
-#define DEBUG_MSG(args...)
-//#define DEBUG_MSG(args...) info(args)
+// #define DEBUG_MSG(args...)
+#define DEBUG_MSG(args...) info(args)
 
 // Core parameters
 // TODO(dsm): Make OOOCore templated, subsuming these
@@ -171,7 +171,7 @@ void OOOCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenN
  *    time this function is called.
  */
 inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
-    if (!prevbbl) {
+    if (!prevBbl) {
         // This is the 1st BBL since scheduled, nothing to simulate
         prevBbl = bblInfo;
         // Kill lingering ops from previous BBL
