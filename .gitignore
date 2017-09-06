@@ -36,7 +36,6 @@
 # stats / test output
 tests/traces/*.txt
 heartbeat
-out.cfg
 *.swp
 *.h5
 *.sconsign.dblite
