@@ -1100,4 +1100,8 @@ void SimInit(const char *configFile, const char *outputDir, uint32_t shmid) {
 
 	//Causes every other process to wake up
 	gm_set_glob_ptr(zinfo);
+	// printf("/** numCores = %d **/\n", zinfo->numCores);
+	// for(unsigned int i = 0; i < zinfo->numCores; ++i){
+	// 	printf("/** core %d = %p **/\n", i, zinfo->cores[i]);
+	// }
 }
