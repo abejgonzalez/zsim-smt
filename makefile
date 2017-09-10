@@ -5,13 +5,14 @@ SCONSFLAGS = -j4
 
 # testing
 TESTDIR = ./tests/config
+TRACEDIR = ./tests/traces
 TEST = $(TESTDIR)/smt.cfg
 ZSIM = build/opt/zsim
 
 # outputs
 BUILDDIR = build/
 LIBDIR = lib/
-OUTPUT = heartbeat out.cfg *.out *.log* *.h5 .scons* tests/traces/*.txt
+OUTPUT = heartbeat out.cfg *.out *.log* *.h5 .scons*
 
 build: src/
 	$(CONFIGURE)
@@ -19,14 +20,17 @@ build: src/
 	# ln -sf ~/zsim/build/opt/zsim ~/opt/bin/zsim
 
 clean:
-	$(RM) -rf  $(BUILDDIR)  $(OUTPUT)
+	$(RM) -rf  $(BUILDDIR)  $(OUTPUT) $(TRACEDIR)
 
 
-test: $(TEST)
+test: $(TEST) $(TRACEDIR)
 	$(ZSIM) $(TEST)	
 
 test-clean:
-	$(RM) -rf  $(OUTPUT)
+	$(RM) -rf  $(OUTPUT) $(TRACEDIR)
+
+$(TRACEDIR):
+	mkdir -p $(TRACEDIR)
 
 ############### unit tests ######################
 
