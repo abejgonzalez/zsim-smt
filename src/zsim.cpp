@@ -40,6 +40,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdio.h>
 #include "access_tracing.h"
 #include "constants.h"
 #include "contention_sim.h"
@@ -176,7 +177,10 @@ VOID PIN_FAST_ANALYSIS_CALL IndirectStoreSingle(THREADID tid, ADDRINT addr) {
 }
 
 VOID PIN_FAST_ANALYSIS_CALL IndirectBasicBlock(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
+	FILE *traceFile = fopen("tests/traces/bblfPtrs", "a+");
+	fprintf(traceFile, "/** IndirectBasicBlock(%d, %p): (%d, %p) **/\n", getpid(), cores[tid], tid, fPtrs[tid].loadPtr);
     fPtrs[tid].bblPtr(tid, bblAddr, bblInfo);
+	fclose(traceFile);
 }
 
 VOID PIN_FAST_ANALYSIS_CALL IndirectRecordBranch(THREADID tid, ADDRINT branchPc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
@@ -704,10 +708,10 @@ VOID Trace(TRACE trace, VOID *v) {
     if (!procTreeNode->isInFastForward() || !zinfo->ffReinstrument) {
         // Visit every basic block in the trace
         for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
-            // BblInfo* bblInfo = Decoder::decodeBbl(bbl, zinfo->oooDecode);
-            // BBL_InsertCall(bbl, IPOINT_BEFORE, /*could do IPOINT_ANYWHERE if we redid load and store simulation in OOO*/
-			// 		(AFUNPTR)IndirectBasicBlock, IARG_FAST_ANALYSIS_CALL,
-			// 		IARG_THREAD_ID, IARG_ADDRINT, BBL_Address(bbl), IARG_PTR, bblInfo, IARG_END);
+            BblInfo* bblInfo = Decoder::decodeBbl(bbl, zinfo->oooDecode);
+            BBL_InsertCall(bbl, IPOINT_BEFORE, /*could do IPOINT_ANYWHERE if we redid load and store simulation in OOO*/
+				(AFUNPTR)IndirectBasicBlock, IARG_FAST_ANALYSIS_CALL,
+				IARG_THREAD_ID, IARG_ADDRINT, BBL_Address(bbl), IARG_PTR, bblInfo, IARG_END);
         }
     }
 
