@@ -39,3 +39,6 @@ heartbeat
 *.swp
 *.h5
 *.sconsign.dblite
+
+# out file
+out.cfg
