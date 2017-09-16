@@ -6,7 +6,7 @@ sys = {
             icache = "l1iA";
 		};
         coreB = {
-            type = "SMT";
+            type = "Simple";
             dcache = "l1dB";
             icache = "l1iB";
 		};
