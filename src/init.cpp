@@ -63,6 +63,7 @@
 #include "repl_policies.h"
 #include "scheduler.h"
 #include "simple_core.h"
+#include "smt_core.h"
 #include "stats.h"
 #include "stats_filter.h"
 #include "str.h"
@@ -677,6 +678,7 @@ static void InitSystem(Config & config) {
 				TimingCore *timingCores;
 				OOOCore *oooCores;
 				NullCore *nullCores;
+				SMTCore *smtCores;
 			};
 			if (type == "Simple") {
 				simpleCores = gm_memalign < SimpleCore > (CACHE_LINE_BYTES, cores);
@@ -687,6 +689,8 @@ static void InitSystem(Config & config) {
 				zinfo->oooDecode = true;	//enable uop decoding, this is false by default, must be true if even one OOO cpu is in the system
 			} else if (type == "Null") {
 				nullCores = gm_memalign < NullCore > (CACHE_LINE_BYTES, cores);
+			} else if (type == "SMT") {
+				smtCores = gm_memalign < SMTCore > (CACHE_LINE_BYTES, cores);
 			} else {
 				panic("%s: Invalid core type %s", group, type.c_str());
 			}
@@ -742,9 +746,14 @@ static void InitSystem(Config & config) {
 						zinfo->eventRecorders[coreIdx] = tcore->getEventRecorder();
 						zinfo->eventRecorders[coreIdx]->setSourceId(coreIdx);
 						core = tcore;
+					} else if (type == "SMT") {
+						SMTCore *score = new(&smtCores[j]) SMTCore(ic, dc, name);
+						zinfo->eventRecorders[coreIdx] = score->getEventRecorder();
+						zinfo->eventRecorders[coreIdx]->setSourceId(coreIdx);
+						core = score;
 					} else {
 						assert(type == "OOO");
-						OOOCore *ocore = new(&oooCores[j]) OOOCore(ic, dc, name);
+							OOOCore *ocore = new(&oooCores[j]) OOOCore(ic, dc, name);
 						zinfo->eventRecorders[coreIdx] = ocore->getEventRecorder();
 						zinfo->eventRecorders[coreIdx]->setSourceId(coreIdx);
 						core = ocore;
