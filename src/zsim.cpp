@@ -704,18 +704,18 @@ VOID Trace(TRACE trace, VOID *v) {
     if (!procTreeNode->isInFastForward() || !zinfo->ffReinstrument) {
         // Visit every basic block in the trace
         for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
-            // BblInfo* bblInfo = Decoder::decodeBbl(bbl, zinfo->oooDecode);
-            // BBL_InsertCall(bbl, IPOINT_BEFORE, /*could do IPOINT_ANYWHERE if we redid load and store simulation in OOO*/
-			// 		(AFUNPTR)IndirectBasicBlock, IARG_FAST_ANALYSIS_CALL,
-			// 		IARG_THREAD_ID, IARG_ADDRINT, BBL_Address(bbl), IARG_PTR, bblInfo, IARG_END);
+             BblInfo* bblInfo = Decoder::decodeBbl(bbl, zinfo->oooDecode);
+             BBL_InsertCall(bbl, IPOINT_BEFORE, /*could do IPOINT_ANYWHERE if we redid load and store simulation in OOO*/
+			 		(AFUNPTR)IndirectBasicBlock, IARG_FAST_ANALYSIS_CALL,
+			 		IARG_THREAD_ID, IARG_ADDRINT, BBL_Address(bbl), IARG_PTR, bblInfo, IARG_END);
         }
     }
 
     //Instruction instrumentation now here to ensure proper ordering
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
-			PrintInstruction(ins);
-            // Instruction(ins);
+			PrintInstruction(ins); /* OOOE: RM: Print to tests/traces/itrace.txt */
+            Instruction(ins);
         }
     }
 }

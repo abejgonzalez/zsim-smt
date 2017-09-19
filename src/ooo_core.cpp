@@ -31,6 +31,7 @@
 #include "decoder.h"
 #include "filter_cache.h"
 #include "zsim.h"
+#include "log.h"
 
 /* Uncomment to induce backpressure to the IW when the load/store buffers fill up. In theory, more detailed,
  * but sometimes much slower (as it relies on range poisoning in the IW, potentially O(n^2)), and in practice
@@ -171,6 +172,7 @@ void OOOCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenN
  *    time this function is called.
  */
 inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
+    info("OOOE: AG: bbl() called: CurCycle = %lu \n", curCycle);
     if (!prevBbl) {
         // This is the 1st BBL since scheduled, nothing to simulate
         prevBbl = bblInfo;
