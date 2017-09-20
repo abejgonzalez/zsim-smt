@@ -1392,8 +1392,8 @@ BblInfo *Decoder::decodeBbl(BBL bbl, bool oooDecoding) {
 			//if (INS_OperandSizePrefix(ins)) pcyc += 6;
 
 			predecCycle[i] = pcyc;
-            //OOOE
-			info("PREDEC %2d: 0x%08lx %2d %d %d %d", i, instrAddr[i], instrBytes[i], instrUops[i], block, predecCycle[i]);
+            /* OOOE: AG: Print out decoder, addresses, bytes, uops and block and cycle */
+			//info("PREDEC %2d: 0x%08lx %2d %d %d %d", i, instrAddr[i], instrBytes[i], instrUops[i], block, predecCycle[i]);
 		}
 
 		//2. Decoding
