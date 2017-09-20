@@ -6,7 +6,7 @@ SCONSFLAGS = -j4
 # testing
 TESTDIR = ./tests/config
 TRACEDIR = ./tests/traces
-TEST = $(TESTDIR)/smt.cfg
+TEST = $(TESTDIR)/ajg.cfg
 ZSIM = build/opt/zsim
 
 # outputs
