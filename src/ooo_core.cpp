@@ -172,7 +172,7 @@ void OOOCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenN
  *    time this function is called.
  */
 inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
-    info("OOOE: AG: bbl() called: CurCycle = %lu \n", curCycle);
+    //info("OOOE: AG: bbl() called: CurCycle = %lu \n", curCycle);
     if (!prevBbl) {
         // This is the 1st BBL since scheduled, nothing to simulate
         prevBbl = bblInfo;
@@ -204,6 +204,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
      * they call this an instruction window? Even though the "instr
      * window" here is fixed to only the uops inside of the BBL.
      */
+    info("OOOE: PID:%d BBLADDR:0x%lx", getpid(), bbl->addr);
     // Run dispatch/IW
     for (uint32_t i = 0; i < bbl->uops; i++) {
         DynUop* uop = &(bbl->uop[i]);
@@ -221,6 +222,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
          */
         /* OOOE: AG: 
          * Set when the prevDecCycle is the decode cycle count from the prev UOP */
+        info("OOOE: UOP#:%d UOPDECCYCLE:%d COREDECCYCLE:%lu", i, uop->decCycle, decodeCycle);
         uint32_t decDiff = uop->decCycle - prevDecCycle;
         /* OOOE: AG: uopQueue has amount of uops and when they are marked for retiring */
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
@@ -583,6 +585,7 @@ void OOOCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
 
 void OOOCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
     OOOCore* core = static_cast<OOOCore*>(cores[tid]);
+    //info("OOOE: TID:%d\n", tid);
     /*OOOE: Function where basic blocks are analyzed on a core basis */
     core->bbl(bblAddr, bblInfo);
 
