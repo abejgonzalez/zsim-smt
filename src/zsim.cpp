@@ -715,7 +715,9 @@ VOID Trace(TRACE trace, VOID *v) {
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
 			PrintInstruction(ins); /* OOOE: RM: Print to tests/traces/itrace.txt */
-            Instruction(ins);
+			if (INS_Category(ins) == XED_CATEGORY_COND_BR && !INS_IsXend(ins)) {
+            	Instruction(ins);
+			}
         }
     }
 }
