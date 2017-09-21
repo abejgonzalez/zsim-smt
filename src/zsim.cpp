@@ -177,7 +177,7 @@ VOID PIN_FAST_ANALYSIS_CALL IndirectStoreSingle(THREADID tid, ADDRINT addr) {
 }
 
 VOID PIN_FAST_ANALYSIS_CALL IndirectBasicBlock(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
-	FILE *traceFile = fopen("tests/traces/bblfPtrs", "a+");
+	FILE *traceFile = fopen("tests/traces/ctrace.txt", "a+");
 	fprintf(traceFile, "/** IndirectBasicBlock(%d, %p): (%d, %p) **/\n", getpid(), cores[tid], tid, fPtrs[tid].loadPtr);
     fPtrs[tid].bblPtr(tid, bblAddr, bblInfo);
 	fclose(traceFile);

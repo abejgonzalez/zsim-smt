@@ -690,6 +690,8 @@ static void InitSystem(Config & config) {
 			} else if (type == "Null") {
 				nullCores = gm_memalign < NullCore > (CACHE_LINE_BYTES, cores);
 			} else if (type == "SMT") {
+				// OOOE:
+				// will have to allocate global memory for 2 virtual ooo cores...
 				smtCores = gm_memalign < SMTCore > (CACHE_LINE_BYTES, cores);
 			} else {
 				panic("%s: Invalid core type %s", group, type.c_str());
@@ -747,6 +749,7 @@ static void InitSystem(Config & config) {
 						zinfo->eventRecorders[coreIdx]->setSourceId(coreIdx);
 						core = tcore;
 					} else if (type == "SMT") {
+						/* OOOE: RMAG: Look into how to give mem to 2 virt. cores within the SMTCore obj */
 						SMTCore *score = new(&smtCores[j]) SMTCore(ic, dc, name);
 						zinfo->eventRecorders[coreIdx] = score->getEventRecorder();
 						zinfo->eventRecorders[coreIdx]->setSourceId(coreIdx);
