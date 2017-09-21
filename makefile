@@ -5,6 +5,7 @@ SCONSFLAGS = -j4
 
 # testing
 TESTDIR = ./tests/config
+LOGDIR = ./log
 TRACEDIR = ./tests/traces
 TEST = $(TESTDIR)/smt.cfg
 ZSIM = build/opt/zsim
@@ -20,17 +21,21 @@ build: src/
 	# ln -sf ~/zsim/build/opt/zsim ~/opt/bin/zsim
 
 clean:
-	$(RM) -rf  $(BUILDDIR)  $(OUTPUT) $(TRACEDIR)
+	$(RM) -rf  $(BUILDDIR)  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
 
 
-test: $(TEST) $(TRACEDIR)
+test: $(TEST) $(TRACEDIR) $(LOGDIR)
 	$(ZSIM) $(TEST)	
+	mv *.log* log
 
 test-clean:
-	$(RM) -rf  $(OUTPUT) $(TRACEDIR)
+	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
 
 $(TRACEDIR):
 	mkdir -p $(TRACEDIR)
+
+$(LOGDIR):
+	mkdir -p $(LOGDIR)
 
 ############### unit tests ######################
 
