@@ -43,4 +43,4 @@ heartbeat
 # out file
 .log*
 out.cfg
-.log*
+/log
