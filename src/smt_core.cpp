@@ -127,9 +127,14 @@ struct BblInfo;
 
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	: Core(_name), l1i(_l1i), l1d(_l1d)/*, cRec(0, _name) */ {
-		printf("Creating a new SMT Core! \n");
-		vcore1 = new OOOCore(_l1i, _l1d, _name);
-		vcore2 = new OOOCore(_l1i, _l1d, _name);
+
+    info("OOOE: Creating a SMT Core");
+    OOOCore *oooCoreMem = gm_memalign < OOOCore > (CACHE_LINE_BYTES, 2);
+    
+    g_string vc1Name = _name.append("VCore_1");
+    g_string vc2Name = _name.append("VCore_2");
+    vcore1 = new(&oooCoreMem[0]) OOOCore(_l1i, _l1d, vc1Name);
+    vcore2 = new(&oooCoreMem[1]) OOOCore(_l1i, _l1d, vc2Name);
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
