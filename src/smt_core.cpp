@@ -138,7 +138,7 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
-
+    info("OOOE: initStates()");
 }
 
 uint64_t SMTCore::getInstrs() const {
@@ -154,14 +154,15 @@ uint64_t SMTCore::getCycles() const {
 }
 
 void SMTCore::contextSwitch(int32_t gid) {
-
+    info("OOOE: contextSwitch()");
 }
 
 void SMTCore::join() {
-
+    info("OOOE: join()");
 }
-void SMTCore::leave() {
 
+void SMTCore::leave() {
+    info("OOOE: leave()");
 }
 
 InstrFuncPtrs SMTCore::GetFuncPtrs() {
@@ -180,21 +181,21 @@ EventRecorder* SMTCore::getEventRecorder() {
 	return vcore1->getEventRecorder();
 }
 void SMTCore::cSimStart(){
-
+    info("OOOE: cSimStart()");
 }
 
 void SMTCore::cSimEnd() {
-
+    info("OOOE: cSimEnd()");
 }
 
 /** private: */
 
 inline void SMTCore::load(Address addr) {
-
+    info("OOOE: load");
 }
 
 inline void SMTCore::store(Address addr) {
-
+    info("OOOE: store");
 }
 
 /* NOTE: Analysis routines cannot touch curCycle directly, must use
@@ -206,41 +207,42 @@ inline void SMTCore::store(Address addr) {
  * to advance the cycle counters in the whole core in lockstep.
  */
 inline void SMTCore::advance(uint64_t targetCycle) {
-
+    info("OOOE: advance");
 }
 
 // Predicated loads and stores call this function, gets recorded as a 0-cycle op.
 // Predication is rare enough that we don't need to model it perfectly to be accurate 
 // (i.e. the uops still execute, retire, etc), but this is needed for correctness.
 inline void SMTCore::predFalseMemOp() {
-
+    info("OOOE: predFalseMemOp");
 }
 
 
 /** fPtrs Core Analysis functions. */
 
 inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc) {
-
+    info("OOOE: branch");
 }
-inline void SMTCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 
+inline void SMTCore::bbl(Address bblAddr, BblInfo* bblInfo) {
+    info("OOOE: bbl");
 }
 void SMTCore::LoadFunc(THREADID tid, ADDRINT addr) {
-
+    info("OOOE: loadfunc");
 }
 void SMTCore::StoreFunc(THREADID tid, ADDRINT addr) {
-
+    info("OOOE: storefunc");
 }
 void SMTCore::PredLoadFunc(THREADID tid, ADDRINT addr, BOOL pred) {
-
+    info("OOOE: predloadfunc");
 }
 void SMTCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
-
+    info("OOOE: PRedstorfuc");
 }
 void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
-	info ("/** OOOE: SMT Core: **/" );
+	info ("OOOE: BblFunc");
 }
 void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
-
+    info("OOOE: branchFunc");
 }
 
