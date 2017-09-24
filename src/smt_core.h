@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <queue>
 #include <string>
+#include <unistd.h>
 #include "core.h"
 #include "g_std/g_multimap.h"
 #include "memory_hierarchy.h"
@@ -42,52 +43,83 @@
 // Uncomment to enable stall stats
 // #define SMT_STALL_STATS
 
-class FilterCache;
+/** OOOE:
+ * Context object
+ * container for BblInfo and supporting state variables.
+ * Load/Store Address Arrays, Branch pcs, etc...
+ */
+class BblContext {
+	public:
+		pid_t pid;
+		BblInfo *bbl; // TODO: may have to deep copy this struct. 
+		// instructions refered to internally may have been deleted before playback time.
+		
+		//Record load and store addresses
+        Address loadAddrs[256], storeAddrs[256];
+        uint32_t loads, stores;	// current loadAddrs and storeAddrs indexes
+        
+        bool branchTaken;
+		Address branchPc;  //0 if last bbl was not a conditional branch
+        Address branchTakenNpc, branchNotTakenNpc;
+}; 
 
-struct BblInfo;
+class SmtWindow {
+	public:
+		static const int NUM_CORES = 2;
+		static const int QUEUE_SIZE = 5000;
+		int numContexts[NUM_CORES];
+		BblContext queue[NUM_CORES][QUEUE_SIZE];
+
+		SmtWindow() { for(int i = 0; i < NUM_CORES; ++i) numContexts[i] = 0; }
+};
 
 class SMTCore : public Core {
     private:
         FilterCache* l1i;
         FilterCache* l1d;
 
+		// shared objects
 		OOOCore *vcore1;
 		OOOCore *vcore2;
+		SmtWindow *smtWindow;
+
 
 		// timing 
         uint64_t phaseEndCycle; //next stopping point
         uint64_t curCycle; //this model is issue-centric; curCycle refers to the current issue cycle
-        uint32_t curCycleRFReads; //for RF read stalls
-        uint32_t curCycleIssuedUops; //for uop issue limits
 
         uint64_t decodeCycle;
         CycleQueue<28> uopQueue;  // models issue queue
         uint64_t instrs, uops, bbls, approxInstrs;
+        
+		uint64_t regScoreboard[MAX_REGISTERS]; //contains timestamp of next issue cycles where each reg can be sourced
+        uint64_t lastStoreCommitCycle;
+        uint64_t lastStoreAddrCommitCycle; //tracks last store addr uop, all loads queue behind it
 
-        BblInfo* prevBbl;
-
-        //Record load and store addresses
-        Address loadAddrs[256];
-        Address storeAddrs[256];
-        uint32_t loads;
-        uint32_t stores;
+        // BblInfo* prevBbl;
+		// // current bbl context
+		// // will be queued on next bbl run.
+		BblContext *context = NULL;
+        
 
         //LSU queues are modeled like the ROB. Surprising? Entries are grabbed in dataflow order,
         //and for ordering purposes should leave in program order. In reality they are associative
         //buffers, but we split the associative component from the limited-size modeling.
         //NOTE: We do not model the 10-entry fill buffer here; the weave model should take care
         //to not overlap more than 10 misses.
-        // ReorderBuffer<32, 4> loadQueue;
-        // ReorderBuffer<32, 4> storeQueue;
-        // ReorderBuffer<128, 4> rob;
+        ReorderBuffer<32, 4> loadQueue;
+        ReorderBuffer<32, 4> storeQueue;
+        ReorderBuffer<128, 4> rob;
+        uint32_t curCycleRFReads; //for RF read stalls
+        uint32_t curCycleIssuedUops; //for uop issue limits
 
         //This would be something like the Atom... (but careful, the iw probably does not allow 2-wide when configured with 1 slot)
-        //WindowStructure<1024, 1 /*size*/, 2 /*width*/> insWindow; //this would be something like an Atom, except all the instruction pairing business...
+        // WindowStructure<1024, 1 /*size*/, 2 /*width*/> insWindow; //this would be something like an Atom, except all the instruction pairing business...
 
         //Nehalem
 		// OOOE: could be pretty useful. 
 		// 	may not have to reinvent the wheel for ins windows...
-        //WindowStructure<1024, 36 /*size*/> insWindow; 
+        WindowStructure<1024, 36 /*size*/> insWindow; 
 		////NOTE: IW width is implicitly determined by the decoder, which sets the port masks according to uop type
 
 
@@ -98,13 +130,9 @@ class SMTCore : public Core {
         // where a few of the 2-level history bits are in the tag.
         // Since this is close enough, we'll leave it as is for now. Feel free to reverse-engineer the real thing...
         // UPDATE: Now pht index is XOR-folded BSHR. This has 6656 bytes total -- not negligible, but not ridiculous.
-        // BranchPredictorPAg<11, 18, 14> branchPred;
-		// uint32_t mispredBranches;
+        BranchPredictorPAg<11, 18, 14> branchPred;
+		uint32_t mispredBranches;
 
-        // Address branchPc;  //0 if last bbl was not a conditional branch
-        // bool branchTaken;
-        // Address branchTakenNpc;
-        // Address branchNotTakenNpc;
 
 
 		#ifdef SMT_STALL_STATS
@@ -124,7 +152,7 @@ class SMTCore : public Core {
         FwdEntry fwdArray[FWD_ENTRIES];
 
 		// OOOE: may have to create our own recorder.
-        // OOOCoreRecorder cRec;
+        OOOCoreRecorder cRec;
 
     public:
         SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name);

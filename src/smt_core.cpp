@@ -40,101 +40,19 @@
 // Uncomment to enable stall stats
 // #define OOO_STALL_STATS
 
-class FilterCache;
-
-struct BblInfo;
-
-// class SMTCore : public Core {
-//     private:
-//         FilterCache* l1i;
-//         FilterCache* l1d;
-// 
-// 		// timing 
-//         uint64_t phaseEndCycle; //next stopping point
-//         uint64_t curCycle; //this model is issue-centric; curCycle refers to the current issue cycle
-//         uint32_t curCycleRFReads; //for RF read stalls
-//         uint32_t curCycleIssuedUops; //for uop issue limits
-// 
-//         uint64_t decodeCycle;
-//         CycleQueue<28> uopQueue;  // models issue queue
-//         uint64_t instrs, uops, bbls, approxInstrs;
-// 
-//         BblInfo* prevBbl;
-// 
-//         //Record load and store addresses
-//         Address loadAddrs[256];
-//         Address storeAddrs[256];
-//         uint32_t loads;
-//         uint32_t stores;
-// 
-//         //LSU queues are modeled like the ROB. Surprising? Entries are grabbed in dataflow order,
-//         //and for ordering purposes should leave in program order. In reality they are associative
-//         //buffers, but we split the associative component from the limited-size modeling.
-//         //NOTE: We do not model the 10-entry fill buffer here; the weave model should take care
-//         //to not overlap more than 10 misses.
-//         // ReorderBuffer<32, 4> loadQueue;
-//         // ReorderBuffer<32, 4> storeQueue;
-//         // ReorderBuffer<128, 4> rob;
-// 
-//         //This would be something like the Atom... (but careful, the iw probably does not allow 2-wide when configured with 1 slot)
-//         //WindowStructure<1024, 1 /*size*/, 2 /*width*/> insWindow; //this would be something like an Atom, except all the instruction pairing business...
-// 
-//         //Nehalem
-// 		// OOOE: could be pretty useful. 
-// 		// 	may not have to reinvent the wheel for ins windows...
-//         //WindowStructure<1024, 36 /*size*/> insWindow; 
-// 		////NOTE: IW width is implicitly determined by the decoder, which sets the port masks according to uop type
-// 
-// 
-// 		// OOOE: probably don't need this.
-//         // Agner's guide says it's a 2-level pred and BHSR is 18 bits, so this is the config that makes sense;
-//         // in practice, this is probably closer to the Pentium M's branch predictor, (see Uzelac and Milenkovic,
-//         // ISPASS 2009), which get the 18 bits of history through a hybrid predictor (2-level + bimodal + loop)
-//         // where a few of the 2-level history bits are in the tag.
-//         // Since this is close enough, we'll leave it as is for now. Feel free to reverse-engineer the real thing...
-//         // UPDATE: Now pht index is XOR-folded BSHR. This has 6656 bytes total -- not negligible, but not ridiculous.
-//         // BranchPredictorPAg<11, 18, 14> branchPred;
-// 		// uint32_t mispredBranches;
-// 
-//         // Address branchPc;  //0 if last bbl was not a conditional branch
-//         // bool branchTaken;
-//         // Address branchTakenNpc;
-//         // Address branchNotTakenNpc;
-// 
-// 
-// 		#ifdef SMT_STALL_STATS
-//         	Counter profFetchStalls, profDecodeStalls, profIssueStalls;
-// 		#endif
-// 
-//         // Load-store forwarding
-//         // Just a direct-mapped array of last store cycles to 4B-wide blocks
-//         // (i.e., indexed by (addr >> 2) & (FWD_ENTRIES-1))
-//         struct FwdEntry {
-//             Address addr;
-//             uint64_t storeCycle;
-//             void set(Address a, uint64_t c) {addr = a; storeCycle = c;}
-//         };
-// 
-//         #define FWD_ENTRIES 32  // 2 lines, 16 4B entries/line
-//         FwdEntry fwdArray[FWD_ENTRIES];
-// 
-// 		// OOOE: may have to create our own recorder.
-//         // OOOCoreRecorder cRec;
-// }
-
-/** public: */
-
-
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
-	: Core(_name), l1i(_l1i), l1d(_l1d)/*, cRec(0, _name) */ {
+	: Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
 
     info("OOOE: Creating a SMT Core");
-    OOOCore *oooCoreMem = gm_memalign < OOOCore > (CACHE_LINE_BYTES, 2);
     
+    OOOCore *oooCoreMem = gm_memalign < OOOCore > (CACHE_LINE_BYTES, 2);
     g_string vc1Name = _name.append("VCore_1");
     g_string vc2Name = _name.append("VCore_2");
     vcore1 = new(&oooCoreMem[0]) OOOCore(_l1i, _l1d, vc1Name);
     vcore2 = new(&oooCoreMem[1]) OOOCore(_l1i, _l1d, vc2Name);
+	
+	SmtWindow *smtWindowMem = gm_memalign< SmtWindow >(CACHE_LINE_BYTES, 1);
+	smtWindow = new(&smtWindowMem[0]) SmtWindow();	
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
@@ -149,8 +67,8 @@ uint64_t SMTCore::getPhaseCycles() const {
 }
 uint64_t SMTCore::getCycles() const {
 	// old way. TODO: revise for SMT.
-	// return cRec.getUnhaltedCycles(curCycle);
-	return curCycle;
+	return cRec.getUnhaltedCycles(curCycle);
+	// return curCycle;
 }
 
 void SMTCore::contextSwitch(int32_t gid) {
@@ -177,8 +95,8 @@ InstrFuncPtrs SMTCore::GetFuncPtrs() {
 // Contention simulation interface
 EventRecorder* SMTCore::getEventRecorder() {
 	// OOOE: should we create a new event recorder?
-	// return cRec.getEventRecorder();
-	return vcore1->getEventRecorder();
+	return cRec.getEventRecorder();
+	// return vcore1->getEventRecorder();
 }
 void SMTCore::cSimStart(){
     info("OOOE: cSimStart()");
@@ -222,6 +140,12 @@ inline void SMTCore::predFalseMemOp() {
 
 inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc) {
     info("OOOE: branch");
+	if(context) {
+		context->branchPc = pc;
+		context->branchTaken = taken;
+		context->branchTakenNpc = takenNpc;
+		context->branchNotTakenNpc = notTakenNpc;
+	}
 }
 
 inline void SMTCore::bbl(Address bblAddr, BblInfo* bblInfo) {
@@ -241,6 +165,9 @@ void SMTCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
 }
 void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
 	info ("OOOE: BblFunc");
+	// create a Bbl Context
+	// store in the smt window
+	
 }
 void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
     info("OOOE: branchFunc");
