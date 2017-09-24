@@ -51,13 +51,15 @@
 class BblContext {
 	public:
 		pid_t pid;
+		Address bblAddress;
 		BblInfo *bbl; // TODO: may have to deep copy this struct. 
 		// instructions refered to internally may have been deleted before playback time.
 		
-		//Record load and store addresses
+		// Record load and store addresses
         Address loadAddrs[256], storeAddrs[256];
         uint32_t loads, stores;	// current loadAddrs and storeAddrs indexes
         
+		// branch prediction
         bool branchTaken;
 		Address branchPc;  //0 if last bbl was not a conditional branch
         Address branchTakenNpc, branchNotTakenNpc;
@@ -67,6 +69,7 @@ class SmtWindow {
 	public:
 		static const int NUM_CORES = 2;
 		static const int QUEUE_SIZE = 5000;
+		int vcore; // current virtual core queue (vcore < numCores)
 		int numContexts[NUM_CORES];
 		BblContext queue[NUM_CORES][QUEUE_SIZE];
 
@@ -79,10 +82,9 @@ class SMTCore : public Core {
         FilterCache* l1d;
 
 		// shared objects
-		OOOCore *vcore1;
-		OOOCore *vcore2;
+		OOOCore *vcore1, *vcore2;
 		SmtWindow *smtWindow;
-
+		lock_t windowLock;
 
 		// timing 
         uint64_t phaseEndCycle; //next stopping point
@@ -188,6 +190,13 @@ class SMTCore : public Core {
          * to advance the cycle counters in the whole core in lockstep.
          */
         inline void advance(uint64_t targetCycle);
+
+		/**
+		 * TODO: Implement old ooo_core bbl logic.
+		 * playback and flush the instruction window.
+		 * bbls are dequeued and the instructions are executed.
+		 */
+		inline void playback();
 
         // Predicated loads and stores call this function, gets recorded as a 0-cycle op.
         // Predication is rare enough that we don't need to model it perfectly to be accurate 
