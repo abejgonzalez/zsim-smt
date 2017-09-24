@@ -41,6 +41,6 @@ heartbeat
 *.sconsign.dblite
 
 # out file
-.log*
+*.log*
 out.cfg
 /log

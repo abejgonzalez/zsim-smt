@@ -719,9 +719,9 @@ VOID Trace(TRACE trace, VOID *v) {
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
 			PrintInstruction(ins); /* OOOE: RM: Print to tests/traces/itrace.txt */
-			//if (!INS_IsXend(ins)) {
+			if (!INS_IsXend(ins)) {
             	Instruction(ins);
-			//}
+			}
         }
     }
 }
