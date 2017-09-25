@@ -44,9 +44,8 @@
 // #define SMT_STALL_STATS
 
 /** OOOE:
- * Context object
- * container for BblInfo and supporting state variables.
- * Load/Store Address Arrays, Branch pcs, etc...
+ * Description: Context object container that holds BblInfo, loads and store addresses,
+ * branch prediction variables (pc, taken, ntaken)
  */
 class BblContext {
 	public:
@@ -56,6 +55,7 @@ class BblContext {
 		// instructions refered to internally may have been deleted before playback time.
 		
 		// Record load and store addresses
+		/* TODO: Are we assuming that there WON'T be over 256 loads and stores in a bbl? */
         Address loadAddrs[256], storeAddrs[256];
         uint32_t loads, stores;	// current loadAddrs and storeAddrs indexes
         
@@ -65,15 +65,19 @@ class BblContext {
         Address branchTakenNpc, branchNotTakenNpc;
 }; 
 
+/** OOOE:
+ * Description: Container that holds 2 BblContext queues to store the core
+ * state.
+ */
 class SmtWindow {
 	public:
-		static const int NUM_CORES = 2;
+		static const int NUM_VCORES = 2;
 		static const int QUEUE_SIZE = 5000;
-		int vcore; // current virtual core queue (vcore < numCores)
-		int numContexts[NUM_CORES];
-		BblContext queue[NUM_CORES][QUEUE_SIZE];
+		int vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
+		int numContexts[NUM_VCORES];
+		BblContext queue[NUM_VCORES][QUEUE_SIZE];
 
-		SmtWindow() { for(int i = 0; i < NUM_CORES; ++i) numContexts[i] = 0; }
+		SmtWindow() { for(int i = 0; i < NUM_VCORES; ++i) numContexts[i] = 0; }
 };
 
 class SMTCore : public Core {
@@ -98,10 +102,10 @@ class SMTCore : public Core {
         uint64_t lastStoreCommitCycle;
         uint64_t lastStoreAddrCommitCycle; //tracks last store addr uop, all loads queue behind it
 
-        // BblInfo* prevBbl;
-		// // current bbl context
-		// // will be queued on next bbl run.
-		BblContext *context = NULL;
+    
+        /* OOOE: Current bbl context that is filled with the simulator running. Queued on the 
+           next bbl() function call. */
+		BblContext *curContext = NULL;
         
 
         //LSU queues are modeled like the ROB. Surprising? Entries are grabbed in dataflow order,

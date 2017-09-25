@@ -48,12 +48,6 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
     info("OOOE: Creating a SMT Core");
 	curCycle = 0;
     
-    OOOCore *oooCoreMem = gm_memalign < OOOCore > (CACHE_LINE_BYTES, 2);
-    g_string vc1Name = _name.append("VCore_1");
-    g_string vc2Name = _name.append("VCore_2");
-    vcore1 = new(&oooCoreMem[0]) OOOCore(_l1i, _l1d, vc1Name);
-    vcore2 = new(&oooCoreMem[1]) OOOCore(_l1i, _l1d, vc2Name);
-	
 	SmtWindow *smtWindowMem = gm_memalign< SmtWindow >(CACHE_LINE_BYTES, 1);
 	smtWindow = new(&smtWindowMem[0]) SmtWindow();
 	smtWindow->vcore = 0;
@@ -78,18 +72,20 @@ uint64_t SMTCore::getCycles() const {
 void SMTCore::contextSwitch(int32_t gid) {
     info("OOOE: contextSwitch(%d)", getpid());
 	
+	/* OOOE: Run from scheduler. gid = -1 is passed from scheduler in the
+	   deschedule function. */
 	if (gid == -1) { 
-		// currently running process has been descheduled...
-		smtWindow->vcore = (smtWindow->vcore + 1) % SmtWindow::NUM_CORES;
+		smtWindow->vcore = (smtWindow->vcore + 1) % SmtWindow::NUM_VCORES;
 		if (smtWindow->vcore == 0) {
 			// TODO: playback previous vcore queues.
 			this->playback();
 		}
 
-		// legacy ooo_core code.
+		// Old OOO_CORE code
         // Do not execute previous BBL, as we were context-switched
         // prevBbl = nullptr;
         // Invalidate virtually-addressed filter caches
+        /* OOOE: AG: We dont want to clear the cache since they are shared */
         // l1i->contextSwitch();
         // l1d->contextSwitch();
     }
@@ -150,12 +146,14 @@ void SMTCore::cSimEnd() {
 
 inline void SMTCore::load(Address addr) {
     info("OOOE: load");
-    context->loadAddrs[context->loads++] = addr;
+    if(curContext)
+        curContext->loadAddrs[curContext->loads++] = addr;
 }
 
 inline void SMTCore::store(Address addr) {
     info("OOOE: store");
-    context->storeAddrs[context->stores++] = addr;
+    if(curContext)
+        curContext->storeAddrs[curContext->stores++] = addr;
 }
 
 /* NOTE: Analysis routines cannot touch curCycle directly, must use
@@ -177,7 +175,8 @@ inline void SMTCore::predFalseMemOp() {
     info("OOOE: predFalseMemOp");
     // I'm going to go out on a limb and assume just loads are predicated 
 	// (this will not fail silently if it's a store)
-    context->loadAddrs[context->loads++] = -1L;
+	if(curContext)
+        curContext->loadAddrs[curContext->loads++] = -1L;
 }
 
 
@@ -185,30 +184,31 @@ inline void SMTCore::predFalseMemOp() {
 
 inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc) {
     info("OOOE: branch");
-	if(context) {
-		context->branchPc = pc;
-		context->branchTaken = taken;
-		context->branchTakenNpc = takenNpc;
-		context->branchNotTakenNpc = notTakenNpc;
+	if(curContext) {
+		curContext->branchPc = pc;
+		curContext->branchTaken = taken;
+		curContext->branchTakenNpc = takenNpc;
+		curContext->branchNotTakenNpc = notTakenNpc;
 	}
 }
 
 // TODO: reimplement the original bbl func algorithm in playback()
 inline void SMTCore::bbl(Address bblAddr, BblInfo* bblInfo) {
-	// check full window
-	if(smtWindow->numContexts[smtWindow->vcore] == (SmtWindow::QUEUE_SIZE - 1)) 
+	/* OOOE: If the queue is full then "flush" (running the bbls) in sudo-lockstep */
+	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) 
 		this->playback();
 	
+	/* Store the bbl within a new context that fits in the queue */
 	futex_lock(&windowLock);
 	int vcore = smtWindow->vcore;
 	int contextNum = smtWindow->numContexts[vcore]++;
 	
 	info("OOOE: bbl  vcore: %d, contextNum: %d", vcore, contextNum);
-	context = new(&(smtWindow->queue[vcore][contextNum])) BblContext();		
-	context->pid = getpid();
-	context->bbl = bblInfo;
-	context->bblAddress = bblAddr;
-	context->loads = context->stores = 0;
+	curContext = new(&(smtWindow->queue[vcore][contextNum])) BblContext();		
+	curContext->pid = getpid();
+	curContext->bbl = bblInfo;
+	curContext->bblAddress = bblAddr;
+	curContext->loads = curContext->stores = 0;
 	futex_unlock(&windowLock);
 }
 
@@ -263,10 +263,36 @@ void SMTCore::playback() {
     info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
 	futex_lock(&windowLock);
 
-	// free resources
-	for(int i = 0; i < SmtWindow::NUM_CORES; ++i) {
+    /* OOOE: Free resources but you also want to run both bbls and start to
+       analyze the intersection of the two */
+
+    /* Algo Design 
+       getUop( choose between uop from 1st q or 2nd q )
+       while (return vals of getUop return true for at least 1 )
+         run uop
+     */
+    DynUop* uop;
+    bool uopPresent = getUop(uop);
+
+    while (uopPresent){
+        /* Run the uop here similar to bbl() */
+        assern (uop != null);
+        curCycle += 1;
+
+        /* Get new uop to run */
+        uopPresent = getUop(uop);
+    }
+
+        
+
+        
+
+        
+    /* OOOE: RM/JN: Run through all bbls starting with 1 q then going to the other */
+	for(int i = 0; i < SmtWindow::NUM_VCORES; ++i) {
 		for(int j = 0; j < smtWindow->numContexts[i]; ++j) {
 			// TODO: fill in playback algorithm
+			/* OOOE: TODO: Have both instructions run in lockstep within a bbl */
     		DynBbl* bbl = &(smtWindow->queue[i][j].bbl->oooBbl[0]);
 			for (uint32_t i = 0; i < bbl->uops; i++) {
         		DynUop* uop = &(bbl->uop[i]);
@@ -280,6 +306,16 @@ void SMTCore::playback() {
 	
 	futex_unlock(&windowLock);
     info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
+}
+
+bool SMTCore::getUop(DynUop* uop){
+    static char curQ = 0;
+    static uint32_t curContext[2] = {0,0};
+    static uint64_t curUop[2] = {0,0};
+
+    /* Choose what Q to read from */
+    // maybe arbitration function here
+
 }
 
 
