@@ -284,11 +284,6 @@ void SMTCore::playback() {
         uopPresent = getUop(uop, bblContext);
     }
 
-        
-
-        
-
-        
     /* OOOE: RM/JN: Run through all bbls starting with 1 q then going to the other */
 	for(int i = 0; i < SmtWindow::NUM_VCORES; ++i) {
 		for(int j = 0; j < smtWindow->numContexts[i]; ++j) {
@@ -309,46 +304,46 @@ void SMTCore::playback() {
     info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
 }
 
-/* Gauranteed to get uop */
+/* OOOE: getUop()
+ * Description: Function to get a specific UOP and BblContext object to run in playback()
+ * Input: A DynUop and BblContext reference (Do not want a copy of them)
+ * Output: Bool telling whether a UOP was retrieved (Only would happen in the case both Q's are empty)
+ */
 bool SMTCore::getUop(DynUop& uop, BblContext& bblContext){
 	/* Consider moving these variables to playback func and pass in as parameters */
     static char curQ = 1;
     static uint32_t curContext[2] = {0,0};
     static uint64_t curUop[2] = {0,0};
 
-    /* Choose what Q to read from */
-	queryCore();
-	
-	/* Replace with arbitration to choose between which Q to read UOP */
+	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
 	if(smtWindow->numContexts[1 - curQ] > 0) {
 		curQ = curQ ? 0 : 1; 
 	}
+	/* OOOE: End: Arbitration section */
 
+    /* OOOE: Determine if there is a valid context to read in the Q */
 	if ( curContext[curQ] < smtWindow->numContexts[curQ] ){
-		/* Can read in the next context from the Q */
-		/* AKA there is a bbl to read in */
 		BblContext cntxt = smtWindow->queue[curQ][curContext[curQ]];
 
-		/* Should there be a check to make sure that there is a bbl present right here */
+		/* OOOE: TODO: Should there be a check to see if oooBbl != NULL? */
+		/* OOOE: TODO: Should UOP's be present? oooBbl[0].uops > 0 */
+		/* OOOE: Determine if a UOP is present */
 		if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
-			/* Found the uop so you can return it */
 			uop = bbl->uop[curUop[curQ]];
 			bblContext = cntxt;
 			curUop[curQ] += 1;
 			return true;
 		}
 		else {
-			/* Didnt find the UOP so you need to see if you can get the next uop from the nextBBl */
+			/* OOOE: UOP not found. Move to the next BblContext (move to next BBL) */
 			curUop[curQ] = 0;
 
 			if ( ++curContext[curQ] < smtWindow->numContexts[curQ] ){
 				curContext[curQ] += 1;
 				BblContext cntxt = smtWindow->queue[curQ][curContext[curQ]];
 
-				/* This if statement should work if there is a bbl unless having a bbl doesnt mean there is a uop */
-				/* Should there be a check to make sure that there is a bbl present right here */
+				/* OOOE: TODO: oooBbl != NULL && ...uops > 0 */
 				if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
-					/* Found the uop so you can return it */
 					uop = bbl->uop[curUop[curQ]];
 					bblContext = cntxt;
 					curUop[curQ] += 1;
@@ -356,16 +351,14 @@ bool SMTCore::getUop(DynUop& uop, BblContext& bblContext){
 				}
 			}
 			else {
-				/* That bbl was the last one */
-				/* Delete the bbl that was just finished ? */
+				/* OOOE: Just iterated through the last BBL */
 				smtWindow->numContexts[curQ] = 0;
 				return false;
 			}
 		}
 	}
 	else {
-		/* That bbl was the last one */
-		/* Delete the bbl that was just finished ? */
+	    /* OOOE: No BBL are left */
 		smtWindow->numContexts[curQ] = 0;
 		return false;
 	}

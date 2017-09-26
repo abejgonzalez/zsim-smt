@@ -86,7 +86,6 @@ class SMTCore : public Core {
         FilterCache* l1d;
 
 		// shared objects
-		OOOCore *vcore1, *vcore2;
 		SmtWindow *smtWindow;
 		lock_t windowLock;
 
