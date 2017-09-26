@@ -263,17 +263,12 @@ void SMTCore::playback() {
     info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
 	futex_lock(&windowLock);
 
-    /* OOOE: Free resources but you also want to run both bbls and start to
-       analyze the intersection of the two */
-
-    /* Algo Design 
-       getUop( choose between uop from 1st q or 2nd q )
-       while (return vals of getUop return true for at least 1 )
-         run uop
-     */
-    DynUop uop;
-	BblContext bblContext;
-    bool uopPresent = getUop(uop, bblContext);
+    DynUop* uop;
+	BblContext* bblContext;
+    char curQ = 1;
+    uint32_t curContext[2] = {0,0};
+    uint64_t curUop[2] = {0,0};
+    bool uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext);
 
     while (uopPresent){
         /* Run the uop here similar to bbl() */
@@ -281,25 +276,9 @@ void SMTCore::playback() {
         curCycle += 1;
 
         /* Get new uop to run */
-        uopPresent = getUop(uop, bblContext);
+        uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext);
     }
 
-    /* OOOE: RM/JN: Run through all bbls starting with 1 q then going to the other */
-	for(int i = 0; i < SmtWindow::NUM_VCORES; ++i) {
-		for(int j = 0; j < smtWindow->numContexts[i]; ++j) {
-			// TODO: fill in playback algorithm
-			/* OOOE: TODO: Have both instructions run in lockstep within a bbl */
-    		DynBbl* bbl = &(smtWindow->queue[i][j].bbl->oooBbl[0]);
-			for (uint32_t i = 0; i < bbl->uops; i++) {
-        		DynUop* uop = &(bbl->uop[i]);
-				assert (uop != NULL);
-				curCycle += 1; 			
-			}
-			// delete smtWindow->queue[i][j].bbl; // may be a bad idea to free this memory...
-		}
-		smtWindow->numContexts[i] = 0;
-	} 
-	
 	futex_unlock(&windowLock);
     info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
 }
@@ -309,12 +288,7 @@ void SMTCore::playback() {
  * Input: A DynUop and BblContext reference (Do not want a copy of them)
  * Output: Bool telling whether a UOP was retrieved (Only would happen in the case both Q's are empty)
  */
-bool SMTCore::getUop(DynUop& uop, BblContext& bblContext){
-	/* Consider moving these variables to playback func and pass in as parameters */
-    static char curQ = 1;
-    static uint32_t curContext[2] = {0,0};
-    static uint64_t curUop[2] = {0,0};
-
+bool SMTCore::getUop(char& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext){
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
 	if(smtWindow->numContexts[1 - curQ] > 0) {
 		curQ = curQ ? 0 : 1; 
@@ -323,14 +297,14 @@ bool SMTCore::getUop(DynUop& uop, BblContext& bblContext){
 
     /* OOOE: Determine if there is a valid context to read in the Q */
 	if ( curContext[curQ] < smtWindow->numContexts[curQ] ){
-		BblContext cntxt = smtWindow->queue[curQ][curContext[curQ]];
+		BblContext& cntxt = smtWindow->queue[curQ][curContext[curQ]];
 
 		/* OOOE: TODO: Should there be a check to see if oooBbl != NULL? */
 		/* OOOE: TODO: Should UOP's be present? oooBbl[0].uops > 0 */
 		/* OOOE: Determine if a UOP is present */
 		if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
-			uop = bbl->uop[curUop[curQ]];
-			bblContext = cntxt;
+			*uop = &(bbl->uop[curUop[curQ]]);
+			*bblContext = &cntxt;
 			curUop[curQ] += 1;
 			return true;
 		}
@@ -340,12 +314,12 @@ bool SMTCore::getUop(DynUop& uop, BblContext& bblContext){
 
 			if ( ++curContext[curQ] < smtWindow->numContexts[curQ] ){
 				curContext[curQ] += 1;
-				BblContext cntxt = smtWindow->queue[curQ][curContext[curQ]];
+				BblContext& cntxt = smtWindow->queue[curQ][curContext[curQ]];
 
 				/* OOOE: TODO: oooBbl != NULL && ...uops > 0 */
 				if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
-					uop = bbl->uop[curUop[curQ]];
-					bblContext = cntxt;
+					*uop = &(bbl->uop[curUop[curQ]]);
+					*bblContext = (cntxt);
 					curUop[curQ] += 1;
 					return true;
 				}

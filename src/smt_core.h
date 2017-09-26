@@ -75,6 +75,9 @@ class SmtWindow {
 		static const int QUEUE_SIZE = 5000;
 		int vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
 		int numContexts[NUM_VCORES];
+		/* TODO: Look into this src/g_std/g_vector.h, seems to inherit from vector and use the heap memory that
+		 * was globally allocated */
+		g_vector< g_vector<BblContext> > queue;
 		BblContext queue[NUM_VCORES][QUEUE_SIZE];
 
 		SmtWindow() { for(int i = 0; i < NUM_VCORES; ++i) numContexts[i] = 0; }
