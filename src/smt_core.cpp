@@ -268,7 +268,7 @@ void SMTCore::playback() {
 
     DynUop* uop;
 	BblContext* bblContext;
-    uint8_t curQ = 1;
+    uint8_t curQ = 0;
     uint32_t curContext[2] = {0,0};
     uint64_t curUop[2] = {0,0};
     bool uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext);
@@ -296,8 +296,10 @@ void SMTCore::playback() {
  */
 inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext){
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
-	if(smtWindow->numContexts[1 - curQ] > 0) {
-		curQ = curQ ? 0 : 1; 
+//	printf("NumContxt:%d,%d\n", smtWindow->numContexts[0], smtWindow->numContexts[1] );
+	if(smtWindow->numContexts[1 - curQ] != 0) {
+//		printf("QUEUE SWITCH\n");
+		curQ ^= 1; 
 	}
 	/* OOOE: End: Arbitration section */
 	
@@ -307,28 +309,35 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 			BblContext& cntxt = smtWindow->queue[curQ][curContext[curQ]];
 
 			/* OOOE: Determine if a UOP is present */
-			assert (cntxt.bbl->oooBbl != nullptr);
+			//assert (cntxt.bbl->oooBbl != nullptr);
 			if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
 				/* OOOE: Get UOP and BblContext from current Q */
-				info("OOOE: UOP Found");
+				//info("OOOE: UOP Found");
 				*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
 				*bblContext = &cntxt;
 				curUop[curQ] += 1;
+				//printf("Q:%d BBL:%d UOP:%lu/%u\n", curQ, curContext[curQ], curUop[curQ], cntxt.bbl->oooBbl[0].uops);
 				return true;
 			} 
 			else {
 				/* OOOE: UOP not found. In the current Q move to the next BblContext */
-				info("OOOE: Moving to next BBlContext");
 				curUop[curQ] = 0;
 				curContext[curQ] += 1;
+				printf("Move to next BBL:%d\n", curContext[curQ]);
 			}
 		}
 		else {
 			/* OOOE: No BBL are left */
-			curUop[curQ] = 0;
+			info("OOOE: Last BblContext of Q:%d, numContexts[%d] set to 0.", curQ, curQ);
 			smtWindow->numContexts[curQ] = 0;
-			info("OOOE: Last bbl, smtWindow->numContexts[%d] set to 0.", curQ);
-			return false;
+			curUop[curQ] = 0;
+			curContext[curQ] = 0;
+			if ( smtWindow->numContexts[1-curQ] > 0 ){
+				curQ ^= 1;
+			}
+			else {
+				return false;
+			}
 		}
 	}
 }

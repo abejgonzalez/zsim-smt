@@ -206,6 +206,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
      */
     info("OOOE: PID:%d BBLADDR:0x%lx", getpid(), bbl->addr);
     // Run dispatch/IW
+	printf("OOOE: AMTUOPS:%u\n", bbl->uops);
     for (uint32_t i = 0; i < bbl->uops; i++) {
         DynUop* uop = &(bbl->uop[i]);
 

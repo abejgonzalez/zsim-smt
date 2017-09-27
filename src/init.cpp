@@ -693,6 +693,7 @@ static void InitSystem(Config & config) {
 				// OOOE:
 				// will have to allocate global memory for 2 virtual ooo cores...
 				smtCores = gm_memalign < SMTCore > (CACHE_LINE_BYTES, cores);
+				zinfo->oooDecode = true;	//enable uop decoding, this is false by default, must be true if even one OOO cpu is in the system
 			} else {
 				panic("%s: Invalid core type %s", group, type.c_str());
 			}
