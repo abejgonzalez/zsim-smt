@@ -71,16 +71,16 @@ class BblContext {
  */
 class SmtWindow {
 	public:
-		static const int NUM_VCORES = 2;
-		static const int QUEUE_SIZE = 5000;
-		int vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
-		int numContexts[NUM_VCORES];
+		static const uint8_t NUM_VCORES = 2;
+		static const uint16_t QUEUE_SIZE = 5000;
+		uint8_t vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
+		uint16_t numContexts[NUM_VCORES];
 		/* TODO: Look into this src/g_std/g_vector.h, seems to inherit from vector and use the heap memory that
 		 * was globally allocated */
-		g_vector< g_vector<BblContext> > queue;
+		//g_vector< g_vector<BblContext> > queue;
 		BblContext queue[NUM_VCORES][QUEUE_SIZE];
 
-		SmtWindow() { for(int i = 0; i < NUM_VCORES; ++i) numContexts[i] = 0; }
+		SmtWindow() { for(uint8_t i = 0; i < NUM_VCORES; ++i) numContexts[i] = 0; }
 };
 
 class SMTCore : public Core {
@@ -203,6 +203,7 @@ class SMTCore : public Core {
 		 * bbls are dequeued and the instructions are executed.
 		 */
 		inline void playback();
+        inline bool getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext);
 
         // Predicated loads and stores call this function, gets recorded as a 0-cycle op.
         // Predication is rare enough that we don't need to model it perfectly to be accurate 

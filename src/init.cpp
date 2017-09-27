@@ -970,7 +970,7 @@ void SimInit(const char *configFile, const char *outputDir, uint32_t shmid) {
 		uint32_t numCores = 0;
 		vector < const char *>groups;
 		config.subgroups("sys.cores", groups);
- for (const char *group:groups) {
+        for (const char *group:groups) {
 			uint32_t cores = config.get < uint32_t > (string("sys.cores.") + group + ".cores", 1);
 			numCores += cores;
 		}

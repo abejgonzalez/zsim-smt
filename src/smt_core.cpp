@@ -146,14 +146,16 @@ void SMTCore::cSimEnd() {
 
 inline void SMTCore::load(Address addr) {
     info("OOOE: load");
-    if(curContext)
+    if(curContext){
         curContext->loadAddrs[curContext->loads++] = addr;
+    }
 }
 
 inline void SMTCore::store(Address addr) {
     info("OOOE: store");
-    if(curContext)
+    if(curContext){
         curContext->storeAddrs[curContext->stores++] = addr;
+    }
 }
 
 /* NOTE: Analysis routines cannot touch curCycle directly, must use
@@ -175,8 +177,9 @@ inline void SMTCore::predFalseMemOp() {
     info("OOOE: predFalseMemOp");
     // I'm going to go out on a limb and assume just loads are predicated 
 	// (this will not fail silently if it's a store)
-	if(curContext)
+	if(curContext){
         curContext->loadAddrs[curContext->loads++] = -1L;
+    }
 }
 
 
@@ -265,14 +268,14 @@ void SMTCore::playback() {
 
     DynUop* uop;
 	BblContext* bblContext;
-    char curQ = 1;
+    uint8_t curQ = 1;
     uint32_t curContext[2] = {0,0};
     uint64_t curUop[2] = {0,0};
     bool uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext);
 
     while (uopPresent){
         /* Run the uop here similar to bbl() */
-        assern (uop != null);
+        assert (uop != nullptr);
         curCycle += 1;
 
         /* Get new uop to run */
@@ -288,7 +291,7 @@ void SMTCore::playback() {
  * Input: A DynUop and BblContext reference (Do not want a copy of them)
  * Output: Bool telling whether a UOP was retrieved (Only would happen in the case both Q's are empty)
  */
-bool SMTCore::getUop(char& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext){
+inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext){
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
 	if(smtWindow->numContexts[1 - curQ] > 0) {
 		curQ = curQ ? 0 : 1; 
@@ -303,7 +306,7 @@ bool SMTCore::getUop(char& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2
 		/* OOOE: TODO: Should UOP's be present? oooBbl[0].uops > 0 */
 		/* OOOE: Determine if a UOP is present */
 		if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
-			*uop = &(bbl->uop[curUop[curQ]]);
+			*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
 			*bblContext = &cntxt;
 			curUop[curQ] += 1;
 			return true;
@@ -318,11 +321,15 @@ bool SMTCore::getUop(char& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2
 
 				/* OOOE: TODO: oooBbl != NULL && ...uops > 0 */
 				if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
-					*uop = &(bbl->uop[curUop[curQ]]);
-					*bblContext = (cntxt);
+                    *uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
+					*bblContext = &cntxt;
 					curUop[curQ] += 1;
 					return true;
 				}
+                else {
+                    /* OOOE: Bbl not present or UOP not present */
+                    return false;
+                }
 			}
 			else {
 				/* OOOE: Just iterated through the last BBL */
