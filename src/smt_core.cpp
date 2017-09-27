@@ -300,56 +300,35 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 		curQ = curQ ? 0 : 1; 
 	}
 	/* OOOE: End: Arbitration section */
-
-    /* OOOE: Determine if there is a valid context to read in the Q */
-	if ( curContext[curQ] < smtWindow->numContexts[curQ] ){
-		BblContext& cntxt = smtWindow->queue[curQ][curContext[curQ]];
-
-		/* OOOE: TODO: Should there be a check to see if oooBbl != NULL? */
-		/* OOOE: TODO: Should UOP's be present? oooBbl[0].uops > 0 */
-		/* OOOE: Determine if a UOP is present */
-		assert (cntxt.bbl->oooBbl != nullptr);
-		if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
-			/* fetch uop from current queue, current basic block. */
-			*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
-			*bblContext = &cntxt;
-			curUop[curQ] += 1;
-			return true;
-		} 
-		
-		else if ( ++curContext[curQ] < smtWindow->numContexts[curQ] ){
-			/* OOOE: UOP not found. current queue, next basic block */
-			curUop[curQ] = 0;
+	
+	while ( true ){
+		/* OOOE: Determine if there is a valid context to read in the Q */
+		if ( curContext[curQ] < smtWindow->numContexts[curQ] ){
 			BblContext& cntxt = smtWindow->queue[curQ][curContext[curQ]];
 
-			/* OOOE: TODO: oooBbl != NULL && ...uops > 0 */
+			/* OOOE: Determine if a UOP is present */
+			assert (cntxt.bbl->oooBbl != nullptr);
 			if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
+				/* OOOE: Get UOP and BblContext from current Q */
+				info("OOOE: UOP Found");
 				*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
 				*bblContext = &cntxt;
 				curUop[curQ] += 1;
 				return true;
-			}
+			} 
 			else {
-				/* OOOE: Bbl not present or UOP not present */
-				info("Last bbl, smtWindow->numContexts[%d] set to 0.", curQ);
-				return false;
+				/* OOOE: UOP not found. In the current Q move to the next BblContext */
+				info("OOOE: Moving to next BBlContext");
+				curUop[curQ] = 0;
+				curContext[curQ] += 1;
 			}
 		}
-		
 		else {
-			/* OOOE: Just iterated through the last BBL */
+			/* OOOE: No BBL are left */
 			curUop[curQ] = 0;
 			smtWindow->numContexts[curQ] = 0;
-			info("Last bbl, smtWindow->numContexts[%d] set to 0.", curQ);
+			info("OOOE: Last bbl, smtWindow->numContexts[%d] set to 0.", curQ);
 			return false;
 		}
 	}
-	else {
-	    /* OOOE: No BBL are left */
-		smtWindow->numContexts[curQ] = 0;
-		info("Last bbl, smtWindow->numContexts[%d] set to 0.", curQ);
-		return false;
-	}
 }
-
-
