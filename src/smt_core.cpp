@@ -273,10 +273,19 @@ void SMTCore::playback() {
     uint64_t curUop[2] = {0,0};
     bool uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext);
 
+    uint32_t loadIdx = 0;
+    uint32_t storeIdx = 0;
+
+    uint32_t prevDecCycle = 0;
+    uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
+
+
     while (uopPresent){
         /* Run the uop here similar to bbl() */
         assert (uop != nullptr);
-        curCycle += 1;
+        //curCycle += 1;
+        
+        runUop(loadIdx, storeIdx, prevDecCycle, lastCommitCycle, uop, bblContext);
 
         /* Get new uop to run */
         uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext);
@@ -296,9 +305,9 @@ void SMTCore::playback() {
  */
 inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext){
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
-//	printf("NumContxt:%d,%d\n", smtWindow->numContexts[0], smtWindow->numContexts[1] );
+    //printf("NumContxt:%d,%d\n", smtWindow->numContexts[0], smtWindow->numContexts[1] );
 	if(smtWindow->numContexts[1 - curQ] != 0) {
-//		printf("QUEUE SWITCH\n");
+    //printf("QUEUE SWITCH\n");
 		curQ ^= 1; 
 	}
 	/* OOOE: End: Arbitration section */
@@ -340,4 +349,280 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 			}
 		}
 	}
+}
+    uint32_t loadIdx = 0;
+    uint32_t storeIdx = 0;
+
+    uint32_t prevDecCycle = 0;
+    uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
+
+
+inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t lastCommitCycle, DynUop* uop, BblContext* bblContext){
+    DynBbl* bbl = &(bblContext->bbl);
+
+    uint32_t decDiff = uop->decCycle - prevDecCycle;
+    decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
+    if (decodeCycle > curCycle) {
+        uint32_t cdDiff = decodeCycle - curCycle;
+#ifdef OOO_STALL_STATS
+        profDecodeStalls.inc(cdDiff);
+#endif
+        curCycleIssuedUops = 0;
+        curCycleRFReads = 0;
+        for (uint32_t i = 0; i < cdDiff; i++) insWindow.advancePos(curCycle);
+    }
+    prevDecCycle = uop->decCycle;
+    uopQueue.markLeave(curCycle);
+
+    if (curCycleIssuedUops >= ISSUES_PER_CYCLE) {
+#ifdef OOO_STALL_STATS
+        profIssueStalls.inc();
+#endif
+        curCycleIssuedUops = 0;
+        curCycleRFReads = 0;
+        insWindow.advancePos(curCycle);
+    }
+    curCycleIssuedUops++;
+
+    // Kill dependences on invalid register
+    // Using curCycle saves us two unpredictable branches in the RF read stalls code
+    regScoreboard[0] = curCycle;
+
+    uint64_t c0 = regScoreboard[uop->rs[0]];
+    uint64_t c1 = regScoreboard[uop->rs[1]];
+
+    // RF read stalls
+    // if srcs are not available at issue time, we have to go thru the RF
+    curCycleRFReads += ((c0 < curCycle)? 1 : 0) + ((c1 < curCycle)? 1 : 0);
+    if (curCycleRFReads > RF_READS_PER_CYCLE) {
+        curCycleRFReads -= RF_READS_PER_CYCLE;
+        curCycleIssuedUops = 0;  // or 1? that's probably a 2nd-order detail
+        insWindow.advancePos(curCycle);
+    }
+
+    uint64_t c2 = rob.minAllocCycle();
+    uint64_t c3 = curCycle;
+
+    uint64_t cOps = MAX(c0, c1);
+
+    // Model RAT + ROB + RS delay between issue and dispatch
+    uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
+
+    // NOTE: Schedule can adjust both cur and dispatch cycles
+    insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
+
+    // If we have advanced, we need to reset the curCycle counters
+    if (curCycle > c3) {
+        curCycleIssuedUops = 0;
+        curCycleRFReads = 0;
+    }
+
+    uint64_t commitCycle;
+
+    // LSU simulation
+    // NOTE: Ever-so-slightly faster than if-else if-else if-else
+    switch (uop->type) {
+        case UOP_GENERAL:
+            commitCycle = dispatchCycle + uop->lat;
+            break;
+
+        case UOP_LOAD:
+            {
+                // dispatchCycle = MAX(loadQueue.minAllocCycle(), dispatchCycle);
+                uint64_t lqCycle = loadQueue.minAllocCycle();
+                if (lqCycle > dispatchCycle) {
+#ifdef LSU_IW_BACKPRESSURE
+                    insWindow.poisonRange(curCycle, lqCycle, 0x4 /*PORT_2, loads*/);
+#endif
+                    dispatchCycle = lqCycle;
+                }
+
+                // Wait for all previous store addresses to be resolved
+                dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
+
+                Address addr = loadAddrs[loadIdx++];
+                uint64_t reqSatisfiedCycle = dispatchCycle;
+                if (addr != ((Address)-1L)) {
+                    reqSatisfiedCycle = l1d->load(addr, dispatchCycle) + L1D_LAT;
+                    cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
+                }
+
+                // Enforce st-ld forwarding
+                uint32_t fwdIdx = (addr>>2) & (FWD_ENTRIES-1);
+                if (fwdArray[fwdIdx].addr == addr) {
+                    // info("0x%lx FWD %ld %ld", addr, reqSatisfiedCycle, fwdArray[fwdIdx].storeCycle);
+                    /* Take the MAX (see FilterCache's code) Our fwdArray
+                     * imposes more stringent timing constraints than the
+                     * l1d, b/c FilterCache does not change the line's
+                     * availCycle on a store. This allows FilterCache to
+                     * track per-line, not per-word availCycles.
+                     */
+                    reqSatisfiedCycle = MAX(reqSatisfiedCycle, fwdArray[fwdIdx].storeCycle);
+                }
+
+                commitCycle = reqSatisfiedCycle;
+                loadQueue.markRetire(commitCycle);
+            }
+            break;
+
+        case UOP_STORE:
+            {
+                // dispatchCycle = MAX(storeQueue.minAllocCycle(), dispatchCycle);
+                uint64_t sqCycle = storeQueue.minAllocCycle();
+                if (sqCycle > dispatchCycle) {
+#ifdef LSU_IW_BACKPRESSURE
+                    insWindow.poisonRange(curCycle, sqCycle, 0x10 /*PORT_4, stores*/);
+#endif
+                    dispatchCycle = sqCycle;
+                }
+
+                // Wait for all previous store addresses to be resolved (not just ours :))
+                dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
+
+                Address addr = storeAddrs[storeIdx++];
+                uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
+                cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
+
+                // Fill the forwarding table
+                fwdArray[(addr>>2) & (FWD_ENTRIES-1)].set(addr, reqSatisfiedCycle);
+
+                commitCycle = reqSatisfiedCycle;
+                lastStoreCommitCycle = MAX(lastStoreCommitCycle, reqSatisfiedCycle);
+                storeQueue.markRetire(commitCycle);
+            }
+            break;
+
+        case UOP_STORE_ADDR:
+            commitCycle = dispatchCycle + uop->lat;
+            lastStoreAddrCommitCycle = MAX(lastStoreAddrCommitCycle, commitCycle);
+            break;
+
+        //case UOP_FENCE:  //make gcc happy
+        default:
+            assert((UopType) uop->type == UOP_FENCE);
+            commitCycle = dispatchCycle + uop->lat;
+            // info("%d %ld %ld", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);
+            // force future load serialization
+            lastStoreAddrCommitCycle = MAX(commitCycle, MAX(lastStoreAddrCommitCycle, lastStoreCommitCycle + uop->lat));
+            // info("%d %ld %ld X", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);
+    }
+
+    // Mark retire at ROB
+    rob.markRetire(commitCycle);
+
+    // Record dependences
+    regScoreboard[uop->rd[0]] = commitCycle;
+    regScoreboard[uop->rd[1]] = commitCycle;
+
+    lastCommitCycle = commitCycle;
+
+    //info("0x%lx %3d [%3d %3d] -> [%3d %3d]  %8ld %8ld %8ld %8ld", bbl->addr, i, uop->rs[0], uop->rs[1], uop->rd[0], uop->rd[1], decCycle, c3, dispatchCycle, commitCycle);
+
+    /* OOOE: TODO: Implement instrs and bll */
+    //instrs += bblInstrs;
+    uops += bbl->uops;
+    bbls++;
+    //approxInstrs += bbl->approxInstrs;
+
+#ifdef BBL_PROFILING
+    if (approxInstrs) Decoder::profileBbl(bbl->bblIdx);
+#endif
+
+    // Check full match between expected and actual mem ops
+    // If these assertions fail, most likely, something's off in the decoder
+    assert_msg(loadIdx == loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, loads);
+    assert_msg(storeIdx == stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, stores);
+    loads = stores = 0;
+
+
+    /* Simulate frontend for branch pred + fetch of this BBL
+     *
+     * NOTE: We assume that the instruction length predecoder and the IQ are
+     * weak enough that they can't hide any ifetch or bpred stalls. In fact,
+     * predecoder stalls are incorporated in the decode stall component (see
+     * decoder.cpp). So here, we compute fetchCycle, then use it to adjust
+     * decodeCycle.
+     */
+
+    // Model fetch-decode delay (fixed, weak predec/IQ assumption)
+    uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
+    uint32_t lineSize = 1 << lineBits;
+
+    // Simulate branch prediction
+    if (branchPc && !branchPred.predict(branchPc, branchTaken)) {
+        mispredBranches++;
+        /* OOOE: AG:
+         * Note: Here they start talking about BTB (a very basic form
+         * of a branch pred) but the brach predictor object used here
+         * is a pAg predictor.
+         *
+         * Per Address there is a history register.
+         * Then there is a global storage data structure that holds the branch
+         * locations.
+         */
+
+        /* Simulate wrong-path fetches
+         *
+         * This is not for a latency reason, but sometimes it increases fetched
+         * code footprint and L1I MPKI significantly. Also, we assume a perfect
+         * BTB here: we always have the right address to missfetch on, and we
+         * never need resteering.
+         *
+         * NOTE: Resteering due to BTB misses is done at the BAC unit, is
+         * relatively rare, and carries an 8-cycle penalty, which should be
+         * partially hidden if the branch is predicted correctly --- so we
+         * don't simulate it.
+         *
+         * Since we don't have a BTB, we just assume the next branch is not
+         * taken. With a typical branch mispred penalty of 17 cycles, we
+         * typically fetch 3-4 lines in advance (16B/cycle). This sets a higher
+         * limit, which can happen with branches that take a long time to
+         * resolve (because e.g., they depend on a load). To set this upper
+         * bound, assume a completely backpressured IQ (18 instrs), uop queue
+         * (28 uops), IW (36 uops), and 16B instr length predecoder buffer. At
+         * ~3.5 bytes/instr, 1.2 uops/instr, this is about 5 64-byte lines.
+         */
+
+        // info("Mispredicted branch, %ld %ld %ld | %ld %ld", decodeCycle, curCycle, lastCommitCycle,
+        //         lastCommitCycle-decodeCycle, lastCommitCycle-curCycle);
+        /* OOOE: AG: Simulates having a wrong prediction*/
+        Address wrongPathAddr = branchTaken? branchNotTakenNpc : branchTakenNpc;
+        uint64_t reqCycle = fetchCycle;
+        for (uint32_t i = 0; i < 5*64/lineSize; i++) {
+            uint64_t fetchLat = l1i->load(wrongPathAddr + lineSize*i, curCycle) - curCycle;
+            cRec.record(curCycle, curCycle, curCycle + fetchLat);
+            uint64_t respCycle = reqCycle + fetchLat;
+            if (respCycle > lastCommitCycle) {
+                break;
+            }
+            // Model fetch throughput limit
+            reqCycle = respCycle + lineSize/FETCH_BYTES_PER_CYCLE;
+        }
+
+        fetchCycle = lastCommitCycle;
+    }
+    branchPc = 0;  // clear for next BBL
+
+    // Simulate current bbl ifetch
+    Address endAddr = bblAddr + bblInfo->bytes;
+    for (Address fetchAddr = bblAddr; fetchAddr < endAddr; fetchAddr += lineSize) {
+        // The Nehalem frontend fetches instructions in 16-byte-wide accesses.
+        // Do not model fetch throughput limit here, decoder-generated stalls already include it
+        // We always call fetches with curCycle to avoid upsetting the weave
+        // models (but we could move to a fetch-centric recorder to avoid this)
+        uint64_t fetchLat = l1i->load(fetchAddr, curCycle) - curCycle;
+        cRec.record(curCycle, curCycle, curCycle + fetchLat);
+        fetchCycle += fetchLat;
+    }
+
+    // If fetch rules, take into account delay between fetch and decode;
+    // If decode rules, different BBLs make the decoders skip a cycle
+    decodeCycle++;
+    uint64_t minFetchDecCycle = fetchCycle + (DECODE_STAGE - FETCH_STAGE);
+    if (minFetchDecCycle > decodeCycle) {
+#ifdef OOO_STALL_STATS
+        profFetchStalls.inc(decodeCycle - minFetchDecCycle);
+#endif
+        decodeCycle = minFetchDecCycle;
+    }
 }

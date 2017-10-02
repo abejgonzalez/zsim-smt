@@ -213,6 +213,7 @@ class SMTCore : public Core {
         inline void branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc);
 
         inline void bbl(Address bblAddr, BblInfo* bblInfo);
+        inline void runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t lastCommitCycle, DynUop* uop, BblContext* bblContext){
 
         static void LoadFunc(THREADID tid, ADDRINT addr);
         static void StoreFunc(THREADID tid, ADDRINT addr);
