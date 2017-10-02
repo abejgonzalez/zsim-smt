@@ -35,12 +35,23 @@
 #include "g_std/g_multimap.h"
 #include "memory_hierarchy.h"
 #include "ooo_core_recorder.h"
+#include "filter_cache.h"
 #include "pad.h"
 #include "zsim.h"
 
 // Uncomment to enable stall stats
 // #define OOO_STALL_STATS
 extern GlobSimInfo* zinfo;
+
+#define FETCH_STAGE 1
+#define DECODE_STAGE 4
+#define ISSUE_STAGE 7
+#define DISPATCH_STAGE 13
+
+#define L1D_LAT 4
+#define FETCH_BYTES_PER_CYCLE 16
+#define ISSUES_PER_CYCLE 4
+#define RF_READS_PER_CYCLE 3
 
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	: Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
@@ -279,17 +290,26 @@ void SMTCore::playback() {
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 
+	printf("OOOE SHOULD WORK");
 
     while (uopPresent){
         /* Run the uop here similar to bbl() */
         assert (uop != nullptr);
         //curCycle += 1;
+
+		printf("OOOE SHOULD WORK");
+		assert (uop != 0);
+		assert (bblContext != 0);
+		printf("OOOE: uop:%p bblContext:%p", uop, bblContext);
+		info("OOOE: uop:%p bblContext:%p", uop, bblContext);
         
         runUop(loadIdx, storeIdx, prevDecCycle, lastCommitCycle, uop, bblContext);
 
         /* Get new uop to run */
         uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext);
     }
+
+	printf("OOOE SHOULD WORK");
 	
 	// smtWindow->numContexts[0] = 0;
 	// smtWindow->numContexts[1] = 0;
@@ -358,7 +378,7 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 
 
 inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t lastCommitCycle, DynUop* uop, BblContext* bblContext){
-    DynBbl* bbl = &(bblContext->bbl);
+    DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
 
     uint32_t decDiff = uop->decCycle - prevDecCycle;
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
@@ -440,7 +460,8 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
                 // Wait for all previous store addresses to be resolved
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
-                Address addr = loadAddrs[loadIdx++];
+                //Address addr = loadAddrs[loadIdx++];
+				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
                     reqSatisfiedCycle = l1d->load(addr, dispatchCycle) + L1D_LAT;
@@ -479,7 +500,8 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
                 // Wait for all previous store addresses to be resolved (not just ours :))
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
-                Address addr = storeAddrs[storeIdx++];
+                //Address addr = storeAddrs[storeIdx++];
+				Address addr = bblContext->storeAddrs[storeIdx++];
                 uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
                 cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
 
@@ -530,9 +552,9 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
 
     // Check full match between expected and actual mem ops
     // If these assertions fail, most likely, something's off in the decoder
-    assert_msg(loadIdx == loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, loads);
-    assert_msg(storeIdx == stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, stores);
-    loads = stores = 0;
+    assert_msg(loadIdx == bblContext->loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, bblContext->loads);
+    assert_msg(storeIdx == bblContext->stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, bblContext->stores);
+    bblContext->loads = bblContext->stores = 0;
 
 
     /* Simulate frontend for branch pred + fetch of this BBL
@@ -549,7 +571,7 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
     uint32_t lineSize = 1 << lineBits;
 
     // Simulate branch prediction
-    if (branchPc && !branchPred.predict(branchPc, branchTaken)) {
+    if (bblContext->branchPc && !branchPred.predict(bblContext->branchPc, bblContext->branchTaken)) {
         mispredBranches++;
         /* OOOE: AG:
          * Note: Here they start talking about BTB (a very basic form
@@ -586,7 +608,7 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
         // info("Mispredicted branch, %ld %ld %ld | %ld %ld", decodeCycle, curCycle, lastCommitCycle,
         //         lastCommitCycle-decodeCycle, lastCommitCycle-curCycle);
         /* OOOE: AG: Simulates having a wrong prediction*/
-        Address wrongPathAddr = branchTaken? branchNotTakenNpc : branchTakenNpc;
+        Address wrongPathAddr = bblContext->branchTaken? bblContext->branchNotTakenNpc : bblContext->branchTakenNpc;
         uint64_t reqCycle = fetchCycle;
         for (uint32_t i = 0; i < 5*64/lineSize; i++) {
             uint64_t fetchLat = l1i->load(wrongPathAddr + lineSize*i, curCycle) - curCycle;
@@ -601,11 +623,12 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
 
         fetchCycle = lastCommitCycle;
     }
-    branchPc = 0;  // clear for next BBL
+    bblContext->branchPc = 0;  // clear for next BBL
 
     // Simulate current bbl ifetch
-    Address endAddr = bblAddr + bblInfo->bytes;
-    for (Address fetchAddr = bblAddr; fetchAddr < endAddr; fetchAddr += lineSize) {
+    //Address endAddr = bblAddr + bblInfo->bytes;
+	Address endAddr = bblContext->bblAddress + bblContext->bbl->bytes;
+    for (Address fetchAddr = bblContext->bblAddress; fetchAddr < endAddr; fetchAddr += lineSize) {
         // The Nehalem frontend fetches instructions in 16-byte-wide accesses.
         // Do not model fetch throughput limit here, decoder-generated stalls already include it
         // We always call fetches with curCycle to avoid upsetting the weave
