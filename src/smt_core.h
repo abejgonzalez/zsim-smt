@@ -203,7 +203,8 @@ class SMTCore : public Core {
 		 * bbls are dequeued and the instructions are executed.
 		 */
 		inline void playback();
-        inline bool getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext);
+
+		inline bool getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext, uint8_t& curBblSwap);
 
         // Predicated loads and stores call this function, gets recorded as a 0-cycle op.
         // Predication is rare enough that we don't need to model it perfectly to be accurate 
@@ -213,7 +214,9 @@ class SMTCore : public Core {
         inline void branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc);
 
         inline void bbl(Address bblAddr, BblInfo* bblInfo);
-        inline void runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t lastCommitCycle, DynUop* uop, BblContext* bblContext);
+        inline void runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext);
+
+		inline void runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext);
 
         static void LoadFunc(THREADID tid, ADDRINT addr);
         static void StoreFunc(THREADID tid, ADDRINT addr);

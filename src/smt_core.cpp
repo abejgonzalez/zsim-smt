@@ -282,7 +282,8 @@ void SMTCore::playback() {
     uint8_t curQ = 0;
     uint32_t curContext[2] = {0,0};
     uint64_t curUop[2] = {0,0};
-    bool uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext);
+    uint8_t curBblSwap = 0;
+    bool uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap);
 
     uint32_t loadIdx = 0;
     uint32_t storeIdx = 0;
@@ -290,32 +291,41 @@ void SMTCore::playback() {
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 
-	printf("OOOE SHOULD WORK");
 
     while (uopPresent){
         /* Run the uop here similar to bbl() */
         assert (uop != nullptr);
         //curCycle += 1;
 
-		printf("OOOE SHOULD WORK");
+		//fprintf(stderr, "OOOE: UOP found\n");
 		assert (uop != 0);
 		assert (bblContext != 0);
-		printf("OOOE: uop:%p bblContext:%p", uop, bblContext);
-		info("OOOE: uop:%p bblContext:%p", uop, bblContext);
+		//fprintf(stderr, "OOOE: uop:%p bblContext:%p\n", uop, bblContext);
+		//info("OOOE: uop:%p bblContext:%p", uop, bblContext);
         
         runUop(loadIdx, storeIdx, prevDecCycle, lastCommitCycle, uop, bblContext);
 
-        /* Get new uop to run */
-        uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext);
-    }
+		BblContext* prevContext = bblContext;
 
-	printf("OOOE SHOULD WORK");
-	
-	// smtWindow->numContexts[0] = 0;
-	// smtWindow->numContexts[1] = 0;
+		/* Get new uop to run */
+		uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap);
+		if(curBblSwap){
+			curBblSwap = 0;
+			runOther(loadIdx, storeIdx, lastCommitCycle, prevContext);
+		}
+    }
+    
+	if(curBblSwap){
+		curBblSwap = 0;
+		runOther(loadIdx, storeIdx, lastCommitCycle, bblContext);
+	}
+
+    /* TODO: Do I need to run the other sutff right here */
+
+	fprintf(stderr, "OOOE: Done running through UOPS\n");
 
 	futex_unlock(&windowLock);
-    info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
+	info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
 }
 
 /* OOOE: getUop()
@@ -323,7 +333,7 @@ void SMTCore::playback() {
  * Input: A DynUop and BblContext reference (Do not want a copy of them)
  * Output: Bool telling whether a UOP was retrieved (Only would happen in the case both Q's are empty)
  */
-inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext){
+inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext, uint8_t& curBblSwap){
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
     //printf("NumContxt:%d,%d\n", smtWindow->numContexts[0], smtWindow->numContexts[1] );
 	if(smtWindow->numContexts[1 - curQ] != 0) {
@@ -350,6 +360,8 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 			} 
 			else {
 				/* OOOE: UOP not found. In the current Q move to the next BblContext */
+				curBblSwap = 1;
+				*bblContext = &cntxt;
 				curUop[curQ] = 0;
 				curContext[curQ] += 1;
 				printf("Move to next BBL:%d\n", curContext[curQ]);
@@ -370,15 +382,137 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 		}
 	}
 }
-    uint32_t loadIdx = 0;
-    uint32_t storeIdx = 0;
 
-    uint32_t prevDecCycle = 0;
-    uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
+inline void SMTCore::runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){
 
+	/* OOOE: TODO: Implement instrs and bll */
+	//instrs += bblInstrs;
+	uops += bblContext->bbl->oooBbl[0].uops;
+	bbls++;
+	//approxInstrs += bbl->approxInstrs;
 
-inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t lastCommitCycle, DynUop* uop, BblContext* bblContext){
+	//fprintf(stderr, "OOOE: 5a\n");
+
+#ifdef BBL_PROFILING
+	fprintf(stderr, "OOOE: BBlProfiling enabled\n");
+	if (approxInstrs) Decoder::profileBbl(bbl->bblIdx);
+#endif
+
+	// Check full match between expected and actual mem ops
+	// If these assertions fail, most likely, something's off in the decoder
+
+	fprintf(stderr, "loadIdx(%d) != loads (%d)\n",loadIdx, bblContext->loads);
+	fprintf(stderr, "storeIdx(%d) != stores (%d)\n",storeIdx, bblContext->stores);
+	assert_msg(loadIdx == bblContext->loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, bblContext->loads);
+	assert_msg(storeIdx == bblContext->stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, bblContext->stores);
+	bblContext->loads = bblContext->stores = 0;
+	//fprintf(stderr, "OOOE: 5c\n");
+
+	//fprintf(stderr, "OOOE: 6\n");
+
+	/* Simulate frontend for branch pred + fetch of this BBL
+	*
+	* NOTE: We assume that the instruction length predecoder and the IQ are
+	* weak enough that they can't hide any ifetch or bpred stalls. In fact,
+	* predecoder stalls are incorporated in the decode stall component (see
+	* decoder.cpp). So here, we compute fetchCycle, then use it to adjust
+	* decodeCycle.
+	*/
+
+	// Model fetch-decode delay (fixed, weak predec/IQ assumption)
+	uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
+	uint32_t lineSize = 1 << lineBits;
+
+	//fprintf(stderr, "OOOE: 7\n");
+
+	// Simulate branch prediction
+	if (bblContext->branchPc && !branchPred.predict(bblContext->branchPc, bblContext->branchTaken)) {
+		mispredBranches++;
+		/* OOOE: AG:
+		* Note: Here they start talking about BTB (a very basic form
+		* of a branch pred) but the brach predictor object used here
+		* is a pAg predictor.
+		*
+		* Per Address there is a history register.
+		* Then there is a global storage data structure that holds the branch
+		* locations.
+		*/
+
+		/* Simulate wrong-path fetches
+		*
+		* This is not for a latency reason, but sometimes it increases fetched
+		* code footprint and L1I MPKI significantly. Also, we assume a perfect
+		* BTB here: we always have the right address to missfetch on, and we
+		* never need resteering.
+		*
+		* NOTE: Resteering due to BTB misses is done at the BAC unit, is
+		* relatively rare, and carries an 8-cycle penalty, which should be
+		* partially hidden if the branch is predicted correctly --- so we
+		* don't simulate it.
+		*
+		* Since we don't have a BTB, we just assume the next branch is not
+		* taken. With a typical branch mispred penalty of 17 cycles, we
+		* typically fetch 3-4 lines in advance (16B/cycle). This sets a higher
+		* limit, which can happen with branches that take a long time to
+		* resolve (because e.g., they depend on a load). To set this upper
+		* bound, assume a completely backpressured IQ (18 instrs), uop queue
+		* (28 uops), IW (36 uops), and 16B instr length predecoder buffer. At
+		* ~3.5 bytes/instr, 1.2 uops/instr, this is about 5 64-byte lines.
+		*/
+
+		// info("Mispredicted branch, %ld %ld %ld | %ld %ld", decodeCycle, curCycle, lastCommitCycle,
+		//         lastCommitCycle-decodeCycle, lastCommitCycle-curCycle);
+		/* OOOE: AG: Simulates having a wrong prediction*/
+		Address wrongPathAddr = bblContext->branchTaken? bblContext->branchNotTakenNpc : bblContext->branchTakenNpc;
+		uint64_t reqCycle = fetchCycle;
+		for (uint32_t i = 0; i < 5*64/lineSize; i++) {
+			uint64_t fetchLat = l1i->load(wrongPathAddr + lineSize*i, curCycle) - curCycle;
+			cRec.record(curCycle, curCycle, curCycle + fetchLat);
+			uint64_t respCycle = reqCycle + fetchLat;
+			if (respCycle > lastCommitCycle) {
+				break;
+			}
+			// Model fetch throughput limit
+			reqCycle = respCycle + lineSize/FETCH_BYTES_PER_CYCLE;
+		}
+
+		fetchCycle = lastCommitCycle;
+	}
+	bblContext->branchPc = 0;  // clear for next BBL
+	
+	//fprintf(stderr, "OOOE: 8\n");
+
+	// Simulate current bbl ifetch
+	//Address endAddr = bblAddr + bblInfo->bytes;
+	Address endAddr = bblContext->bblAddress + bblContext->bbl->bytes;
+	for (Address fetchAddr = bblContext->bblAddress; fetchAddr < endAddr; fetchAddr += lineSize) {
+		// The Nehalem frontend fetches instructions in 16-byte-wide accesses.
+		// Do not model fetch throughput limit here, decoder-generated stalls already include it
+		// We always call fetches with curCycle to avoid upsetting the weave
+		// models (but we could move to a fetch-centric recorder to avoid this)
+		uint64_t fetchLat = l1i->load(fetchAddr, curCycle) - curCycle;
+		cRec.record(curCycle, curCycle, curCycle + fetchLat);
+		fetchCycle += fetchLat;
+	}
+
+	//fprintf(stderr, "OOOE: 9\n");
+	// If fetch rules, take into account delay between fetch and decode;
+	// If decode rules, different BBLs make the decoders skip a cycle
+	decodeCycle++;
+	uint64_t minFetchDecCycle = fetchCycle + (DECODE_STAGE - FETCH_STAGE);
+	if (minFetchDecCycle > decodeCycle) {
+#ifdef OOO_STALL_STATS
+		profFetchStalls.inc(decodeCycle - minFetchDecCycle);
+#endif
+		decodeCycle = minFetchDecCycle;
+	}
+
+}
+
+inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext){
     DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
+    assert( bbl != nullptr );
+    //fprintf(stderr, "OOOE: runUop entered\n");
 
     uint32_t decDiff = uop->decCycle - prevDecCycle;
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
@@ -393,6 +527,8 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
     }
     prevDecCycle = uop->decCycle;
     uopQueue.markLeave(curCycle);
+
+    //fprintf(stderr, "OOOE: 1\n");
 
     if (curCycleIssuedUops >= ISSUES_PER_CYCLE) {
 #ifdef OOO_STALL_STATS
@@ -410,6 +546,9 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
 
     uint64_t c0 = regScoreboard[uop->rs[0]];
     uint64_t c1 = regScoreboard[uop->rs[1]];
+
+
+    //fprintf(stderr, "OOOE: 2\n");
 
     // RF read stalls
     // if srcs are not available at issue time, we have to go thru the RF
@@ -438,6 +577,8 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
     }
 
     uint64_t commitCycle;
+
+    //fprintf(stderr, "OOOE: 3\n");
 
     // LSU simulation
     // NOTE: Ever-so-slightly faster than if-else if-else if-else
@@ -529,6 +670,8 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
             // info("%d %ld %ld X", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);
     }
 
+    //fprintf(stderr, "OOOE: 4\n");
+
     // Mark retire at ROB
     rob.markRetire(commitCycle);
 
@@ -539,113 +682,7 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
     lastCommitCycle = commitCycle;
 
     //info("0x%lx %3d [%3d %3d] -> [%3d %3d]  %8ld %8ld %8ld %8ld", bbl->addr, i, uop->rs[0], uop->rs[1], uop->rd[0], uop->rd[1], decCycle, c3, dispatchCycle, commitCycle);
+    //fprintf(stderr, "OOOE: 5\n");
 
-    /* OOOE: TODO: Implement instrs and bll */
-    //instrs += bblInstrs;
-    uops += bbl->uops;
-    bbls++;
-    //approxInstrs += bbl->approxInstrs;
-
-#ifdef BBL_PROFILING
-    if (approxInstrs) Decoder::profileBbl(bbl->bblIdx);
-#endif
-
-    // Check full match between expected and actual mem ops
-    // If these assertions fail, most likely, something's off in the decoder
-    assert_msg(loadIdx == bblContext->loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, bblContext->loads);
-    assert_msg(storeIdx == bblContext->stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, bblContext->stores);
-    bblContext->loads = bblContext->stores = 0;
-
-
-    /* Simulate frontend for branch pred + fetch of this BBL
-     *
-     * NOTE: We assume that the instruction length predecoder and the IQ are
-     * weak enough that they can't hide any ifetch or bpred stalls. In fact,
-     * predecoder stalls are incorporated in the decode stall component (see
-     * decoder.cpp). So here, we compute fetchCycle, then use it to adjust
-     * decodeCycle.
-     */
-
-    // Model fetch-decode delay (fixed, weak predec/IQ assumption)
-    uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
-    uint32_t lineSize = 1 << lineBits;
-
-    // Simulate branch prediction
-    if (bblContext->branchPc && !branchPred.predict(bblContext->branchPc, bblContext->branchTaken)) {
-        mispredBranches++;
-        /* OOOE: AG:
-         * Note: Here they start talking about BTB (a very basic form
-         * of a branch pred) but the brach predictor object used here
-         * is a pAg predictor.
-         *
-         * Per Address there is a history register.
-         * Then there is a global storage data structure that holds the branch
-         * locations.
-         */
-
-        /* Simulate wrong-path fetches
-         *
-         * This is not for a latency reason, but sometimes it increases fetched
-         * code footprint and L1I MPKI significantly. Also, we assume a perfect
-         * BTB here: we always have the right address to missfetch on, and we
-         * never need resteering.
-         *
-         * NOTE: Resteering due to BTB misses is done at the BAC unit, is
-         * relatively rare, and carries an 8-cycle penalty, which should be
-         * partially hidden if the branch is predicted correctly --- so we
-         * don't simulate it.
-         *
-         * Since we don't have a BTB, we just assume the next branch is not
-         * taken. With a typical branch mispred penalty of 17 cycles, we
-         * typically fetch 3-4 lines in advance (16B/cycle). This sets a higher
-         * limit, which can happen with branches that take a long time to
-         * resolve (because e.g., they depend on a load). To set this upper
-         * bound, assume a completely backpressured IQ (18 instrs), uop queue
-         * (28 uops), IW (36 uops), and 16B instr length predecoder buffer. At
-         * ~3.5 bytes/instr, 1.2 uops/instr, this is about 5 64-byte lines.
-         */
-
-        // info("Mispredicted branch, %ld %ld %ld | %ld %ld", decodeCycle, curCycle, lastCommitCycle,
-        //         lastCommitCycle-decodeCycle, lastCommitCycle-curCycle);
-        /* OOOE: AG: Simulates having a wrong prediction*/
-        Address wrongPathAddr = bblContext->branchTaken? bblContext->branchNotTakenNpc : bblContext->branchTakenNpc;
-        uint64_t reqCycle = fetchCycle;
-        for (uint32_t i = 0; i < 5*64/lineSize; i++) {
-            uint64_t fetchLat = l1i->load(wrongPathAddr + lineSize*i, curCycle) - curCycle;
-            cRec.record(curCycle, curCycle, curCycle + fetchLat);
-            uint64_t respCycle = reqCycle + fetchLat;
-            if (respCycle > lastCommitCycle) {
-                break;
-            }
-            // Model fetch throughput limit
-            reqCycle = respCycle + lineSize/FETCH_BYTES_PER_CYCLE;
-        }
-
-        fetchCycle = lastCommitCycle;
-    }
-    bblContext->branchPc = 0;  // clear for next BBL
-
-    // Simulate current bbl ifetch
-    //Address endAddr = bblAddr + bblInfo->bytes;
-	Address endAddr = bblContext->bblAddress + bblContext->bbl->bytes;
-    for (Address fetchAddr = bblContext->bblAddress; fetchAddr < endAddr; fetchAddr += lineSize) {
-        // The Nehalem frontend fetches instructions in 16-byte-wide accesses.
-        // Do not model fetch throughput limit here, decoder-generated stalls already include it
-        // We always call fetches with curCycle to avoid upsetting the weave
-        // models (but we could move to a fetch-centric recorder to avoid this)
-        uint64_t fetchLat = l1i->load(fetchAddr, curCycle) - curCycle;
-        cRec.record(curCycle, curCycle, curCycle + fetchLat);
-        fetchCycle += fetchLat;
-    }
-
-    // If fetch rules, take into account delay between fetch and decode;
-    // If decode rules, different BBLs make the decoders skip a cycle
-    decodeCycle++;
-    uint64_t minFetchDecCycle = fetchCycle + (DECODE_STAGE - FETCH_STAGE);
-    if (minFetchDecCycle > decodeCycle) {
-#ifdef OOO_STALL_STATS
-        profFetchStalls.inc(decodeCycle - minFetchDecCycle);
-#endif
-        decodeCycle = minFetchDecCycle;
-    }
+	/*************************************************************************************************************************************************************/
 }
