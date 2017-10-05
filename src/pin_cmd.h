@@ -49,7 +49,7 @@ class PinCmd : public GlobAlloc {
         g_vector<ProcCmdInfo> procInfo; //one entry for each process that the harness launches (not for child procs)
 
     public:
-        PinCmd(Config* conf, const char* configFile, const char* outputDir, uint64_t shmid);
+        PinCmd(Config* conf, const char* configFile, const char* outputDir, uint64_t shmid, bool debug);
         g_vector<g_string> getPinCmdArgs(uint32_t procIdx);
         g_vector<g_string> getFullCmdArgs(uint32_t procIdx, const char** inputFile);
         void setEnvVars(uint32_t procIdx);

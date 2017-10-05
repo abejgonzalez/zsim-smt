@@ -1063,7 +1063,7 @@ void SimInit(const char *configFile, const char *outputDir, uint32_t shmid) {
 
 	zinfo->pinCmd =
 	    new PinCmd(&config, nullptr /*don't pass config file to children --- can go either way, it's optional */ ,
-		       outputDir, shmid);
+		       outputDir, shmid, false);
 
 	//Caches, cores, memory controllers
 	InitSystem(config);
