@@ -465,10 +465,18 @@ class Scheduler : public GlobAlloc, public Callee {
             uint32_t gid = getGid(pid, tid);
             trace(Sched, "%d marking for sleep", gid);
             ThreadInfo* th = gidMap[gid];
-            assert(!th->markedForSleep);
-            th->markedForSleep = true;
-            th->wakeupPhase = wakeupPhase;
-            th->futexWord = 1; //to avoid races, this must be set here.
+			
+			// OOOE: cpu yielding
+			if (th) { // invalid thread may be marked to sleep.
+				assert(!th->markedForSleep);
+				th->markedForSleep = true;
+				th->wakeupPhase = wakeupPhase;
+				th->futexWord = 1; //to avoid races, this must be set here.
+			} else {
+				warn("%d) procIdx:%u tid:%u wakeupPhase:%lu", getpid(), procIdx, tid, wakeupPhase);
+				warn("(%d, %u) was marked for sleep, but it doesn't exist!", getpid(), tid);
+			}
+
             futex_unlock(&schedLock);
             return &(th->futexWord);
         }

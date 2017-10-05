@@ -1,14 +1,14 @@
 #configure and build
 CONFIGURE = ./configure.sh
 SCONS = ${SCONSPATH}/bin/scons
-SCONSFLAGS = -j4
+SCONSFLAGS = -j4 --d
 
 # testing
 TESTDIR = ./tests/config
 LOGDIR = ./log
 TRACEDIR = ./tests/traces
 TEST = $(TESTDIR)/smt.cfg
-ZSIM = $(BUILDDIR)/opt/zsim
+ZSIM = $(BUILDDIR)/debug/zsim
 
 # outputs
 BUILDDIR = build
@@ -17,7 +17,7 @@ OUTPUT = heartbeat out.cfg *.out *.log* *.h5 .scons*
 
 # pin
 PINBIN = lib/pin2.14/intel64/bin/pinbin
-PIN = $(BUILDDIR)/opt/pin
+PIN = $(BUILDDIR)/debug/pin
 
 build: src/ $(PIN)
 	$(CONFIGURE)

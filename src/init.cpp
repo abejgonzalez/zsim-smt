@@ -951,6 +951,7 @@ void SimInit(const char *configFile, const char *outputDir, uint32_t shmid) {
 	//Debugging
 	//NOTE: This should be as early as possible, so that we can attach to the debugger before initialization.
 	zinfo->attachDebugger = config.get < bool > ("sim.attachDebugger", false);
+	zinfo->enableDebugger = config.get < bool > ("sim.enableDebugger", false);
 	zinfo->harnessPid = getppid();
 	getLibzsimAddrs(&zinfo->libzsimAddrs);
 
@@ -1105,7 +1106,8 @@ void SimInit(const char *configFile, const char *outputDir, uint32_t shmid) {
 
 	//Write config out
 	bool strictConfig = config.get < bool > ("sim.strictConfig", true);	//if true, panic on unused variables
-	config.writeAndClose((string(zinfo->outputDir) + "/out.cfg").c_str(), strictConfig);
+	if(!zinfo->enableDebugger)
+		config.writeAndClose((string(zinfo->outputDir) + "/out.cfg").c_str(), strictConfig);
 
 	zinfo->contentionSim->postInit();
 

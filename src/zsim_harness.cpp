@@ -397,7 +397,7 @@ int main(int argc, char *argv[]) {
 	bool attachDebugger = conf.get < bool > ("sim.attachDebugger", false);
 	bool enableDebugger = conf.get < bool > ("sim.enableDebugger", false);
 
-	if (attachDebugger) {
+	if (attachDebugger || enableDebugger) {
 		info("Pausing PIN to attach debugger, and not running deadlock detection");
 		deadlockDetection = false;
 	} else {

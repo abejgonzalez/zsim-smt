@@ -197,7 +197,7 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 }
 
 // TODO: reimplement the original bbl func algorithm in playback()
-inline void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
+void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	// If the queue is full then "flush" (running the bbls) in pesudo lockstep
 	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
 		this->playback();
@@ -219,7 +219,7 @@ inline void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	// filled last context, time to sleep.
 	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
 		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
-		zinfo->sched->markForSleep(getpid(), tid, zinfo->numPhases + 1);
+	//	zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
 	// 	leave();
 	}
 }
@@ -332,7 +332,7 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				/* OOOE: UOP not found. In the current Q move to the next BblContext */
 				curUop[curQ] = 0;
 				curContext[curQ] += 1;
-				printf("Move to next BBL:%d\n", curContext[curQ]);
+				// printf("Move to next BBL:%d\n", curContext[curQ]);
 			}
 		}
 		else {

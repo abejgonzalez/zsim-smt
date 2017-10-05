@@ -162,7 +162,7 @@ struct GlobSimInfo {
     //If true, all the regular aggregate stats are summed before dumped, e.g. getting one thread record with instrs&cycles for all the threads
     bool compactPeriodicStats;
 
-    bool attachDebugger;
+    bool attachDebugger, enableDebugger;
     int harnessPid; //used for debugging purposes
 
     struct LibInfo libzsimAddrs;
