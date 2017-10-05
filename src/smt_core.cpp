@@ -35,6 +35,7 @@
 #include "g_std/g_multimap.h"
 #include "memory_hierarchy.h"
 #include "ooo_core_recorder.h"
+#include "scheduler.h"
 #include "pad.h"
 #include "zsim.h"
 
@@ -196,10 +197,11 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 }
 
 // TODO: reimplement the original bbl func algorithm in playback()
-inline void SMTCore::bbl(Address bblAddr, BblInfo* bblInfo) {
-	/* OOOE: If the queue is full then "flush" (running the bbls) in sudo-lockstep */
-	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) 
+inline void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
+	// If the queue is full then "flush" (running the bbls) in pesudo lockstep
+	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
 		this->playback();
+	}
 	
 	/* Store the bbl within a new context that fits in the queue */
 	futex_lock(&windowLock);
@@ -213,6 +215,13 @@ inline void SMTCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 	curContext->bblAddress = bblAddr;
 	curContext->loads = curContext->stores = 0;
 	futex_unlock(&windowLock);
+
+	// filled last context, time to sleep.
+	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
+		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
+		zinfo->sched->markForSleep(getpid(), tid, zinfo->numPhases + 1);
+	// 	leave();
+	}
 }
 
 void SMTCore::LoadFunc(THREADID tid, ADDRINT addr) {
@@ -237,7 +246,7 @@ void SMTCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
 }
 void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
 	info ("OOOE: BblFunc");
-    static_cast<SMTCore*>(cores[tid])->bbl(bblAddr, bblInfo);
+    static_cast<SMTCore*>(cores[tid])->bbl(tid, bblAddr, bblInfo);
 	//	while (core->curCycle > core->phaseEndCycle) {
 	//        core->phaseEndCycle += zinfo->phaseLength;
 	//
