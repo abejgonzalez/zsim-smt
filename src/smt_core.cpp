@@ -332,20 +332,6 @@ void SMTCore::playback() {
 		}
     }
     
-	/* OOOE: I think it is unnecessary but put here just in case */
-	if(curBblSwap){
-		curBblSwap = 0;
-
-		/* OOOE: Update the stats for the finished Bbl */
-		runBblStatUpdate(bblContext);
-
-		/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
-		runFrontend(loadId[curQ], storeId[curQ], lastCommitCycle, bblContext);
-
-		/* OOOE: Clear the load/store indexes since Bbl finished */
-		loadId[curQ] = storeId[curQ] = 0;
-	}
-
 	//info("OOOE: Q's emptied\n");
 
 	futex_unlock(&windowLock);
