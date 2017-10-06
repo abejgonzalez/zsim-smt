@@ -197,14 +197,12 @@ class SMTCore : public Core {
          */
         inline void advance(uint64_t targetCycle);
 
-		/**
-		 * TODO: Implement old ooo_core bbl logic.
-		 * playback and flush the instruction window.
-		 * bbls are dequeued and the instructions are executed.
-		 */
+		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
 		inline void playback();
-
 		inline bool getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext, uint8_t& curBblSwap);
+        inline void runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext);
+		inline void runBblStatUpdate(BblContext* bblContext);
+		inline void runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext);
 
         // Predicated loads and stores call this function, gets recorded as a 0-cycle op.
         // Predication is rare enough that we don't need to model it perfectly to be accurate 
@@ -213,12 +211,9 @@ class SMTCore : public Core {
 
         inline void branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc);
 
-        inline void bbl(Address bblAddr, BblInfo* bblInfo);
-        inline void runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext);
-
-		inline void runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext);
-		/* TODO: Make inline */
+		/* OOOE: TODO: Make inline / Check if you need 2 funcs */
         void bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo);
+		inline void bbl(Address bblAddr, BblInfo* bblInfo);
 
         static void LoadFunc(THREADID tid, ADDRINT addr);
         static void StoreFunc(THREADID tid, ADDRINT addr);

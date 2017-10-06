@@ -279,8 +279,10 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 }
 
 
-/**
- * TODO: Implement instruction window playback.
+/* OOOE: playback()
+ * Description: Function to run through both UOP Q's and execute the interleaved streams 
+ * Input: (Implicit) The two BblContext queues that are filled a certain amount 
+ * Output: None 
  */
 void SMTCore::playback() {
     info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
@@ -294,10 +296,8 @@ void SMTCore::playback() {
     uint64_t curUop[2] = {0,0};
     uint8_t curBblSwap = 0; // OOOE: In the current Q, needed to move to the next Bbl
     bool uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap);
-
     uint32_t loadId[2] = {0,0};
     uint32_t storeId[2] = {0,0};
-
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 
@@ -320,9 +320,12 @@ void SMTCore::playback() {
 		uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap);
 		if(curBblSwap){
 			curBblSwap = 0;
+			
+			/* OOOE: Update the stats for the finished Bbl */
+			runBblStatUpdate(prevContext[curQ]);
 
 			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
-			runOther(loadId[curQ], storeId[curQ], lastCommitCycle, prevContext[curQ]);
+			runFrontend(loadId[curQ], storeId[curQ], lastCommitCycle, prevContext[curQ]);
 
 			/* OOOE: Clear the load/store indexes since Bbl finished */
 			loadId[curQ] = storeId[curQ] = 0;
@@ -333,8 +336,11 @@ void SMTCore::playback() {
 	if(curBblSwap){
 		curBblSwap = 0;
 
+		/* OOOE: Update the stats for the finished Bbl */
+		runBblStatUpdate(bblContext);
+
 		/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
-		runOther(loadId[curQ], storeId[curQ], lastCommitCycle, bblContext);
+		runFrontend(loadId[curQ], storeId[curQ], lastCommitCycle, bblContext);
 
 		/* OOOE: Clear the load/store indexes since Bbl finished */
 		loadId[curQ] = storeId[curQ] = 0;
@@ -401,23 +407,33 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 	}
 }
 
-inline void SMTCore::runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){
-
-	/* OOOE: TODO: Implement instrs and bll */
+/* OOOE: runBblStatUpdate()
+ * Description: Function to update the core globals for simulation stats 
+ * Input: A BblContext reference
+ * Output: None 
+ */
+inline void SMTCore::runBblStatUpdate(BblContext* bblContext){
+	/* OOOE: TODO: Implement instrs */
 	//instrs += bblInstrs;
 	uops += bblContext->bbl->oooBbl[0].uops;
 	bbls++;
-	//approxInstrs += bbl->approxInstrs;
+	approxInstrs += bblContext->bbl->oooBbl[0].approxInstrs;
 
 #ifdef BBL_PROFILING
 	fprintf(stderr, "OOOE: BBlProfiling enabled\n");
-	if (approxInstrs) Decoder::profileBbl(bbl->bblIdx);
+	if (approxInstrs) Decoder::profileBbl(bblContext->bbl->bblIdx);
 #endif
 
+}
+
+/* OOOE: runFrontend()
+ * Description: Function to update the appropriate cycle counts for branchPred, iFetch and decode 
+ * Input: Load/Store pointers for the current bblContext, previous Bbl commitcycle, and the current BblContext reference
+ * Output: None 
+ */
+inline void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){
 	// Check full match between expected and actual mem ops
 	// If these assertions fail, most likely, something's off in the decoder
-
-
 	assert_msg(loadIdx == bblContext->loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, bblContext->loads);
 	assert_msg(storeIdx == bblContext->stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, bblContext->stores);
 	bblContext->loads = bblContext->stores = 0;
@@ -516,6 +532,11 @@ inline void SMTCore::runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& l
 
 }
 
+/* OOOE: runUop()
+ * Description: Function to update the appropriate cycle counts for decode and "execution" with just a UOP
+ * Input: Load/Store pointers for the current bblContext, previous Bbl commitcycle, and the current UOP/BblContext reference
+ * Output: None 
+ */
 inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext){
     DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
     assert( bbl != nullptr );
