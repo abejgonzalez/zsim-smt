@@ -36,6 +36,7 @@
 #include "memory_hierarchy.h"
 #include "ooo_core_recorder.h"
 #include "filter_cache.h"
+#include "scheduler.h"
 #include "pad.h"
 #include "zsim.h"
 
@@ -146,24 +147,24 @@ EventRecorder* SMTCore::getEventRecorder() {
 	return cRec.getEventRecorder();
 }
 void SMTCore::cSimStart(){
-    info("OOOE: cSimStart()");
+    //info("OOOE: cSimStart()");
 }
 
 void SMTCore::cSimEnd() {
-    info("OOOE: cSimEnd()");
+    //info("OOOE: cSimEnd()");
 }
 
 /** private: */
 
 inline void SMTCore::load(Address addr) {
-    info("OOOE: load");
+    //info("OOOE: load");
     if(curContext){
         curContext->loadAddrs[curContext->loads++] = addr;
     }
 }
 
 inline void SMTCore::store(Address addr) {
-    info("OOOE: store");
+    //info("OOOE: store");
     if(curContext){
         curContext->storeAddrs[curContext->stores++] = addr;
     }
@@ -178,14 +179,14 @@ inline void SMTCore::store(Address addr) {
  * to advance the cycle counters in the whole core in lockstep.
  */
 inline void SMTCore::advance(uint64_t targetCycle) {
-    info("OOOE: advance");
+    //info("OOOE: advance");
 }
 
 // Predicated loads and stores call this function, gets recorded as a 0-cycle op.
 // Predication is rare enough that we don't need to model it perfectly to be accurate 
 // (i.e. the uops still execute, retire, etc), but this is needed for correctness.
 inline void SMTCore::predFalseMemOp() {
-    info("OOOE: predFalseMemOp");
+    //info("OOOE: predFalseMemOp");
     // I'm going to go out on a limb and assume just loads are predicated 
 	// (this will not fail silently if it's a store)
 	if(curContext){
@@ -197,7 +198,7 @@ inline void SMTCore::predFalseMemOp() {
 /** fPtrs Core Analysis functions. */
 
 inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc) {
-    info("OOOE: branch");
+    //info("OOOE: branch");
 	if(curContext) {
 		curContext->branchPc = pc;
 		curContext->branchTaken = taken;
@@ -207,48 +208,56 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 }
 
 // TODO: reimplement the original bbl func algorithm in playback()
-inline void SMTCore::bbl(Address bblAddr, BblInfo* bblInfo) {
-	/* OOOE: If the queue is full then "flush" (running the bbls) in sudo-lockstep */
-	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) 
+void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
+	// If the queue is full then "flush" (running the bbls) in pesudo lockstep
+	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
 		this->playback();
+	}
 	
 	/* Store the bbl within a new context that fits in the queue */
 	futex_lock(&windowLock);
 	int vcore = smtWindow->vcore;
 	int contextNum = smtWindow->numContexts[vcore]++;
 	
-	info("OOOE: bbl  vcore: %d, contextNum: %d", vcore, contextNum);
+	//info("OOOE: bbl  vcore: %d, contextNum: %d", vcore, contextNum);
 	curContext = new(&(smtWindow->queue[vcore][contextNum])) BblContext();		
 	curContext->pid = getpid();
 	curContext->bbl = bblInfo;
 	curContext->bblAddress = bblAddr;
 	curContext->loads = curContext->stores = 0;
 	futex_unlock(&windowLock);
+
+	// filled last context, time to sleep.
+	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
+		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
+	//	zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
+	// 	leave();
+	}
 }
 
 void SMTCore::LoadFunc(THREADID tid, ADDRINT addr) {
-    info("OOOE: loadfunc");
+    //info("OOOE: loadfunc");
 	static_cast<SMTCore*>(cores[tid])->load(addr);
 }
 void SMTCore::StoreFunc(THREADID tid, ADDRINT addr) {
-    info("OOOE: storefunc");
+    //info("OOOE: storefunc");
 	static_cast<SMTCore*>(cores[tid])->store(addr);
 }
 void SMTCore::PredLoadFunc(THREADID tid, ADDRINT addr, BOOL pred) {
-    info("OOOE: predloadfunc");
+    //info("OOOE: predloadfunc");
     SMTCore* core = static_cast<SMTCore*>(cores[tid]);
     if (pred) core->load(addr);
     else core->predFalseMemOp();
 }
 void SMTCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
-    info("OOOE: predstorfuc");
+    //info("OOOE: predstorfuc");
     SMTCore* core = static_cast<SMTCore*>(cores[tid]);
     if (pred) core->store(addr);
     else core->predFalseMemOp();
 }
 void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
-	info ("OOOE: BblFunc");
-    static_cast<SMTCore*>(cores[tid])->bbl(bblAddr, bblInfo);
+	//info ("OOOE: BblFunc");
+    static_cast<SMTCore*>(cores[tid])->bbl(tid, bblAddr, bblInfo);
 	//	while (core->curCycle > core->phaseEndCycle) {
 	//        core->phaseEndCycle += zinfo->phaseLength;
 	//
@@ -265,7 +274,7 @@ void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
 	//    }
 }
 void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
-    info("OOOE: branchFunc");
+    //info("OOOE: branchFunc");
     static_cast<SMTCore*>(cores[tid])->branch(pc, taken, takenNpc, notTakenNpc);
 }
 
@@ -277,54 +286,61 @@ void SMTCore::playback() {
     info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
 	futex_lock(&windowLock);
 
+	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
     DynUop* uop;
 	BblContext* bblContext;
     uint8_t curQ = 0;
     uint32_t curContext[2] = {0,0};
     uint64_t curUop[2] = {0,0};
-    uint8_t curBblSwap = 0;
+    uint8_t curBblSwap = 0; // OOOE: In the current Q, needed to move to the next Bbl
     bool uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap);
 
-    uint32_t loadIdx = 0;
-    uint32_t storeIdx = 0;
+    uint32_t loadId[2] = {0,0};
+    uint32_t storeId[2] = {0,0};
 
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 
+	BblContext* prevContext [2] = {nullptr, nullptr};
 
+	/* TODO: Move getUop here to remove need for uopPresent */
     while (uopPresent){
-        /* Run the uop here similar to bbl() */
+		/* OOOE: Always guaranteed to have a UOP with Bbl */
         assert (uop != nullptr);
-        //curCycle += 1;
-
-		//fprintf(stderr, "OOOE: UOP found\n");
-		assert (uop != 0);
 		assert (bblContext != 0);
-		//fprintf(stderr, "OOOE: uop:%p bblContext:%p\n", uop, bblContext);
+
+        /* OOOE: Run the uop here similar to bbl() */
 		//info("OOOE: uop:%p bblContext:%p", uop, bblContext);
-        
-        runUop(loadIdx, storeIdx, prevDecCycle, lastCommitCycle, uop, bblContext);
+        runUop(loadId[curQ], storeId[curQ], prevDecCycle, lastCommitCycle, uop, bblContext);
 
-		BblContext* prevContext = bblContext;
+		/* OOOE: Keep the previous pointer to the last Bbl (on a per Q basis) */
+		prevContext[curQ] = bblContext;
 
-		/* Get new uop to run */
+		/* OOOE: Get new UOP */
 		uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap);
 		if(curBblSwap){
 			curBblSwap = 0;
-			runOther(loadIdx, storeIdx, lastCommitCycle, prevContext);
-			/* TODO: Can we make storeIdx like a global showing how many lds/strs? */
-			loadIdx = storeIdx = 0;
+
+			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
+			runOther(loadId[curQ], storeId[curQ], lastCommitCycle, prevContext[curQ]);
+
+			/* OOOE: Clear the load/store indexes since Bbl finished */
+			loadId[curQ] = storeId[curQ] = 0;
 		}
     }
     
+	/* OOOE: I think it is unnecessary but put here just in case */
 	if(curBblSwap){
 		curBblSwap = 0;
-		runOther(loadIdx, storeIdx, lastCommitCycle, bblContext);
+
+		/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
+		runOther(loadId[curQ], storeId[curQ], lastCommitCycle, bblContext);
+
+		/* OOOE: Clear the load/store indexes since Bbl finished */
+		loadId[curQ] = storeId[curQ] = 0;
 	}
 
-    /* TODO: Do I need to run the other sutff right here */
-
-	fprintf(stderr, "OOOE: Done running through UOPS\n");
+	//info("OOOE: Q's emptied\n");
 
 	futex_unlock(&windowLock);
 	info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
@@ -339,7 +355,7 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
     //printf("NumContxt:%d,%d\n", smtWindow->numContexts[0], smtWindow->numContexts[1] );
 	if(smtWindow->numContexts[1 - curQ] != 0) {
-    //printf("QUEUE SWITCH\n");
+		//fprintf(stderr, "OOOE: QUEUE SWITCH\n");
 		curQ ^= 1; 
 	}
 	/* OOOE: End: Arbitration section */
@@ -366,7 +382,7 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				*bblContext = &cntxt;
 				curUop[curQ] = 0;
 				curContext[curQ] += 1;
-				printf("Move to next BBL:%d\n", curContext[curQ]);
+				// printf("Move to next BBL:%d\n", curContext[curQ]);
 			}
 		}
 		else {
@@ -393,8 +409,6 @@ inline void SMTCore::runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& l
 	bbls++;
 	//approxInstrs += bbl->approxInstrs;
 
-	//fprintf(stderr, "OOOE: 5a\n");
-
 #ifdef BBL_PROFILING
 	fprintf(stderr, "OOOE: BBlProfiling enabled\n");
 	if (approxInstrs) Decoder::profileBbl(bbl->bblIdx);
@@ -403,14 +417,10 @@ inline void SMTCore::runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& l
 	// Check full match between expected and actual mem ops
 	// If these assertions fail, most likely, something's off in the decoder
 
-	fprintf(stderr, "loadIdx(%d) != loads (%d)\n",loadIdx, bblContext->loads);
-	fprintf(stderr, "storeIdx(%d) != stores (%d)\n",storeIdx, bblContext->stores);
+
 	assert_msg(loadIdx == bblContext->loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, bblContext->loads);
 	assert_msg(storeIdx == bblContext->stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, bblContext->stores);
 	bblContext->loads = bblContext->stores = 0;
-	//fprintf(stderr, "OOOE: 5c\n");
-
-	//fprintf(stderr, "OOOE: 6\n");
 
 	/* Simulate frontend for branch pred + fetch of this BBL
 	*
@@ -424,8 +434,6 @@ inline void SMTCore::runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& l
 	// Model fetch-decode delay (fixed, weak predec/IQ assumption)
 	uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
 	uint32_t lineSize = 1 << lineBits;
-
-	//fprintf(stderr, "OOOE: 7\n");
 
 	// Simulate branch prediction
 	if (bblContext->branchPc && !branchPred.predict(bblContext->branchPc, bblContext->branchTaken)) {
@@ -482,8 +490,6 @@ inline void SMTCore::runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& l
 	}
 	bblContext->branchPc = 0;  // clear for next BBL
 	
-	//fprintf(stderr, "OOOE: 8\n");
-
 	// Simulate current bbl ifetch
 	//Address endAddr = bblAddr + bblInfo->bytes;
 	Address endAddr = bblContext->bblAddress + bblContext->bbl->bytes;
@@ -497,7 +503,6 @@ inline void SMTCore::runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& l
 		fetchCycle += fetchLat;
 	}
 
-	//fprintf(stderr, "OOOE: 9\n");
 	// If fetch rules, take into account delay between fetch and decode;
 	// If decode rules, different BBLs make the decoders skip a cycle
 	decodeCycle++;
@@ -514,7 +519,6 @@ inline void SMTCore::runOther(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& l
 inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext){
     DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
     assert( bbl != nullptr );
-    //fprintf(stderr, "OOOE: runUop entered\n");
 
     uint32_t decDiff = uop->decCycle - prevDecCycle;
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
@@ -529,8 +533,6 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
     }
     prevDecCycle = uop->decCycle;
     uopQueue.markLeave(curCycle);
-
-    //fprintf(stderr, "OOOE: 1\n");
 
     if (curCycleIssuedUops >= ISSUES_PER_CYCLE) {
 #ifdef OOO_STALL_STATS
@@ -548,9 +550,6 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
 
     uint64_t c0 = regScoreboard[uop->rs[0]];
     uint64_t c1 = regScoreboard[uop->rs[1]];
-
-
-    //fprintf(stderr, "OOOE: 2\n");
 
     // RF read stalls
     // if srcs are not available at issue time, we have to go thru the RF
@@ -580,8 +579,6 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
 
     uint64_t commitCycle;
 
-    //fprintf(stderr, "OOOE: 3\n");
-
     // LSU simulation
     // NOTE: Ever-so-slightly faster than if-else if-else if-else
     switch (uop->type) {
@@ -603,7 +600,6 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
                 // Wait for all previous store addresses to be resolved
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
-                //Address addr = loadAddrs[loadIdx++];
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
@@ -643,7 +639,6 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
                 // Wait for all previous store addresses to be resolved (not just ours :))
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
-                //Address addr = storeAddrs[storeIdx++];
 				Address addr = bblContext->storeAddrs[storeIdx++];
                 uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
                 cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
@@ -672,8 +667,6 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
             // info("%d %ld %ld X", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);
     }
 
-    //fprintf(stderr, "OOOE: 4\n");
-
     // Mark retire at ROB
     rob.markRetire(commitCycle);
 
@@ -684,7 +677,4 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
     lastCommitCycle = commitCycle;
 
     //info("0x%lx %3d [%3d %3d] -> [%3d %3d]  %8ld %8ld %8ld %8ld", bbl->addr, i, uop->rs[0], uop->rs[1], uop->rd[0], uop->rd[1], decCycle, c3, dispatchCycle, commitCycle);
-    //fprintf(stderr, "OOOE: 5\n");
-
-	/*************************************************************************************************************************************************************/
 }

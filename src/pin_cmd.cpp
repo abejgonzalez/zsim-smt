@@ -34,7 +34,7 @@
 #define QUOTED_(x) #x
 #define QUOTED(x) QUOTED_(x)
 
-PinCmd::PinCmd(Config * conf, const char *configFile, const char *outputDir, uint64_t shmid) {
+PinCmd::PinCmd(Config * conf, const char *configFile, const char *outputDir, uint64_t shmid, bool debug) {
 	//Figure the program paths
 	const char *zsimEnvPath = getenv("ZSIM_PATH");
 	g_string pinPath, zsimPath;
@@ -50,6 +50,11 @@ PinCmd::PinCmd(Config * conf, const char *configFile, const char *outputDir, uin
 	}
 
 	args.push_back(pinPath);
+
+	if (debug){ // debug the zsim pintool
+		args.push_back("-pause_tool");  
+		args.push_back("30"); 
+	}
 
 	//Global pin options
 	args.push_back("-injection");

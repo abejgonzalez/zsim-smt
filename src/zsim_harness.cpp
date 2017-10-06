@@ -395,8 +395,9 @@ int main(int argc, char *argv[]) {
 
 	bool deadlockDetection;
 	bool attachDebugger = conf.get < bool > ("sim.attachDebugger", false);
+	bool enableDebugger = conf.get < bool > ("sim.enableDebugger", false);
 
-	if (attachDebugger) {
+	if (attachDebugger || enableDebugger) {
 		info("Pausing PIN to attach debugger, and not running deadlock detection");
 		deadlockDetection = false;
 	} else {
@@ -410,7 +411,7 @@ int main(int argc, char *argv[]) {
 		info("Not disabling ASLR, multiprocess runs will fail");
 
 	//Create children processes
-	pinCmd = new PinCmd(&conf, configFile, outputDir, shmid);
+	pinCmd = new PinCmd(&conf, configFile, outputDir, shmid, attachDebugger || enableDebugger);
 	uint32_t numProcs = pinCmd->getNumCmdProcs();
 
 	for (uint32_t procIdx = 0; procIdx < numProcs; procIdx++) {
