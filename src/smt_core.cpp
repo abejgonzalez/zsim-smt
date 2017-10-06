@@ -295,29 +295,15 @@ void SMTCore::playback() {
     uint32_t curContext[2] = {0,0};
     uint64_t curUop[2] = {0,0};
     uint8_t curBblSwap = 0; // OOOE: In the current Q, needed to move to the next Bbl
-    bool uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap);
     uint32_t loadId[2] = {0,0};
     uint32_t storeId[2] = {0,0};
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
-
 	BblContext* prevContext [2] = {nullptr, nullptr};
 
 	/* TODO: Move getUop here to remove need for uopPresent */
-    while (uopPresent){
-		/* OOOE: Always guaranteed to have a UOP with Bbl */
-        assert (uop != nullptr);
-		assert (bblContext != 0);
-
-        /* OOOE: Run the uop here similar to bbl() */
-		//info("OOOE: uop:%p bblContext:%p", uop, bblContext);
-        runUop(loadId[curQ], storeId[curQ], prevDecCycle, lastCommitCycle, uop, bblContext);
-
-		/* OOOE: Keep the previous pointer to the last Bbl (on a per Q basis) */
-		prevContext[curQ] = bblContext;
-
-		/* OOOE: Get new UOP */
-		uopPresent = getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap);
+    while (getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap)){
+		/* OOOE: Check if you need to run func's for a Bbl finishing */
 		if(curBblSwap){
 			curBblSwap = 0;
 			
@@ -330,7 +316,18 @@ void SMTCore::playback() {
 			/* OOOE: Clear the load/store indexes since Bbl finished */
 			loadId[curQ] = storeId[curQ] = 0;
 		}
-    }
+
+		/* OOOE: Always guaranteed to have a UOP with Bbl */
+        assert (uop != nullptr);
+		assert (bblContext != 0);
+
+        /* OOOE: Run the uop here similar to bbl() */
+		//info("OOOE: uop:%p bblContext:%p", uop, bblContext);
+        runUop(loadId[curQ], storeId[curQ], prevDecCycle, lastCommitCycle, uop, bblContext);
+
+		/* OOOE: Keep the previous pointer to the last Bbl (on a per Q basis) */
+		prevContext[curQ] = bblContext;
+	}
     
 	//info("OOOE: Q's emptied\n");
 
