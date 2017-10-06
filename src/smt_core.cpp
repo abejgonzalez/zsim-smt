@@ -312,6 +312,8 @@ void SMTCore::playback() {
 		if(curBblSwap){
 			curBblSwap = 0;
 			runOther(loadIdx, storeIdx, lastCommitCycle, prevContext);
+			/* TODO: Can we make storeIdx like a global showing how many lds/strs? */
+			loadIdx = storeIdx = 0;
 		}
     }
     
