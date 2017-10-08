@@ -328,6 +328,22 @@ void SMTCore::playback() {
 		/* OOOE: Keep the previous pointer to the last Bbl (on a per Q basis) */
 		prevContext[curQ] = bblContext;
 	}
+	
+    /* OOOE: Check if you need to run func's for a Bbl finishing */
+    /* OOOE: Rerun after the while loop so that the last Bbl in both Q's has stats and the 
+       frontend run for it */
+    if(curBblSwap){
+        curBblSwap = 0;
+        
+        /* OOOE: Update the stats for the finished Bbl */
+        runBblStatUpdate(prevContext[curQ]);
+
+        /* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
+        runFrontend(loadId[curQ], storeId[curQ], lastCommitCycle, prevContext[curQ]);
+
+        /* OOOE: Clear the load/store indexes since Bbl finished */
+        loadId[curQ] = storeId[curQ] = 0;
+    }
     
 	//info("OOOE: Q's emptied\n");
 
@@ -406,7 +422,6 @@ inline void SMTCore::runBblStatUpdate(BblContext* bblContext){
 	fprintf(stderr, "OOOE: BBlProfiling enabled\n");
 	if (approxInstrs) Decoder::profileBbl(bblContext->bbl->bblIdx);
 #endif
-
 }
 
 /* OOOE: runFrontend()
