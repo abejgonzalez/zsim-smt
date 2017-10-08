@@ -19,7 +19,7 @@ OUTPUT = heartbeat out.cfg *.out *.log* *.h5 .scons*
 PINBIN = lib/pin2.14/intel64/bin/pinbin
 PIN = $(BUILDDIR)/debug/pin
 
-build: src/ $(PIN)
+build: src/
 	$(CONFIGURE)
 	$(SCONS) $(SCONSFLAGS)
 	# ln -sf ~/zsim/build/opt/zsim ~/opt/bin/zsim
@@ -27,7 +27,7 @@ build: src/ $(PIN)
 clean:
 	$(RM) -rf  $(BUILDDIR)  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
 
-test: $(TEST) $(TRACEDIR) $(LOGDIR)
+test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 	$(ZSIM) $(TEST)	
 	mv *.log* log
 

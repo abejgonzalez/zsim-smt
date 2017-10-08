@@ -185,7 +185,6 @@ inline void SMTCore::predFalseMemOp() {
 
 
 /** fPtrs Core Analysis functions. */
-
 inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc) {
     info("OOOE: branch");
 	if(curContext) {
@@ -219,8 +218,9 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	// filled last context, time to sleep.
 	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
 		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
-	//	zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
-	// 	leave();
+		zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
+		zinfo->sched->leave(procIdx, tid, getCid(tid));
+		zinfo->sched->join(procIdx, tid);
 	}
 }
 
