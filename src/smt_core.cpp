@@ -310,6 +310,12 @@ void SMTCore::playback() {
 			/* OOOE: Update the stats for the finished Bbl */
 			runBblStatUpdate(prevContext[curQ]);
 
+			if (loadId[curQ] != prevContext[curQ]->loads || storeId[curQ] != prevContext[curQ]->stores){
+				printf("curQ(%d)\n", curQ);
+				printf("loadId[0](%d) loadId[1](%d) storeId[0](%d) storeId[1](%d)\n", loadId[0], loadId[1], storeId[0], storeId[1]);
+				printf("prevContext loads(0)(%d) loads(1)(%d) stores(0)(%d) stores(1)(%d)\n", prevContext[0]->loads, prevContext[1]->loads,prevContext[0]->stores, prevContext[1]->stores);
+			}
+
 			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
 			runFrontend(loadId[curQ], storeId[curQ], lastCommitCycle, prevContext[curQ]);
 
@@ -378,7 +384,7 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
 				*bblContext = &cntxt;
 				curUop[curQ] += 1;
-				//printf("Q:%d BBL:%d UOP:%lu/%u\n", curQ, curContext[curQ], curUop[curQ], cntxt.bbl->oooBbl[0].uops);
+				printf("Q:%d BBL:%d UOP:%lu/%u\n", curQ, curContext[curQ], curUop[curQ], cntxt.bbl->oooBbl[0].uops);
 				return true;
 			} 
 			else {
@@ -387,7 +393,8 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				*bblContext = &cntxt;
 				curUop[curQ] = 0;
 				curContext[curQ] += 1;
-				// printf("Move to next BBL:%d\n", curContext[curQ]);
+				printf("    Next Bbl: Q:%d BBL:%d UOP:%u\n", curQ, curContext[curQ], cntxt.bbl->oooBbl[0].uops);
+				//printf("Move to next BBL:%d\n", curContext[curQ]);
 			}
 		}
 		else {
