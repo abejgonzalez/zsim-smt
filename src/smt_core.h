@@ -210,7 +210,7 @@ class SMTCore : public Core {
 
 		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
 		inline void playback();
-		inline bool getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext, uint8_t& curBblSwap);
+		inline bool getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext, uint8_t& curBblSwap, uint8_t& curBblSwapQ);
         inline void runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext);
 		inline void runBblStatUpdate(BblContext* bblContext);
 		inline void runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext);
