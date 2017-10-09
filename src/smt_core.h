@@ -86,10 +86,11 @@ class SmtWindow {
 		 * Check if the window is full.
 		 */
 		bool isFull() {
-			bool full = true;
-			for (int core = 0; core < SmtWindow::NUM_VCORES) {
-				smtWindow->numContexts[smtWindow->vcore] == (SmtWindow::QUEUE_SIZE - 1);
-			}
+			return false;
+			//bool full = true;
+			// for (int core = 0; core < SmtWindow::NUM_VCORES) {
+			// 	smtWindow->numContexts[smtWindow->vcore] == (SmtWindow::QUEUE_SIZE - 1);
+			// }
 		}
 };
 
