@@ -81,6 +81,17 @@ class SmtWindow {
 		BblContext queue[NUM_VCORES][QUEUE_SIZE];
 
 		SmtWindow() { for(uint8_t i = 0; i < NUM_VCORES; ++i) numContexts[i] = 0; }
+		
+		/**
+		 * Check if the window is full.
+		 */
+		bool isFull() {
+			return false;
+			//bool full = true;
+			// for (int core = 0; core < SmtWindow::NUM_VCORES) {
+			// 	smtWindow->numContexts[smtWindow->vcore] == (SmtWindow::QUEUE_SIZE - 1);
+			// }
+		}
 };
 
 class SMTCore : public Core {
