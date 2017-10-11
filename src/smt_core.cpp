@@ -95,7 +95,7 @@ void SMTCore::contextSwitch(int32_t gid) {
 
 		// Old OOO_CORE code
         // Do not execute previous BBL, as we were context-switched
-        // prevBbl = nullptr;
+        prevBbl = nullptr;
         // Invalidate virtually-addressed filter caches
         /* OOOE: AG: We dont want to clear the cache since they are shared */
         // l1i->contextSwitch();
@@ -156,18 +156,25 @@ void SMTCore::cSimEnd() {
 
 /** private: */
 
+//TODO: These are incrementing the wrong context object!!!!!!!!!
 inline void SMTCore::load(Address addr) {
-    //info("OOOE: load");
+    //printf("OOOE: load\n");
+	pLoadAddrs[pLoads++] = addr;
+	/*
     if(curContext){
         curContext->loadAddrs[curContext->loads++] = addr;
     }
+	*/
 }
 
 inline void SMTCore::store(Address addr) {
-    //info("OOOE: store");
+    //printf("OOOE: store\n");
+	pStoreAddrs[pStores++] = addr;
+	/*
     if(curContext){
         curContext->storeAddrs[curContext->stores++] = addr;
     }
+	*/
 }
 
 /* NOTE: Analysis routines cannot touch curCycle directly, must use
@@ -186,32 +193,52 @@ inline void SMTCore::advance(uint64_t targetCycle) {
 // Predication is rare enough that we don't need to model it perfectly to be accurate 
 // (i.e. the uops still execute, retire, etc), but this is needed for correctness.
 inline void SMTCore::predFalseMemOp() {
-    //info("OOOE: predFalseMemOp");
+    //printf("OOOE: predFalseMemOp\n");
     // I'm going to go out on a limb and assume just loads are predicated 
 	// (this will not fail silently if it's a store)
+	pLoadAddrs[pLoads++] = -1L;
+	/*
 	if(curContext){
         curContext->loadAddrs[curContext->loads++] = -1L;
     }
+	*/
 }
 
 
 /** fPtrs Core Analysis functions. */
 inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc) {
-    //info("OOOE: branch");
+    //printf("OOOE: branch\n");
+	pBranchPc = pc;
+	pBranchTaken = taken;
+	pBranchTakenNpc = takenNpc;
+	pBranchNotTakenNpc = notTakenNpc;
+
+	/*
 	if(curContext) {
 		curContext->branchPc = pc;
 		curContext->branchTaken = taken;
 		curContext->branchTakenNpc = takenNpc;
 		curContext->branchNotTakenNpc = notTakenNpc;
 	}
+	*/
 }
 
 // TODO: reimplement the original bbl func algorithm in playback()
 void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
-	// If the queue is full then "flush" (running the bbls) in pesudo lockstep
-	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
+	//printf("OOOE: runBbl\n");
+	if (!prevBbl) {
+		//printf("    RUNBBL SKIP\n");
+        // This is the 1st BBL since scheduled, nothing to simulate
+        prevBbl = bblInfo;
+		prevBblAddr = bblAddr;
+		prevTid = tid;
+        // Kill lingering ops from previous BBL
+        pLoads = pStores = 0;
+        return;
+    }
+
+	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) )
 		this->playback();
-	}
 	
 	/* Store the bbl within a new context that fits in the queue */
 	futex_lock(&windowLock);
@@ -221,17 +248,50 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	//info("OOOE: bbl  vcore: %d, contextNum: %d", vcore, contextNum);
 	curContext = new(&(smtWindow->queue[vcore][contextNum])) BblContext();		
 	curContext->pid = getpid();
-	curContext->bbl = bblInfo;
-	curContext->bblAddress = bblAddr;
-	curContext->loads = curContext->stores = 0;
+	curContext->bbl = prevBbl;
+	curContext->bblAddress = prevBblAddr;
+	curContext->loads = pLoads;
+	curContext->stores = pStores;
+	memcpy(curContext->loadAddrs, pLoadAddrs, sizeof(curContext->loadAddrs));
+	memcpy(curContext->storeAddrs, pStoreAddrs, sizeof(curContext->storeAddrs));
+	curContext->branchPc = pBranchPc;
+	curContext->branchTaken = pBranchTaken;
+	curContext->branchTakenNpc = pBranchTakenNpc;
+	curContext->branchNotTakenNpc = pBranchNotTakenNpc;
+	pLoads = pStores = 0;
+	prevBbl = bblInfo;
+	prevBblAddr = bblAddr;
+	prevTid = tid;
+
+	uint32_t loadAmt = 0;
+	uint32_t storeAmt = 0;
+	uint32_t otherAmt = 0;
+	DynBbl* bbl = &curContext->bbl->oooBbl[0];
+	for (uint32_t i = 0; i < bbl->uops; i++) {
+		DynUop* uop = &(bbl->uop[i]);
+		if (uop->type == UOP_LOAD)
+			loadAmt += 1;
+		else if (uop->type == UOP_STORE)
+			storeAmt += 1;
+		else
+			otherAmt += 1;
+	}
+
+	if( loadAmt != curContext->loads || storeAmt != curContext->stores ){
+		printf("    Failed Here\n");
+		printf("    FUN: loads(%d) stores(%d)\n", curContext->loads, curContext->stores);
+		printf("    UOP: loads(%d) stores(%d) other(%d)\n", loadAmt, storeAmt, otherAmt);
+	}
+	
 	futex_unlock(&windowLock);
 
 	// filled last context, time to sleep.
 	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
-		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
-		zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
-		zinfo->sched->leave(procIdx, tid, getCid(tid));
-		zinfo->sched->join(procIdx, tid);
+		//printf("SleepTime\n");
+		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), prevTid, zinfo->numPhases + 1);
+		zinfo->sched->markForSleep(procIdx, prevTid, zinfo->numPhases + 1);
+		zinfo->sched->leave(procIdx, prevTid, getCid(prevTid));
+		zinfo->sched->join(procIdx, prevTid);
 	}
 }
 
@@ -313,22 +373,22 @@ void SMTCore::playback() {
 			/* OOOE: Update the stats for the finished Bbl */
 			runBblStatUpdate(prevContext[curBblSwapQ]);
 
-			if (loadId[curQ] != prevContext[curBblSwapQ]->loads || storeId[curBblSwapQ] != prevContext[curBblSwapQ]->stores){
-				printf("Error Here: \n");
+			if (loadId[curBblSwapQ] != prevContext[curBblSwapQ]->loads || storeId[curBblSwapQ] != prevContext[curBblSwapQ]->stores){
+				printf("Error Here: BblPtr:%p\n", prevContext[curBblSwapQ]);
+
+				printf("Q:%d\n", curBblSwapQ);
 				printf("loadIdx(%d) != loads (%d)\n", loadId[curBblSwapQ], prevContext[curBblSwapQ]->loads);
 				printf("storeIdx(%d) != stores (%d)\n", storeId[curBblSwapQ], prevContext[curBblSwapQ]->stores);
 
-				//printf("BBL Pointer:%p\n", prevContext[curBblSwapQ]);
-				printf("curQ(%d) vs curBblSwapQ(%d)\n", curQ, curBblSwapQ);
-				printf("Other: loadId[%d](%d) storeId[%d](%d)\n", 1-curBblSwapQ, loadId[1-curBblSwapQ], 1-curBblSwapQ, storeId[1-curBblSwapQ]);
-				printf("Other:  loads(%d)(%d)  stores(%d)(%d)\n", 1-curBblSwapQ, prevContext[1-curBblSwapQ]->loads, 1-curBblSwapQ, prevContext[1-curBblSwapQ]->stores);
+				printf("Other Q:%d\n", 1-curBblSwapQ);
+				printf("loadIdx(%d) != loads (%d)\n", loadId[1-curBblSwapQ], prevContext[1-curBblSwapQ]->loads);
+				printf("storeIdx(%d) != stores (%d)\n", storeId[1-curBblSwapQ], prevContext[1-curBblSwapQ]->stores);
 			}
 
 			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
 			runFrontend(loadId[curBblSwapQ], storeId[curBblSwapQ], lastCommitCycle, prevContext[curBblSwapQ]);
 
 			/* OOOE: Clear the load/store indexes since Bbl finished */
-			printf("Cleared load/storeId of Q:%d\n", curBblSwapQ);
 			loadId[curBblSwapQ] = storeId[curBblSwapQ] = 0;
 		}
 
@@ -338,6 +398,8 @@ void SMTCore::playback() {
 
         /* OOOE: Run the uop here similar to bbl() */
 		//info("OOOE: uop:%p bblContext:%p", uop, bblContext);
+		//printf("UOP RUN: %p\n", uop);
+		//printf("RUN: BBL Pointer:%p\n", bblContext);
         runUop(loadId[curQ], storeId[curQ], prevDecCycle, lastCommitCycle, uop, bblContext);
 
 		/* OOOE: Keep the previous pointer to the last Bbl (on a per Q basis) */
@@ -353,6 +415,18 @@ void SMTCore::playback() {
 		/* OOOE: Update the stats for the finished Bbl */
 		runBblStatUpdate(prevContext[curBblSwapQ]);
 
+		if (loadId[curBblSwapQ] != prevContext[curBblSwapQ]->loads || storeId[curBblSwapQ] != prevContext[curBblSwapQ]->stores){
+			printf("Error Here: BblPtr:%p\n", prevContext[curBblSwapQ]);
+
+			printf("Q:%d\n", curBblSwapQ);
+			printf("loadIdx(%d) != loads (%d)\n", loadId[curBblSwapQ], prevContext[curBblSwapQ]->loads);
+			printf("storeIdx(%d) != stores (%d)\n", storeId[curBblSwapQ], prevContext[curBblSwapQ]->stores);
+
+			printf("Other Q:%d\n", 1-curBblSwapQ);
+			printf("loadIdx(%d) != loads (%d)\n", loadId[1-curBblSwapQ], prevContext[1-curBblSwapQ]->loads);
+			printf("storeIdx(%d) != stores (%d)\n", storeId[1-curBblSwapQ], prevContext[1-curBblSwapQ]->stores);
+		}
+
 		/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
 		runFrontend(loadId[curBblSwapQ], storeId[curBblSwapQ], lastCommitCycle, prevContext[curBblSwapQ]);
 
@@ -360,7 +434,6 @@ void SMTCore::playback() {
 		loadId[curBblSwapQ] = storeId[curBblSwapQ] = 0;
 	}
 
-    
 	//info("OOOE: Q's emptied\n");
 
 	futex_unlock(&windowLock);
@@ -394,12 +467,13 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
 				*bblContext = &cntxt;
 				curUop[curQ] += 1;
-				printf("Q:%d BBL:%d UOP:%lu/%u UOPTYPE:", curQ, curContext[curQ], curUop[curQ], cntxt.bbl->oooBbl[0].uops);
+				printf("Q:%d BBL:%d/%p L:%d S:%d UOPTYPE:", curQ, curContext[curQ], &cntxt, cntxt.loads, cntxt.stores);
 				if (cntxt.bbl->oooBbl[0].uop[curUop[curQ]].type == UOP_LOAD)
 					printf("LOAD");
 				else if (cntxt.bbl->oooBbl[0].uop[curUop[curQ]].type == UOP_STORE)
 					printf("STORE");
-				printf(" UOPptr:%p\n", &cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
+				//printf(" UOPptr:%p\n", &cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
+				printf("\n");
 				return true;
 			} 
 			else {
@@ -409,14 +483,14 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				*bblContext = &cntxt;
 				curUop[curQ] = 0;
 				curContext[curQ] += 1;
-				printf("    Bbl Done: Q:%d BBL:%d UOP:%u\n", curQ, curContext[curQ]-1, cntxt.bbl->oooBbl[0].uops);
+				//printf("    Bbl Done: Q:%d BBL:%d UOP:%u\n", curQ, curContext[curQ]-1, cntxt.bbl->oooBbl[0].uops);
 				//printf("    BBL Pointer:%p\n", &cntxt);
 				//printf("Move to next BBL:%d\n", curContext[curQ]);
 			}
 		}
 		else {
 			/* OOOE: No BBL are left */
-			info("OOOE: Last BblContext of Q:%d, numContexts[%d] set to 0.", curQ, curQ);
+			printf("OOOE: Last BblContext of Q:%d\n", curQ);
 			smtWindow->numContexts[curQ] = 0;
 			curUop[curQ] = 0;
 			curContext[curQ] = 0;
@@ -643,7 +717,8 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
                 // Wait for all previous store addresses to be resolved
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
-				printf("+LoadId of UOP:%p\n", uop);
+				//printf("+LoadId of UOP:%p\n", uop);
+				//printf("INSIDE UOPRUN: %p\n", bblContext);
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
@@ -684,7 +759,7 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
 
-				printf("+StoreId of UOP:%p\n", uop);
+				//printf("+StoreId of UOP:%p\n", uop);
 				Address addr = bblContext->storeAddrs[storeIdx++];
                 uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
                 cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);

@@ -103,6 +103,19 @@ class SMTCore : public Core {
 		SmtWindow *smtWindow;
 		lock_t windowLock;
 
+        BblInfo* prevBbl = nullptr;
+		Address prevBblAddr;
+		THREADID prevTid;
+
+		Address pLoadAddrs[256];
+		Address pStoreAddrs[256];
+        uint32_t pLoads = 0;
+		uint32_t pStores = 0;	// current loadAddrs and storeAddrs indexes
+		// branch prediction
+        bool pBranchTaken;
+		Address pBranchPc;  //0 if last bbl was not a conditional branch
+        Address pBranchTakenNpc, pBranchNotTakenNpc;
+
 		// timing 
         uint64_t phaseEndCycle; //next stopping point
         uint64_t curCycle; //this model is issue-centric; curCycle refers to the current issue cycle
@@ -151,8 +164,6 @@ class SMTCore : public Core {
         // UPDATE: Now pht index is XOR-folded BSHR. This has 6656 bytes total -- not negligible, but not ridiculous.
         BranchPredictorPAg<11, 18, 14> branchPred;
 		uint32_t mispredBranches;
-
-
 
 		#ifdef SMT_STALL_STATS
         	Counter profFetchStalls, profDecodeStalls, profIssueStalls;
