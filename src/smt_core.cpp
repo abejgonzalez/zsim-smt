@@ -314,15 +314,21 @@ void SMTCore::playback() {
 			runBblStatUpdate(prevContext[curBblSwapQ]);
 
 			if (loadId[curQ] != prevContext[curBblSwapQ]->loads || storeId[curBblSwapQ] != prevContext[curBblSwapQ]->stores){
+				printf("Error Here: \n");
+				printf("loadIdx(%d) != loads (%d)\n", loadId[curBblSwapQ], prevContext[curBblSwapQ]->loads);
+				printf("storeIdx(%d) != stores (%d)\n", storeId[curBblSwapQ], prevContext[curBblSwapQ]->stores);
+
+				//printf("BBL Pointer:%p\n", prevContext[curBblSwapQ]);
 				printf("curQ(%d) vs curBblSwapQ(%d)\n", curQ, curBblSwapQ);
-				printf("loadId[0](%d) loadId[1](%d) storeId[0](%d) storeId[1](%d)\n", loadId[0], loadId[1], storeId[0], storeId[1]);
-				printf("prevContext loads(0)(%d) loads(1)(%d) stores(0)(%d) stores(1)(%d)\n", prevContext[0]->loads, prevContext[1]->loads,prevContext[0]->stores, prevContext[1]->stores);
+				printf("Other: loadId[%d](%d) storeId[%d](%d)\n", 1-curBblSwapQ, loadId[1-curBblSwapQ], 1-curBblSwapQ, storeId[1-curBblSwapQ]);
+				printf("Other:  loads(%d)(%d)  stores(%d)(%d)\n", 1-curBblSwapQ, prevContext[1-curBblSwapQ]->loads, 1-curBblSwapQ, prevContext[1-curBblSwapQ]->stores);
 			}
 
 			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
 			runFrontend(loadId[curBblSwapQ], storeId[curBblSwapQ], lastCommitCycle, prevContext[curBblSwapQ]);
 
 			/* OOOE: Clear the load/store indexes since Bbl finished */
+			printf("Cleared load/storeId of Q:%d\n", curBblSwapQ);
 			loadId[curBblSwapQ] = storeId[curBblSwapQ] = 0;
 		}
 
@@ -390,11 +396,10 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				curUop[curQ] += 1;
 				printf("Q:%d BBL:%d UOP:%lu/%u UOPTYPE:", curQ, curContext[curQ], curUop[curQ], cntxt.bbl->oooBbl[0].uops);
 				if (cntxt.bbl->oooBbl[0].uop[curUop[curQ]].type == UOP_LOAD)
-					printf("LOAD\n");
+					printf("LOAD");
 				else if (cntxt.bbl->oooBbl[0].uop[curUop[curQ]].type == UOP_STORE)
-					printf("STORE\n");
-				else
-					printf("\n");
+					printf("STORE");
+				printf(" UOPptr:%p\n", &cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
 				return true;
 			} 
 			else {
@@ -405,6 +410,7 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				curUop[curQ] = 0;
 				curContext[curQ] += 1;
 				printf("    Bbl Done: Q:%d BBL:%d UOP:%u\n", curQ, curContext[curQ]-1, cntxt.bbl->oooBbl[0].uops);
+				//printf("    BBL Pointer:%p\n", &cntxt);
 				//printf("Move to next BBL:%d\n", curContext[curQ]);
 			}
 		}
@@ -637,6 +643,7 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
                 // Wait for all previous store addresses to be resolved
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
+				printf("+LoadId of UOP:%p\n", uop);
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
@@ -676,6 +683,8 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
                 // Wait for all previous store addresses to be resolved (not just ours :))
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
+
+				printf("+StoreId of UOP:%p\n", uop);
 				Address addr = bblContext->storeAddrs[storeIdx++];
                 uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
                 cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
