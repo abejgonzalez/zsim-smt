@@ -55,7 +55,6 @@ class BblContext {
 		// instructions refered to internally may have been deleted before playback time.
 		
 		// Record load and store addresses
-		/* TODO: Are we assuming that there WON'T be over 256 loads and stores in a bbl? */
         Address loadAddrs[256], storeAddrs[256];
         uint32_t loads, stores;	// current loadAddrs and storeAddrs indexes
         
@@ -103,6 +102,7 @@ class SMTCore : public Core {
 		SmtWindow *smtWindow;
 		lock_t windowLock;
 
+		// OOOE: Previous value objects. Used to append BblContext objects to the queues
         BblInfo* prevBbl = nullptr;
 		Address prevBblAddr;
 		THREADID prevTid;
@@ -221,7 +221,7 @@ class SMTCore : public Core {
 
 		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
 		inline void playback();
-		inline bool getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (&curUop)[2], DynUop** uop, BblContext** bblContext, uint8_t& curBblSwap, uint8_t& curBblSwapQ);
+		inline bool getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint32_t (&curUop)[2], DynUop** uop, BblContext** bblContext, bool& curBblSwap, uint8_t& curBblSwapQ);
         inline void runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext);
 		inline void runBblStatUpdate(BblContext* bblContext);
 		inline void runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext);
