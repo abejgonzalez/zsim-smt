@@ -40,8 +40,6 @@
 #include "pad.h"
 #include "zsim.h"
 
-// Uncomment to enable stall stats
-// #define OOO_STALL_STATS
 extern GlobSimInfo* zinfo;
 
 #define FETCH_STAGE 1
@@ -58,12 +56,11 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	: Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
 
     info("OOOE: Creating a SMT Core");
-	curCycle = 0;
-    
-	SmtWindow *smtWindowMem = gm_memalign< SmtWindow >(CACHE_LINE_BYTES, 1);
-	smtWindow = new(&smtWindowMem[0]) SmtWindow();
-	smtWindow->vcore = 0;
 	futex_init(&windowLock);
+	prevContext = new(gm_memalign<BblContext>(CACHE_LINE_BYTES, 1)) BblContext();
+	smtWindow = new(gm_memalign< SmtWindow >(CACHE_LINE_BYTES, 1)) SmtWindow();
+	smtWindow->vcore = 0;
+	curCycle = 0;
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
@@ -89,13 +86,13 @@ void SMTCore::contextSwitch(int32_t gid) {
 	if (gid == -1) { 
 		smtWindow->vcore = (smtWindow->vcore + 1) % SmtWindow::NUM_VCORES;
 		if (smtWindow->vcore == 0) {
-			// TODO: playback previous vcore queues.
 			this->playback();
 		}
 
 		// Old OOO_CORE code
-        // Do not execute previous BBL, as we were context-switched
-        prevBbl = nullptr;
+        // Do not execute previous BBL, as we were context-switche
+        if (prevContext->bbl) prevContext->bbl = nullptr;
+
         // Invalidate virtually-addressed filter caches
         /* OOOE: AG: We dont want to clear the cache since they are shared */
         // l1i->contextSwitch();
@@ -154,15 +151,23 @@ void SMTCore::cSimEnd() {
     //info("OOOE: cSimEnd()");
 }
 
-/** private: */
+// Predicated loads and stores call this function, gets recorded as a 0-cycle op.
+// Predication is rare enough that we don't need to model it perfectly to be accurate 
+// (i.e. the uops still execute, retire, etc), but this is needed for correctness.
+inline void SMTCore::predFalseMemOp() {
+    // I'm going to go out on a limb and assume just loads are predicated 
+	// (this will not fail silently if it's a store)
+	prevContext->loadAddrs[prevContext->loads++] = -1L;
+}
+
 
 //TODO: These are incrementing the wrong context object!!!!!!!!!
 inline void SMTCore::load(Address addr) {
-	pLoadAddrs[pLoads++] = addr;
+	prevContext->loadAddrs[prevContext->loads++] = addr;
 }
 
 inline void SMTCore::store(Address addr) {
-	pStoreAddrs[pStores++] = addr;
+	prevContext->storeAddrs[prevContext->stores++] = addr;
 }
 
 /* NOTE: Analysis routines cannot touch curCycle directly, must use
@@ -176,71 +181,73 @@ inline void SMTCore::store(Address addr) {
 inline void SMTCore::advance(uint64_t targetCycle) {
 }
 
-// Predicated loads and stores call this function, gets recorded as a 0-cycle op.
-// Predication is rare enough that we don't need to model it perfectly to be accurate 
-// (i.e. the uops still execute, retire, etc), but this is needed for correctness.
-inline void SMTCore::predFalseMemOp() {
-    //printf("OOOE: predFalseMemOp\n");
-    // I'm going to go out on a limb and assume just loads are predicated 
-	// (this will not fail silently if it's a store)
-	pLoadAddrs[pLoads++] = -1L;
-}
-
-
 /** fPtrs Core Analysis functions. */
 inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc) {
-	pBranchPc = pc;
-	pBranchTaken = taken;
-	pBranchTakenNpc = takenNpc;
-	pBranchNotTakenNpc = notTakenNpc;
+	prevContext->branchPc = pc;
+	prevContext->branchTaken = taken;
+	prevContext->branchTakenNpc = takenNpc;
+	prevContext->branchNotTakenNpc = notTakenNpc;
 }
 
 // TODO: reimplement the original bbl func algorithm in playback()
 void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
-	if (!prevBbl) {
+	if (!prevContext->bbl) {
         // This is the 1st BBL since scheduled, nothing to simulate
-        prevBbl = bblInfo;
-		prevBblAddr = bblAddr;
-		prevTid = tid;
+		prevContext->pid = tid;
+		prevContext->bbl = bblInfo;
+		prevContext->bblAddress = bblAddr;
         // Kill lingering ops from previous BBL
-        pLoads = pStores = 0;
+		prevContext->loads = prevContext->stores = 0;
         return;
     }
 
-	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) )
+	int vcore = smtWindow->vcore;
+	int contextNum = smtWindow->numContexts[vcore];
+	if(contextNum == SmtWindow::QUEUE_SIZE) {
 		this->playback();
+		contextNum = smtWindow->numContexts[vcore];
+	}
 	
 	/* Store the bbl within a new context that fits in the queue */
 	futex_lock(&windowLock);
-	int vcore = smtWindow->vcore;
-	int contextNum = smtWindow->numContexts[vcore]++;
 	
-	//info("OOOE: bbl  vcore: %d, contextNum: %d", vcore, contextNum);
+	// construct and initialize new context from previous.
 	curContext = new(&(smtWindow->queue[vcore][contextNum])) BblContext();		
 	curContext->pid = getpid();
-	curContext->bbl = prevBbl;
-	curContext->bblAddress = prevBblAddr;
-	curContext->loads = pLoads;
-	curContext->stores = pStores;
-	memcpy(curContext->loadAddrs, pLoadAddrs, sizeof(curContext->loadAddrs));
-	memcpy(curContext->storeAddrs, pStoreAddrs, sizeof(curContext->storeAddrs));
-	curContext->branchPc = pBranchPc;
-	curContext->branchTaken = pBranchTaken;
-	curContext->branchTakenNpc = pBranchTakenNpc;
-	curContext->branchNotTakenNpc = pBranchNotTakenNpc;
-	pLoads = pStores = 0;
-	prevBbl = bblInfo;
-	prevBblAddr = bblAddr;
-	prevTid = tid;
+	curContext->bbl = prevContext->bbl;
+	curContext->bblAddress = prevContext->bblAddress;
+	curContext->loads = prevContext->loads;
+	curContext->stores = prevContext->stores;
+
+	// copy load and store addresses
+	memcpy(curContext->loadAddrs, prevContext->loadAddrs, sizeof(curContext->loadAddrs));
+	memcpy(curContext->storeAddrs, prevContext->storeAddrs, sizeof(curContext->storeAddrs));
+
+	curContext->branchPc = prevContext->branchPc;
+	curContext->branchTaken = prevContext->branchTaken;
+	curContext->branchTakenNpc = prevContext->branchTakenNpc;
+	curContext->branchNotTakenNpc = prevContext->branchNotTakenNpc;
 	
+	// set previous context
+	prevContext->pid = tid;
+	prevContext->bbl = bblInfo;
+	prevContext->bblAddress = bblAddr;
+	prevContext->loads = prevContext->stores = 0;
+
+	// update numContexts count.
+	smtWindow->numContexts[vcore]++;	
 	futex_unlock(&windowLock);
 
 	// filled last context, time to sleep.
-	if( smtWindow->numContexts[ smtWindow->vcore ] == ( SmtWindow::QUEUE_SIZE - 1 ) ) {
-		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), prevTid, zinfo->numPhases + 1);
-		zinfo->sched->markForSleep(procIdx, prevTid, zinfo->numPhases + 1);
-		zinfo->sched->leave(procIdx, prevTid, getCid(prevTid));
-		zinfo->sched->join(procIdx, prevTid);
+	if(smtWindow->numContexts[smtWindow->vcore] == SmtWindow::QUEUE_SIZE) {
+		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
+		zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
+		zinfo->sched->leave(procIdx, tid, getCid(tid));
+		zinfo->sched->join(procIdx, tid);
+		sched_yield();
+
+		// custom yield implementation.
+		// zinfo->sched->yield(getCid(tid));
 	}
 }
 
@@ -290,8 +297,10 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
  * Output: None 
  */
 void SMTCore::playback() {
-    info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
 	futex_lock(&windowLock);
+    info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
+	info("OOOE: core(%p) window upon entry: (%d, %d)", 
+		this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
 
 	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
     DynUop* uop;
@@ -309,6 +318,10 @@ void SMTCore::playback() {
 
 	//printf("OOOE: {%d,%d}\n", smtWindow->numContexts[0], smtWindow->numContexts[1]);
 
+	// OOOE: TODO: what should happen when we switch away from fair arbitration? 
+	// we'll have to exit once ONE rather than BOTH window queues are empty. 
+	// then it gets tricky once one of the processes has terminated. 
+	// maybe a semaphore can fix this.
     while (getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap, curBblSwapQ)){
 		/* OOOE: Check if you need to run func's for a Bbl finishing */
 		if(curBblSwap){
@@ -351,8 +364,10 @@ void SMTCore::playback() {
 		loadId[curBblSwapQ] = storeId[curBblSwapQ] = 0;
 	}
 
-	futex_unlock(&windowLock);
+	info("OOOE: core(%p) window upon exit: (%d, %d)", 
+		this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
 	info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
+	futex_unlock(&windowLock);
 }
 
 /* OOOE: getUop()
@@ -360,7 +375,8 @@ void SMTCore::playback() {
  * Input: A DynUop and BblContext reference (Do not want a copy of them)
  * Output: Bool telling whether a UOP was retrieved (Only would happen in the case both Q's are empty)
  */
-inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint32_t (&curUop)[2], DynUop** uop, BblContext** bblContext, bool& curBblSwap, uint8_t& curBblSwapQ){
+bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curContext)[SmtWindow::NUM_VCORES], uint32_t (&curUop)[SmtWindow::NUM_VCORES], 
+		DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ) {
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
 	if(smtWindow->numContexts[1 - curQ] != 0) {
 		curQ ^= 1; 
@@ -409,7 +425,7 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint32_t (
  * Input: A BblContext reference
  * Output: None 
  */
-inline void SMTCore::runBblStatUpdate(BblContext* bblContext){
+void SMTCore::runBblStatUpdate(BblContext* bblContext){
 	/* OOOE: TODO: Implement instrs */
 	//instrs += bblInstrs;
 	uops += bblContext->bbl->oooBbl[0].uops;
@@ -426,69 +442,67 @@ inline void SMTCore::runBblStatUpdate(BblContext* bblContext){
  * Description: Function to update the appropriate cycle counts for branchPred, iFetch and decode 
  * Input: Load/Store pointers for the current bblContext, previous Bbl commitcycle, and the current BblContext reference
  * Output: None 
+ * 
+ * Simulate frontend for branch pred + fetch of this BBL
+ * NOTE: We assume that the instruction length predecoder and the IQ are
+ * weak enough that they can't hide any ifetch or bpred stalls. In fact,
+ * predecoder stalls are incorporated in the decode stall component (see
+ * decoder.cpp). So here, we compute fetchCycle, then use it to adjust
+ * decodeCycle. 
  */
-inline void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){
+void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){
 	// Check full match between expected and actual mem ops
 	// If these assertions fail, most likely, something's off in the decoder
 	assert_msg(loadIdx == bblContext->loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, bblContext->loads);
 	assert_msg(storeIdx == bblContext->stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, bblContext->stores);
 	bblContext->loads = bblContext->stores = 0;
 
-	/* Simulate frontend for branch pred + fetch of this BBL
-	*
-	* NOTE: We assume that the instruction length predecoder and the IQ are
-	* weak enough that they can't hide any ifetch or bpred stalls. In fact,
-	* predecoder stalls are incorporated in the decode stall component (see
-	* decoder.cpp). So here, we compute fetchCycle, then use it to adjust
-	* decodeCycle.
-	*/
-
 	// Model fetch-decode delay (fixed, weak predec/IQ assumption)
 	uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
 	uint32_t lineSize = 1 << lineBits;
 
-	// Simulate branch prediction
+	// Simulate branch prediction (Misprediction)
 	if (bblContext->branchPc && !branchPred.predict(bblContext->branchPc, bblContext->branchTaken)) {
-		mispredBranches++;
 		/* OOOE: AG:
-		* Note: Here they start talking about BTB (a very basic form
-		* of a branch pred) but the brach predictor object used here
-		* is a pAg predictor.
-		*
-		* Per Address there is a history register.
-		* Then there is a global storage data structure that holds the branch
-		* locations.
-		*/
+		 * Note: Here they start talking about BTB (a very basic branch pred) 
+		 * but the brach predictor object used here is a pAg predictor.
+		 *
+		 * Per Address there is a history register.
+		 * Then there is a global storage data structure that holds the branch locations.
+		 */
 
 		/* Simulate wrong-path fetches
-		*
-		* This is not for a latency reason, but sometimes it increases fetched
-		* code footprint and L1I MPKI significantly. Also, we assume a perfect
-		* BTB here: we always have the right address to missfetch on, and we
-		* never need resteering.
-		*
-		* NOTE: Resteering due to BTB misses is done at the BAC unit, is
-		* relatively rare, and carries an 8-cycle penalty, which should be
-		* partially hidden if the branch is predicted correctly --- so we
-		* don't simulate it.
-		*
-		* Since we don't have a BTB, we just assume the next branch is not
-		* taken. With a typical branch mispred penalty of 17 cycles, we
-		* typically fetch 3-4 lines in advance (16B/cycle). This sets a higher
-		* limit, which can happen with branches that take a long time to
-		* resolve (because e.g., they depend on a load). To set this upper
-		* bound, assume a completely backpressured IQ (18 instrs), uop queue
-		* (28 uops), IW (36 uops), and 16B instr length predecoder buffer. At
-		* ~3.5 bytes/instr, 1.2 uops/instr, this is about 5 64-byte lines.
-		*/
+		 *
+		 * This is not for a latency reason, but sometimes it increases fetched
+		 * code footprint and L1I MPKI significantly. Also, we assume a perfect
+		 * BTB here: we always have the right address to missfetch on, and we
+		 * never need resteering.
+		 *
+		 * NOTE: Resteering due to BTB misses is done at the BAC unit, is
+		 * relatively rare, and carries an 8-cycle penalty, which should be
+		 * partially hidden if the branch is predicted correctly --- so we
+		 * don't simulate it.
+		 *
+		 * Since we don't have a BTB, we just assume the next branch is not
+		 * taken. With a typical branch mispred penalty of 17 cycles, we
+		 * typically fetch 3-4 lines in advance (16B/cycle). This sets a higher
+		 * limit, which can happen with branches that take a long time to
+		 * resolve (because e.g., they depend on a load). To set this upper
+		 * bound, assume a completely backpressured IQ (18 instrs), uop queue
+		 * (28 uops), IW (36 uops), and 16B instr length predecoder buffer. At
+		 * ~3.5 bytes/instr, 1.2 uops/instr, this is about 5 64-byte lines.
+		 */
 
-		// info("Mispredicted branch, %ld %ld %ld | %ld %ld", decodeCycle, curCycle, lastCommitCycle,
-		//         lastCommitCycle-decodeCycle, lastCommitCycle-curCycle);
-		/* OOOE: AG: Simulates having a wrong prediction*/
-		Address wrongPathAddr = bblContext->branchTaken? bblContext->branchNotTakenNpc : bblContext->branchTakenNpc;
+		// info("Mispredicted branch, %ld %ld %ld | %ld %ld", 
+		// decodeCycle, curCycle, lastCommitCycle, lastCommitCycle-decodeCycle, lastCommitCycle-curCycle);
+		
+		mispredBranches++;
+		Address wrongPathAddr = bblContext->branchTaken ? 
+			bblContext->branchNotTakenNpc : bblContext->branchTakenNpc;
+		
 		uint64_t reqCycle = fetchCycle;
-		for (uint32_t i = 0; i < 5*64/lineSize; i++) {
-			uint64_t fetchLat = l1i->load(wrongPathAddr + lineSize*i, curCycle) - curCycle;
+		for (uint32_t i = 0; i < (5 * 64) / lineSize; i++) {
+			uint64_t fetchLat = l1i->load(wrongPathAddr + (i * lineSize), curCycle) - curCycle;
 			cRec.record(curCycle, curCycle, curCycle + fetchLat);
 			uint64_t respCycle = reqCycle + fetchLat;
 			if (respCycle > lastCommitCycle) {
@@ -500,10 +514,10 @@ inline void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t
 
 		fetchCycle = lastCommitCycle;
 	}
+	
 	bblContext->branchPc = 0;  // clear for next BBL
 	
-	// Simulate current bbl ifetch
-	//Address endAddr = bblAddr + bblInfo->bytes;
+	// Simulate current bbl instruction fetch
 	Address endAddr = bblContext->bblAddress + bblContext->bbl->bytes;
 	for (Address fetchAddr = bblContext->bblAddress; fetchAddr < endAddr; fetchAddr += lineSize) {
 		// The Nehalem frontend fetches instructions in 16-byte-wide accesses.
@@ -520,7 +534,8 @@ inline void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t
 	decodeCycle++;
 	uint64_t minFetchDecCycle = fetchCycle + (DECODE_STAGE - FETCH_STAGE);
 	if (minFetchDecCycle > decodeCycle) {
-#ifdef OOO_STALL_STATS
+
+#ifdef SMT_STALL_STATS
 		profFetchStalls.inc(decodeCycle - minFetchDecCycle);
 #endif
 		decodeCycle = minFetchDecCycle;
@@ -532,7 +547,7 @@ inline void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t
  * Input: Load/Store pointers for the current bblContext, previous Bbl commitcycle, and the current UOP/BblContext reference
  * Output: None 
  */
-inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext){
+void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {
     DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
     assert( bbl != nullptr );
 
@@ -540,7 +555,7 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
     if (decodeCycle > curCycle) {
         uint32_t cdDiff = decodeCycle - curCycle;
-#ifdef OOO_STALL_STATS
+#ifdef SMT_STALL_STATS
         profDecodeStalls.inc(cdDiff);
 #endif
         curCycleIssuedUops = 0;
@@ -551,7 +566,7 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
     uopQueue.markLeave(curCycle);
 
     if (curCycleIssuedUops >= ISSUES_PER_CYCLE) {
-#ifdef OOO_STALL_STATS
+#ifdef SMT_STALL_STATS
         profIssueStalls.inc();
 #endif
         curCycleIssuedUops = 0;
@@ -696,5 +711,6 @@ inline void SMTCore::runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prev
 
     lastCommitCycle = commitCycle;
 
-    //info("0x%lx %3d [%3d %3d] -> [%3d %3d]  %8ld %8ld %8ld %8ld", bbl->addr, i, uop->rs[0], uop->rs[1], uop->rd[0], uop->rd[1], decCycle, c3, dispatchCycle, commitCycle);
+    // info("0x%lx %3d [%3d %3d] -> [%3d %3d]  %8ld %8ld %8ld %8ld", bbl->addr, i, 
+	//   uop->rs[0], uop->rs[1], uop->rd[0], uop->rd[1], decCycle, c3, dispatchCycle, commitCycle);
 }

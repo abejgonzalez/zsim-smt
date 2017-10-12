@@ -33,6 +33,7 @@
 //Funky macro expansion stuff
 #define QUOTED_(x) #x
 #define QUOTED(x) QUOTED_(x)
+#define GDB_TIMEOUT "10"
 
 PinCmd::PinCmd(Config * conf, const char *configFile, const char *outputDir, uint64_t shmid, bool debug) {
 	//Figure the program paths
@@ -53,7 +54,7 @@ PinCmd::PinCmd(Config * conf, const char *configFile, const char *outputDir, uin
 
 	if (debug){ // debug the zsim pintool
 		args.push_back("-pause_tool");  
-		args.push_back("30"); 
+		args.push_back(GDB_TIMEOUT); 
 	}
 
 	//Global pin options

@@ -418,6 +418,49 @@ class Scheduler : public GlobAlloc, public Callee {
             assert(th->state == RUNNING);
             return th->cid;
         }
+		
+		/**
+		 * yield the current timeslice
+		 */
+		void yield(uint32_t cid) {
+            futex_lock(&schedLock);
+			trace(Sched, "Sched: core %d was yielded by %d.", cid, procIdx);
+            ThreadInfo* th = contexts[cid].curThread;
+			ContextInfo* ctx = &contexts[cid];
+				
+            zinfo->cores[cid]->leave();
+			deschedule(th, ctx, QUEUED);
+			runQueue.push_back(th);
+			
+			ThreadInfo* inTh = schedContext(ctx);
+			inTh = inTh ? inTh : th;
+			schedule(inTh, ctx);
+			zinfo->cores[th->cid]->join();
+            
+			waitForContext(th); //releases lock, might join
+            futex_unlock(&schedLock);
+
+            // futex_unlock(&schedLock);
+
+            // futex_lock(&schedLock);
+            // ThreadInfo* th = contexts[cid].curThread;
+			// th->markedForSleep = false;
+            // ContextInfo* ctx = &contexts[cid];
+            // deschedule(th, ctx, QUEUED);
+			// runQueue.push_back(th);
+			// 
+			// ThreadInfo* inTh = schedContext(ctx);
+            // if (inTh) {
+            //     schedule(inTh, ctx);
+            //     zinfo->cores[ctx->cid]->join(); //inTh does not do a sched->join, so we need to notify the core since we just called leave() on it
+            //     wakeup(inTh, false /*no join, we did not leave*/);
+            // } else {
+            //     freeList.push_back(ctx);
+            // }
+	
+			// // waitForContext(th); //releases lock, might join
+            // // assert(th->state == RUNNING);
+        }
 
         // This is called with schedLock held, and must not release it!
         virtual void callback() {

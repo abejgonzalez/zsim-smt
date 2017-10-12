@@ -26,6 +26,10 @@
 #ifndef SMT_CORE_H_
 #define SMT_CORE_H_
 
+// Uncomment to enable stats
+// #define SMT_STALL_STATS
+// #define SMT_UOP_STATS
+
 // A composite core that simulates SMT.
 // Controls access to two virtual OOO Cores in the background.
 
@@ -40,99 +44,70 @@
 #include "ooo_core.h"
 #include "pad.h"
 
-// Uncomment to enable stall stats
-// #define SMT_STALL_STATS
-
 /** OOOE:
- * Description: Context object container that holds BblInfo, loads and store addresses,
- * branch prediction variables (pc, taken, ntaken)
+ * Context object container that holds BblInfo, 
+ * loads and store addresses, and branch prediction variables (pc, taken, ntaken)
  */
 class BblContext {
 	public:
-		pid_t pid;
-		Address bblAddress;
-		BblInfo *bbl; // TODO: may have to deep copy this struct. 
-		// instructions refered to internally may have been deleted before playback time.
+		pid_t pid; // process id
+		Address bblAddress; // bbl location
+		BblInfo *bbl; // bbl object reference
 		
 		// Record load and store addresses
         Address loadAddrs[256], storeAddrs[256];
-        uint32_t loads, stores;	// current loadAddrs and storeAddrs indexes
+        uint32_t loads, stores;	// number of loads and stores
         
 		// branch prediction
         bool branchTaken;
-		Address branchPc;  //0 if last bbl was not a conditional branch
+		Address branchPc;  // 0 if last bbl was not a conditional branch
         Address branchTakenNpc, branchNotTakenNpc;
+
+		BblContext() {
+			branchTaken = false;
+			branchPc = 0;
+			branchTakenNpc = 0;
+			branchNotTakenNpc = 0;
+		}
 }; 
 
 /** OOOE:
- * Description: Container that holds 2 BblContext queues to store the core
- * state.
+ * Container that holds 2 BblContext queues to store the core state.
  */
 class SmtWindow {
 	public:
 		static const uint8_t NUM_VCORES = 2;
 		static const uint16_t QUEUE_SIZE = 5000;
+
 		uint8_t vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
 		uint16_t numContexts[NUM_VCORES];
-		/* TODO: Look into this src/g_std/g_vector.h, seems to inherit from vector and use the heap memory that
-		 * was globally allocated */
-		//g_vector< g_vector<BblContext> > queue;
 		BblContext queue[NUM_VCORES][QUEUE_SIZE];
 
 		SmtWindow() { for(uint8_t i = 0; i < NUM_VCORES; ++i) numContexts[i] = 0; }
-		
-		/**
-		 * Check if the window is full.
-		 */
-		bool isFull() {
-			return false;
-			//bool full = true;
-			// for (int core = 0; core < SmtWindow::NUM_VCORES) {
-			// 	smtWindow->numContexts[smtWindow->vcore] == (SmtWindow::QUEUE_SIZE - 1);
-			// }
-		}
-};
+	};
 
 class SMTCore : public Core {
     private:
-        FilterCache* l1i;
-        FilterCache* l1d;
-
-		// shared objects
+        FilterCache *l1i, *l1d;
 		SmtWindow *smtWindow;
 		lock_t windowLock;
 
-		// OOOE: Previous value objects. Used to append BblContext objects to the queues
-        BblInfo* prevBbl = nullptr;
-		Address prevBblAddr;
-		THREADID prevTid;
-
-		Address pLoadAddrs[256];
-		Address pStoreAddrs[256];
-        uint32_t pLoads = 0;
-		uint32_t pStores = 0;	// current loadAddrs and storeAddrs indexes
-		// branch prediction
-        bool pBranchTaken;
-		Address pBranchPc;  //0 if last bbl was not a conditional branch
-        Address pBranchTakenNpc, pBranchNotTakenNpc;
+		/* OOOE: Current bbl context that is filled with the simulator running. i
+		 * Queued on the next bbl() function call. */
+		// prevContextd used to append BblContext objects to the queues 
+		BblContext *curContext = NULL, *prevContext = NULL;
 
 		// timing 
         uint64_t phaseEndCycle; //next stopping point
         uint64_t curCycle; //this model is issue-centric; curCycle refers to the current issue cycle
-
         uint64_t decodeCycle;
+
         CycleQueue<28> uopQueue;  // models issue queue
         uint64_t instrs, uops, bbls, approxInstrs;
         
 		uint64_t regScoreboard[MAX_REGISTERS]; //contains timestamp of next issue cycles where each reg can be sourced
         uint64_t lastStoreCommitCycle;
         uint64_t lastStoreAddrCommitCycle; //tracks last store addr uop, all loads queue behind it
-
-    
-        /* OOOE: Current bbl context that is filled with the simulator running. Queued on the 
-           next bbl() function call. */
-		BblContext *curContext = NULL;
-        
 
         //LSU queues are modeled like the ROB. Surprising? Entries are grabbed in dataflow order,
         //and for ordering purposes should leave in program order. In reality they are associative
@@ -181,7 +156,7 @@ class SMTCore : public Core {
         #define FWD_ENTRIES 32  // 2 lines, 16 4B entries/line
         FwdEntry fwdArray[FWD_ENTRIES];
 
-		// OOOE: may have to create our own recorder.
+		// timing event recorder
         OOOCoreRecorder cRec;
 
     public:
@@ -206,6 +181,10 @@ class SMTCore : public Core {
         void cSimEnd();
 
     private:
+        // Predicated loads and stores call this function, gets recorded as a 0-cycle op.
+        // Predication is rare enough that we don't need to model it perfectly to be accurate 
+		// (i.e. the uops still execute, retire, etc), but this is needed for correctness.
+        inline void predFalseMemOp();
         inline void load(Address addr);
         inline void store(Address addr);
 
@@ -218,24 +197,21 @@ class SMTCore : public Core {
          * to advance the cycle counters in the whole core in lockstep.
          */
         inline void advance(uint64_t targetCycle);
-
-		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
-		inline void playback();
-		inline bool getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint32_t (&curUop)[2], DynUop** uop, BblContext** bblContext, bool& curBblSwap, uint8_t& curBblSwapQ);
-        inline void runUop(uint32_t& loadIdx, uint32_t& storeIdx, uint32_t prevDecCycle, uint64_t& lastCommitCycle, DynUop* uop, BblContext* bblContext);
-		inline void runBblStatUpdate(BblContext* bblContext);
-		inline void runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext);
-
-        // Predicated loads and stores call this function, gets recorded as a 0-cycle op.
-        // Predication is rare enough that we don't need to model it perfectly to be accurate 
-		// (i.e. the uops still execute, retire, etc), but this is needed for correctness.
-        inline void predFalseMemOp();
-
         inline void branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc);
 
-		/* OOOE: TODO: Make inline / Check if you need 2 funcs */
+		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
+		// leave these functions uninlined for debugging purposes.
+		void playback();
+		bool getUop(uint8_t &curQ, uint32_t (&curContext)[SmtWindow::NUM_VCORES], uint32_t (&curUop)[SmtWindow::NUM_VCORES], 
+				DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ);
+        
+		void runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext * bblContext);
+		void runBblStatUpdate(BblContext * bblContext);
+		void runFrontend(uint32_t &loadIdx, uint32_t &storeIdx, uint64_t &lastCommitCycle, BblContext * bblContext);
+
+
+		/* OOOE: bbl analysis function. constructs a BblContext */
         void bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo);
-		inline void bbl(Address bblAddr, BblInfo* bblInfo);
 
         static void LoadFunc(THREADID tid, ADDRINT addr);
         static void StoreFunc(THREADID tid, ADDRINT addr);
@@ -243,6 +219,6 @@ class SMTCore : public Core {
         static void PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred);
         static void BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo);
         static void BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc);
-} ATTR_LINE_ALIGNED;  // Take up an int number of cache lines
 
+} ATTR_LINE_ALIGNED;  // Take up an int number of cache lines
 #endif  // SMT_CORE_H_
