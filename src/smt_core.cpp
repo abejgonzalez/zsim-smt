@@ -364,7 +364,6 @@ void SMTCore::playback() {
 
 	printf("OOOE: {%d,%d}\n", smtWindow->numContexts[0], smtWindow->numContexts[1]);
 
-	/* TODO: Move getUop here to remove need for uopPresent */
     while (getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap, curBblSwapQ)){
 		/* OOOE: Check if you need to run func's for a Bbl finishing */
 		if(curBblSwap){
@@ -467,7 +466,8 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
 				*bblContext = &cntxt;
 				curUop[curQ] += 1;
-				printf("Q:%d BBL:%d/%p L:%d S:%d UOPTYPE:", curQ, curContext[curQ], &cntxt, cntxt.loads, cntxt.stores);
+
+				printf("Q:%d BBL:%d UOP:%lu/%d L:%d S:%d UOPTYPE:", curQ, curContext[curQ], curUop[curQ], cntxt.bbl->oooBbl[0].uops, cntxt.loads, cntxt.stores);
 				if (cntxt.bbl->oooBbl[0].uop[curUop[curQ]].type == UOP_LOAD)
 					printf("LOAD");
 				else if (cntxt.bbl->oooBbl[0].uop[curUop[curQ]].type == UOP_STORE)
@@ -483,7 +483,7 @@ inline bool SMTCore::getUop(uint8_t& curQ, uint32_t (&curContext)[2], uint64_t (
 				*bblContext = &cntxt;
 				curUop[curQ] = 0;
 				curContext[curQ] += 1;
-				//printf("    Bbl Done: Q:%d BBL:%d UOP:%u\n", curQ, curContext[curQ]-1, cntxt.bbl->oooBbl[0].uops);
+				printf("    Bbl Done: Q:%d BBL:%d UOP:%u\n", curQ, curContext[curQ]-1, cntxt.bbl->oooBbl[0].uops);
 				//printf("    BBL Pointer:%p\n", &cntxt);
 				//printf("Move to next BBL:%d\n", curContext[curQ]);
 			}

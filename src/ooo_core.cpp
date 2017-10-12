@@ -135,10 +135,12 @@ void OOOCore::contextSwitch(int32_t gid) {
 InstrFuncPtrs OOOCore::GetFuncPtrs() {return {LoadFunc, StoreFunc, BblFunc, BranchFunc, PredLoadFunc, PredStoreFunc, FPTR_ANALYSIS, {0}};}
 
 inline void OOOCore::load(Address addr) {
+	//printf("OOOE: LOAD\n");
     loadAddrs[loads++] = addr;
 }
 
 void OOOCore::store(Address addr) {
+	//printf("OOOE: STORE\n");
     storeAddrs[stores++] = addr;
 }
 
@@ -146,10 +148,12 @@ void OOOCore::store(Address addr) {
 // Predication is rare enough that we don't need to model it perfectly to be accurate (i.e. the uops still execute, retire, etc), but this is needed for correctness.
 void OOOCore::predFalseMemOp() {
     // I'm going to go out on a limb and assume just loads are predicated (this will not fail silently if it's a store)
+	//printf("OOOE: LOAD\n");
     loadAddrs[loads++] = -1L;
 }
 
 void OOOCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc) {
+	//printf("OOOE: BRANCH\n");
     branchPc = pc;
     branchTaken = taken;
     branchTakenNpc = takenNpc;
@@ -174,12 +178,14 @@ void OOOCore::branch(Address pc, bool taken, Address takenNpc, Address notTakenN
 inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     //info("OOOE: AG: bbl() called: CurCycle = %lu \n", curCycle);
     if (!prevBbl) {
+		//printf("OOOE: BBL SKIP\n");
         // This is the 1st BBL since scheduled, nothing to simulate
         prevBbl = bblInfo;
         // Kill lingering ops from previous BBL
         loads = stores = 0;
         return;
     }
+	//printf("OOOE: BBL L:%d S:%d\n", loads, stores);
 
     /* OOOE: AG:
      * Simulate execution of previous BBL.
@@ -206,7 +212,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
      */
     info("OOOE: PID:%d BBLADDR:0x%lx", getpid(), bbl->addr);
     // Run dispatch/IW
-	printf("OOOE: AMTUOPS:%u\n", bbl->uops);
+	//printf("OOOE: AMTUOPS:%u\n", bbl->uops);
     for (uint32_t i = 0; i < bbl->uops; i++) {
         DynUop* uop = &(bbl->uop[i]);
 
