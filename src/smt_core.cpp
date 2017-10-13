@@ -371,6 +371,35 @@ void SMTCore::playback() {
 	futex_unlock(&windowLock);
 }
 
+/* OOOE: printUop()
+ * Description: Function to print what UOP is being run, in which BBL, of which process
+ * Input: UOP, BBL and all other pointers/indices 
+ * Output: None 
+ */
+static inline void printUop(DynUop uop, BblContext cntxt, uint8_t curQ, uint32_t curContext, uint32_t curUop, uint16_t numContextTot) {
+	std::ostringstream oss1, oss2;
+	oss1 << "tests/traces/" << "itrace" << ".csv";
+	FILE *tfile = fopen(oss1.str().c_str(), "a+");
+	oss2 << "tests/traces/" << "itrace_verbose" << ".txt";
+	FILE *tfileVerb = fopen(oss2.str().c_str(), "a+");
+	fprintf(tfile, "%d, %d, %d, %d, %d, %d, ", cntxt.pid, curQ, curContext, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
+	fprintf(tfileVerb, "PID:%d Q:%d BBL:%d/%d UOP:%d/%d UOPTYPE:", cntxt.pid, curQ, curContext, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
+	if ( cntxt.bbl->oooBbl[0].uop[curUop].type == UOP_LOAD ){
+		fprintf(tfile, "LOAD\n");
+		fprintf(tfileVerb, "LOAD\n");
+	}
+	else if ( cntxt.bbl->oooBbl[0].uop[curUop].type == UOP_STORE ){
+		fprintf(tfile, "STORE\n");
+		fprintf(tfileVerb, "STORE\n");
+	}
+	else{
+		fprintf(tfile, "OTHER\n");
+		fprintf(tfileVerb, "OTHER\n");
+	}
+	fclose(tfile);
+	fclose(tfileVerb);
+}
+
 /* OOOE: getUop()
  * Description: Function to get a specific UOP and BblContext object to run in playback()
  * Input: A DynUop and BblContext reference (Do not want a copy of them)
@@ -394,6 +423,7 @@ bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curContext)[SmtWindow::NUM_VCORES
 				/* OOOE: Get UOP and BblContext from current Q */
 				*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
 				*bblContext = &cntxt;
+				printUop(cntxt.bbl->oooBbl[0].uop[curUop[curQ]], cntxt, curQ, curContext[curQ], curUop[curQ], smtWindow->numContexts[curQ]);
 				curUop[curQ] += 1;
 				return true;
 			} 
