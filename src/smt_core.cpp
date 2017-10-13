@@ -201,45 +201,47 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
         return;
     }
 
-	int vcore = smtWindow->vcore;
-	int contextNum = smtWindow->numContexts[vcore];
-	if(contextNum == SmtWindow::QUEUE_SIZE) {
+	uint8_t vcore = smtWindow->vcore;
+	if(smtWindow->bblQueue[vcore].full()){
 		this->playback();
-		contextNum = smtWindow->numContexts[vcore];
 	}
-	
-	/* Store the bbl within a new context that fits in the queue */
-	futex_lock(&windowLock);
-	
-	// construct and initialize new context from previous.
-	curContext = new(&(smtWindow->queue[vcore][contextNum])) BblContext();		
-	curContext->pid = getpid();
-	curContext->bbl = prevContext->bbl;
-	curContext->bblAddress = prevContext->bblAddress;
-	curContext->loads = prevContext->loads;
-	curContext->stores = prevContext->stores;
 
-	// copy load and store addresses
-	memcpy(curContext->loadAddrs, prevContext->loadAddrs, sizeof(curContext->loadAddrs));
-	memcpy(curContext->storeAddrs, prevContext->storeAddrs, sizeof(curContext->storeAddrs));
+	if(smtWindow->bblQueue[vcore].push(&curContext)){
+		/* Store the bbl within a new context that fits in the queue */
+		futex_lock(&windowLock);
+		
+		// construct and initialize new context from previous.
+		curContext = new BblContext();		
+		curContext->pid = getpid();
+		curContext->bbl = prevContext->bbl;
+		curContext->bblAddress = prevContext->bblAddress;
+		curContext->loads = prevContext->loads;
+		curContext->stores = prevContext->stores;
 
-	curContext->branchPc = prevContext->branchPc;
-	curContext->branchTaken = prevContext->branchTaken;
-	curContext->branchTakenNpc = prevContext->branchTakenNpc;
-	curContext->branchNotTakenNpc = prevContext->branchNotTakenNpc;
-	
-	// set previous context
-	prevContext->pid = tid;
-	prevContext->bbl = bblInfo;
-	prevContext->bblAddress = bblAddr;
-	prevContext->loads = prevContext->stores = 0;
+		// copy load and store addresses
+		memcpy(curContext->loadAddrs, prevContext->loadAddrs, sizeof(curContext->loadAddrs));
+		memcpy(curContext->storeAddrs, prevContext->storeAddrs, sizeof(curContext->storeAddrs));
 
-	// update numContexts count.
-	smtWindow->numContexts[vcore]++;	
-	futex_unlock(&windowLock);
+		curContext->branchPc = prevContext->branchPc;
+		curContext->branchTaken = prevContext->branchTaken;
+		curContext->branchTakenNpc = prevContext->branchTakenNpc;
+		curContext->branchNotTakenNpc = prevContext->branchNotTakenNpc;
+		
+		// set previous context
+		prevContext->pid = tid;
+		prevContext->bbl = bblInfo;
+		prevContext->bblAddress = bblAddr;
+		prevContext->loads = prevContext->stores = 0;
+
+		// update numContexts count.
+		futex_unlock(&windowLock);
+	}
+	else{
+		/* OOOE: Should not happen if playback worked correctly */
+	}
 
 	// filled last context, time to sleep.
-	if(smtWindow->numContexts[smtWindow->vcore] == SmtWindow::QUEUE_SIZE) {
+	if(smtWindow->bblQueue[smtWindow->vcore].full()) {
 		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
 		// zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
 		// zinfo->sched->leave(procIdx, tid, getCid(tid));
@@ -299,14 +301,12 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 void SMTCore::playback() {
 	futex_lock(&windowLock);
     info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
-	info("OOOE: core(%p) window upon entry: (%d, %d)", 
-		this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
+	info("OOOE: core(%p) window upon entry: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 
 	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
     DynUop* uop;
 	BblContext* bblContext;
     uint8_t curQ = 0;
-    uint32_t curContext[2] = {0,0};
     uint32_t curUop[2] = {0,0};
     bool curBblSwap = false; // OOOE: In the current Q, needed to move to the next Bbl
 	uint8_t curBblSwapQ = 0;
@@ -322,7 +322,7 @@ void SMTCore::playback() {
 	// we'll have to exit once ONE rather than BOTH window queues are empty. 
 	// then it gets tricky once one of the processes has terminated. 
 	// maybe a semaphore can fix this.
-    while (getUop(curQ, curContext, curUop, &uop, &bblContext, curBblSwap, curBblSwapQ)){
+    while (getUop(curQ, curUop, &uop, &bblContext, curBblSwap, curBblSwapQ)){
 		/* OOOE: Check if you need to run func's for a Bbl finishing */
 		if(curBblSwap){
 			curBblSwap = false;
@@ -365,8 +365,8 @@ void SMTCore::playback() {
 	}
 	
 
-	info("OOOE: core(%p) window upon exit: (%d, %d)", 
-		this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
+	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
+	info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
 	futex_unlock(&windowLock);
 }
@@ -376,7 +376,7 @@ void SMTCore::playback() {
  * Input: UOP, BBL and all other pointers/indices 
  * Output: None 
  */
-static inline void printUop(DynUop uop, BblContext cntxt, uint8_t curQ, uint32_t curContext, uint32_t curUop, uint16_t numContextTot) {
+static inline void printUop(DynUop uop, BblContext& cntxt, uint8_t curQ, uint32_t curUop, uint16_t numContextTot) {
 	std::ostringstream oss1, oss2;
 	oss1 << "tests/traces/" << "itrace" << ".csv";
 	FILE *tfile = fopen(oss1.str().c_str(), "a+");
@@ -405,25 +405,24 @@ static inline void printUop(DynUop uop, BblContext cntxt, uint8_t curQ, uint32_t
  * Input: A DynUop and BblContext reference (Do not want a copy of them)
  * Output: Bool telling whether a UOP was retrieved (Only would happen in the case both Q's are empty)
  */
-bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curContext)[SmtWindow::NUM_VCORES], uint32_t (&curUop)[SmtWindow::NUM_VCORES], 
+bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curUop)[SmtWindow::NUM_VCORES], 
 		DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ) {
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
-	if(smtWindow->numContexts[1 - curQ] != 0) {
+	if(smtWindow->bblQueue[1 - curQ].count() != 0) {
 		curQ ^= 1; 
 	}
 	/* OOOE: End: Arbitration section */
 	
 	while ( true ){
 		/* OOOE: Determine if there is a valid context to read in the Q */
-		if ( curContext[curQ] < smtWindow->numContexts[curQ] ){
-			BblContext& cntxt = smtWindow->queue[curQ][curContext[curQ]];
-			
+		BblContext* cntxt;
+		if (smtWindow->bblQueue[curQ].back(&cntxt)){
 			/* OOOE: Determine if a UOP is present */
-			if ( cntxt.bbl && curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
+			if ( cntxt->bbl && curUop[curQ] < cntxt->bbl->oooBbl[0].uops ){
 				/* OOOE: Get UOP and BblContext from current Q */
-				*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
-				*bblContext = &cntxt;
-				printUop(cntxt.bbl->oooBbl[0].uop[curUop[curQ]], cntxt, curQ, curContext[curQ], curUop[curQ], smtWindow->numContexts[curQ]);
+				*uop = &(cntxt->bbl->oooBbl[0].uop[curUop[curQ]]);
+				*bblContext = cntxt;
+				printUop(cntxt->bbl->oooBbl[0].uop[curUop[curQ]], *cntxt, curQ, curUop[curQ], smtWindow->bblQueue[curQ].count());
 				curUop[curQ] += 1;
 				return true;
 			} 
@@ -431,17 +430,17 @@ bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curContext)[SmtWindow::NUM_VCORES
 				/* OOOE: UOP not found. In the current Q move to the next BblContext */
 				curBblSwap = true;
 				curBblSwapQ = curQ;
-				*bblContext = &cntxt;
+				*bblContext = cntxt;
 				curUop[curQ] = 0;
-				curContext[curQ] += 1;
+				if(!smtWindow->bblQueue[curQ].pop()){
+					/* OOOE: Should not happen */
+				}
 			}
 		}
 		else {
 			/* OOOE: No BBL are left */
-			smtWindow->numContexts[curQ] = 0;
 			curUop[curQ] = 0;
-			curContext[curQ] = 0;
-			if ( smtWindow->numContexts[1-curQ] > 0 ){
+			if ( smtWindow->bblQueue[1-curQ].count() > 0 ){
 				curQ ^= 1;
 			}
 			else {

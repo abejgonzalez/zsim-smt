@@ -71,6 +71,64 @@ class BblContext {
 		}
 }; 
 
+template<uint32_t SZ>
+class BblQueue {
+	private:
+		BblContext buf[SZ];
+		uint32_t index;
+	public:
+        BblQueue() {
+            for (uint32_t i = 0; i < SZ; i++) buf[i] = 0;
+            index = 0;
+        }
+
+		inline uint32_t count(){
+			return index;
+		}
+
+        inline bool back( BblContext** cntxt ){
+			if ( index == 0 ){
+				return false;
+			}
+			else {
+				*cntxt = &buf[index-1];
+				return true;
+			}
+        }
+
+        inline bool push( BblContext** cntxt ){
+			if ( index == SZ ){
+				*cntxt = nullptr;
+				return false;
+			}
+			else {
+				*cntxt = &buf[index++];
+				return true;
+			}
+        }
+
+		inline bool pop(){
+			if ( index == 0 ){
+				return false;
+			}
+			else {
+				index -= 1;
+				return true;
+			}
+		}
+
+		inline bool full(){
+			if ( index == SZ )
+				return true;
+			else
+				return false;
+		}
+		
+		inline void clear(){
+			index = 0;
+		}
+};
+
 /** OOOE:
  * Container that holds 2 BblContext queues to store the core state.
  */
@@ -82,9 +140,11 @@ class SmtWindow {
 		uint8_t vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
 		uint16_t numContexts[NUM_VCORES];
 		BblContext queue[NUM_VCORES][QUEUE_SIZE];
+		BblQueue<QUEUE_SIZE> bblQueue[NUM_VCORES];
+
 
 		SmtWindow() { for(uint8_t i = 0; i < NUM_VCORES; ++i) numContexts[i] = 0; }
-	};
+};
 
 class SMTCore : public Core {
     private:
@@ -202,7 +262,7 @@ class SMTCore : public Core {
 		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
 		// leave these functions uninlined for debugging purposes.
 		void playback();
-		bool getUop(uint8_t &curQ, uint32_t (&curContext)[SmtWindow::NUM_VCORES], uint32_t (&curUop)[SmtWindow::NUM_VCORES], 
+		bool getUop(uint8_t &curQ, uint32_t (&curUop)[SmtWindow::NUM_VCORES], 
 				DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ);
         
 		void runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext * bblContext);
