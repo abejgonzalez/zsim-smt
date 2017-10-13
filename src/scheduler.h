@@ -310,18 +310,19 @@ class Scheduler : public GlobAlloc, public Callee {
                 zinfo->cores[th->cid]->join();
                 bar.join(th->cid, &schedLock); //releases lock
             } else {
-                assert(th->state == BLOCKED || th->state == STARTED);
+                // assert(th->state == BLOCKED || th->state == STARTED);
 
                 ContextInfo* ctx = schedThread(th);
                 if (ctx) {
                     schedule(th, ctx);
-                    zinfo->cores[th->cid]->join();
-                    bar.join(th->cid, &schedLock); //releases lock
-                } else {
+                    zinfo->cores[th->cid]->join(); bar.join(th->cid, &schedLock); //releases lock
+                } else if (th->state != BLOCKED) {
                     th->state = QUEUED;
                     runQueue.push_back(th);
                     waitForContext(th); //releases lock, might join
-                }
+                } else {
+                    waitForContext(th); //releases lock, might join
+				}
             }
 
             return th->cid;
@@ -423,43 +424,30 @@ class Scheduler : public GlobAlloc, public Callee {
 		 * yield the current timeslice
 		 */
 		void yield(uint32_t cid) {
-            futex_lock(&schedLock);
+			futex_lock(&schedLock);
 			trace(Sched, "Sched: core %d was yielded by %d.", cid, procIdx);
-            ThreadInfo* th = contexts[cid].curThread;
+			ThreadInfo* th = contexts[cid].curThread;
 			ContextInfo* ctx = &contexts[cid];
-				
-            zinfo->cores[cid]->leave();
-			deschedule(th, ctx, QUEUED);
+
+			// prepare to sleep / rest
+			zinfo->cores[cid]->leave();
+			deschedule(th, ctx, BLOCKED);
 			runQueue.push_back(th);
-			
+
 			ThreadInfo* inTh = schedContext(ctx);
-			inTh = inTh ? inTh : th;
-			schedule(inTh, ctx);
-			zinfo->cores[th->cid]->join();
-            
-			waitForContext(th); //releases lock, might join
-            futex_unlock(&schedLock);
-
-            // futex_unlock(&schedLock);
-
-            // futex_lock(&schedLock);
-            // ThreadInfo* th = contexts[cid].curThread;
-			// th->markedForSleep = false;
-            // ContextInfo* ctx = &contexts[cid];
-            // deschedule(th, ctx, QUEUED);
-			// runQueue.push_back(th);
-			// 
-			// ThreadInfo* inTh = schedContext(ctx);
-            // if (inTh) {
-            //     schedule(inTh, ctx);
-            //     zinfo->cores[ctx->cid]->join(); //inTh does not do a sched->join, so we need to notify the core since we just called leave() on it
-            //     wakeup(inTh, false /*no join, we did not leave*/);
-            // } else {
-            //     freeList.push_back(ctx);
-            // }
-	
-			// // waitForContext(th); //releases lock, might join
-            // // assert(th->state == RUNNING);
+			if (inTh) {
+				schedule(inTh, ctx);
+				zinfo->cores[ctx->cid]->join(); // inTh does not do a sched->join, 
+				// so we need to notify the core since we just called leave() on it
+				// wakeup(inTh, false);
+				if (th != inTh) {
+					inTh->needsJoin = false;
+					inTh->futexWord = 0;
+					syscall(SYS_futex, &inTh->futexWord, FUTEX_WAKE, 1, nullptr, nullptr, 0);
+					waitForContext(th); //releases lock, might join
+				}
+			}
+			futex_unlock(&schedLock);
         }
 
         // This is called with schedLock held, and must not release it!

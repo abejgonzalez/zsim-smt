@@ -277,9 +277,9 @@ void Scheduler::startWatchdogThread() {
 void Scheduler::syscallLeave(uint32_t pid, uint32_t tid, uint32_t cid, uint64_t pc, int syscallNumber, uint64_t arg0,
 			     uint64_t arg1) {
 	futex_lock(&schedLock);
-	uint32_t gid = getGid(pid, tid);
 	ThreadInfo *th = contexts[cid].curThread;
-	assert(th->gid == gid);
+	// uint32_t gid = getGid(pid, tid);
+	// assert(th->gid == gid);
 	assert_msg(th->cid == cid, "%d != %d", th->cid, cid);
 	assert(th->state == RUNNING);
 	assert_msg(pid < blockingSyscalls.size(), "%d >= %ld?", pid, blockingSyscalls.size());

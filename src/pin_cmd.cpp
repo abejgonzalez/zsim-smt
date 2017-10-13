@@ -33,7 +33,7 @@
 //Funky macro expansion stuff
 #define QUOTED_(x) #x
 #define QUOTED(x) QUOTED_(x)
-#define GDB_TIMEOUT "10"
+#define GDB_TIMEOUT "15"
 
 PinCmd::PinCmd(Config * conf, const char *configFile, const char *outputDir, uint64_t shmid, bool debug) {
 	//Figure the program paths

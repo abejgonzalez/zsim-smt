@@ -241,13 +241,13 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	// filled last context, time to sleep.
 	if(smtWindow->numContexts[smtWindow->vcore] == SmtWindow::QUEUE_SIZE) {
 		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
-		zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
-		zinfo->sched->leave(procIdx, tid, getCid(tid));
-		zinfo->sched->join(procIdx, tid);
-		sched_yield();
+		// zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
+		// zinfo->sched->leave(procIdx, tid, getCid(tid));
+		// zinfo->sched->join(procIdx, tid);
+		// sched_yield();
 
 		// custom yield implementation.
-		// zinfo->sched->yield(getCid(tid));
+		zinfo->sched->yield(getCid(tid));
 	}
 }
 
@@ -316,7 +316,7 @@ void SMTCore::playback() {
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 	BblContext* prevContext [2] = {nullptr, nullptr};
 
-	//printf("OOOE: {%d,%d}\n", smtWindow->numContexts[0], smtWindow->numContexts[1]);
+	// //printf("OOOE: {%d,%d}\n", smtWindow->numContexts[0], smtWindow->numContexts[1]);
 
 	// OOOE: TODO: what should happen when we switch away from fair arbitration? 
 	// we'll have to exit once ONE rather than BOTH window queues are empty. 
@@ -363,6 +363,7 @@ void SMTCore::playback() {
 		/* OOOE: Clear the load/store indexes since Bbl finished */
 		loadId[curBblSwapQ] = storeId[curBblSwapQ] = 0;
 	}
+	
 
 	info("OOOE: core(%p) window upon exit: (%d, %d)", 
 		this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
@@ -387,9 +388,9 @@ bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curContext)[SmtWindow::NUM_VCORES
 		/* OOOE: Determine if there is a valid context to read in the Q */
 		if ( curContext[curQ] < smtWindow->numContexts[curQ] ){
 			BblContext& cntxt = smtWindow->queue[curQ][curContext[curQ]];
-
+			
 			/* OOOE: Determine if a UOP is present */
-			if ( curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
+			if ( cntxt.bbl && curUop[curQ] < cntxt.bbl->oooBbl[0].uops ){
 				/* OOOE: Get UOP and BblContext from current Q */
 				*uop = &(cntxt.bbl->oooBbl[0].uop[curUop[curQ]]);
 				*bblContext = &cntxt;
@@ -453,8 +454,8 @@ void SMTCore::runBblStatUpdate(BblContext* bblContext){
 void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){
 	// Check full match between expected and actual mem ops
 	// If these assertions fail, most likely, something's off in the decoder
-	assert_msg(loadIdx == bblContext->loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, bblContext->loads);
-	assert_msg(storeIdx == bblContext->stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, bblContext->stores);
+	// assert_msg(loadIdx == bblContext->loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, bblContext->loads);
+	// assert_msg(storeIdx == bblContext->stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, bblContext->stores);
 	bblContext->loads = bblContext->stores = 0;
 
 	// Model fetch-decode delay (fixed, weak predec/IQ assumption)
