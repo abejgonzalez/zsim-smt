@@ -7,6 +7,8 @@ SCONSFLAGS = -j4 --d
 TESTDIR = ./tests/config
 LOGDIR = ./log
 TRACEDIR = ./tests/traces
+PLOTDIR = ./tests/plots
+PLOTSCRIPT = visual.py
 TEST = $(TESTDIR)/smt.cfg
 ZSIM = $(BUILDDIR)/debug/zsim
 
@@ -34,11 +36,17 @@ test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 test-clean:
 	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
 
+plot: $(PLOTDIR) $(TRACEDIR)
+	bash -c "cd tests && python $(PLOTSCRIPT)"
+
 $(PIN):
 	cp $(PINBIN) $(PIN)
 
 $(TRACEDIR):
 	mkdir -p $(TRACEDIR)
+
+$(PLOTDIR):
+	mkdir -p $(PLOTDIR)
 
 $(LOGDIR):
 	mkdir -p $(LOGDIR)
