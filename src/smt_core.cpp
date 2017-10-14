@@ -4,8 +4,7 @@
  *
  * This file is part of zsim.
  *
- * zsim is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License as published by the Free Software
+ * zsim is free software; you can redistribute it and/or modify it under the * terms of the GNU General Public License as published by the Free Software
  * Foundation, version 2.
  *
  * If you use this software in your research, we request that you reference
@@ -70,9 +69,11 @@ void SMTCore::initStats(AggregateStat* parentStat) {
 uint64_t SMTCore::getInstrs() const {
 	return instrs;
 }
+
 uint64_t SMTCore::getPhaseCycles() const {
 	return curCycle % zinfo->phaseLength;
 }
+
 uint64_t SMTCore::getCycles() const {
 	// old way. TODO: revise for SMT.
 	return cRec.getUnhaltedCycles(curCycle);
@@ -143,6 +144,7 @@ EventRecorder* SMTCore::getEventRecorder() {
 	// OOOE: should we create a new event recorder?
 	return cRec.getEventRecorder();
 }
+
 void SMTCore::cSimStart(){
     //info("OOOE: cSimStart()");
 }
@@ -211,7 +213,6 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		futex_lock(&windowLock);
 		
 		// construct and initialize new context from previous.
-		curContext = new BblContext();		
 		curContext->pid = getpid();
 		curContext->bbl = prevContext->bbl;
 		curContext->bblAddress = prevContext->bblAddress;
@@ -241,7 +242,7 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	}
 
 	// filled last context, time to sleep.
-	if(smtWindow->bblQueue[smtWindow->vcore].full()) {
+	if(smtWindow->bblQueue[vcore].full()) {
 		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
 		// zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
 		// zinfo->sched->leave(procIdx, tid, getCid(tid));
@@ -256,19 +257,23 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 void SMTCore::LoadFunc(THREADID tid, ADDRINT addr) {
 	static_cast<SMTCore*>(cores[tid])->load(addr);
 }
+
 void SMTCore::StoreFunc(THREADID tid, ADDRINT addr) {
 	static_cast<SMTCore*>(cores[tid])->store(addr);
 }
+
 void SMTCore::PredLoadFunc(THREADID tid, ADDRINT addr, BOOL pred) {
     SMTCore* core = static_cast<SMTCore*>(cores[tid]);
     if (pred) core->load(addr);
     else core->predFalseMemOp();
 }
+
 void SMTCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
     SMTCore* core = static_cast<SMTCore*>(cores[tid]);
     if (pred) core->store(addr);
     else core->predFalseMemOp();
 }
+
 void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
 	//info ("OOOE: BblFunc");
     static_cast<SMTCore*>(cores[tid])->bbl(tid, bblAddr, bblInfo);
@@ -307,7 +312,6 @@ void SMTCore::playback() {
     DynUop* uop;
 	BblContext* bblContext;
     uint8_t curQ = 0;
-    uint32_t curUop[2] = {0,0};
     bool curBblSwap = false; // OOOE: In the current Q, needed to move to the next Bbl
 	uint8_t curBblSwapQ = 0;
     uint32_t loadId[2] = {0,0};
@@ -316,23 +320,21 @@ void SMTCore::playback() {
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 	BblContext* prevContext [2] = {nullptr, nullptr};
 
-	// //printf("OOOE: {%d,%d}\n", smtWindow->numContexts[0], smtWindow->numContexts[1]);
+	//printf("OOOE: {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 
 	// OOOE: TODO: what should happen when we switch away from fair arbitration? 
 	// we'll have to exit once ONE rather than BOTH window queues are empty. 
 	// then it gets tricky once one of the processes has terminated. 
 	// maybe a semaphore can fix this.
-    while (getUop(curQ, curUop, &uop, &bblContext, curBblSwap, curBblSwapQ)){
+    while (getUop(curQ, &uop, &bblContext, curBblSwap, curBblSwapQ)){
 		/* OOOE: Check if you need to run func's for a Bbl finishing */
 		if(curBblSwap){
 			curBblSwap = false;
 			
 			/* OOOE: Update the stats for the finished Bbl */
 			runBblStatUpdate(prevContext[curBblSwapQ]);
-
 			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
 			runFrontend(loadId[curBblSwapQ], storeId[curBblSwapQ], lastCommitCycle, prevContext[curBblSwapQ]);
-
 			/* OOOE: Clear the load/store indexes since Bbl finished */
 			loadId[curBblSwapQ] = storeId[curBblSwapQ] = 0;
 		}
@@ -356,15 +358,12 @@ void SMTCore::playback() {
 		
 		/* OOOE: Update the stats for the finished Bbl */
 		runBblStatUpdate(prevContext[curBblSwapQ]);
-
 		/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
 		runFrontend(loadId[curBblSwapQ], storeId[curBblSwapQ], lastCommitCycle, prevContext[curBblSwapQ]);
-
 		/* OOOE: Clear the load/store indexes since Bbl finished */
 		loadId[curBblSwapQ] = storeId[curBblSwapQ] = 0;
 	}
 	
-
 	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
 	info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
@@ -376,14 +375,14 @@ void SMTCore::playback() {
  * Input: UOP, BBL and all other pointers/indices 
  * Output: None 
  */
-static inline void printUop(DynUop uop, BblContext& cntxt, uint8_t curQ, uint32_t curUop, uint16_t numContextTot) {
+static inline void printUop(DynUop uop, BblContext& cntxt, uint8_t curQ, uint16_t numContextTot, uint32_t curUop) {
 	std::ostringstream oss1, oss2;
 	oss1 << "tests/traces/" << "itrace" << ".csv";
 	FILE *tfile = fopen(oss1.str().c_str(), "a+");
 	oss2 << "tests/traces/" << "itrace_verbose" << ".txt";
 	FILE *tfileVerb = fopen(oss2.str().c_str(), "a+");
-	fprintf(tfile, "%d, %d, %d, %d, %d, %d, ", cntxt.pid, curQ, curContext, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
-	fprintf(tfileVerb, "PID:%d Q:%d BBL:%d/%d UOP:%d/%d UOPTYPE:", cntxt.pid, curQ, curContext, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
+	fprintf(tfile, "%d, %d, %d, %d, %d, ", cntxt.pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
+	fprintf(tfileVerb, "PID:%d Q:%d BBL:%d UOP:%d/%d UOPTYPE:", cntxt.pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
 	if ( cntxt.bbl->oooBbl[0].uop[curUop].type == UOP_LOAD ){
 		fprintf(tfile, "LOAD\n");
 		fprintf(tfileVerb, "LOAD\n");
@@ -405,8 +404,7 @@ static inline void printUop(DynUop uop, BblContext& cntxt, uint8_t curQ, uint32_
  * Input: A DynUop and BblContext reference (Do not want a copy of them)
  * Output: Bool telling whether a UOP was retrieved (Only would happen in the case both Q's are empty)
  */
-bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curUop)[SmtWindow::NUM_VCORES], 
-		DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ) {
+bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ) {
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
 	if(smtWindow->bblQueue[1 - curQ].count() != 0) {
 		curQ ^= 1; 
@@ -418,12 +416,12 @@ bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curUop)[SmtWindow::NUM_VCORES],
 		BblContext* cntxt;
 		if (smtWindow->bblQueue[curQ].back(&cntxt)){
 			/* OOOE: Determine if a UOP is present */
-			if ( cntxt->bbl && curUop[curQ] < cntxt->bbl->oooBbl[0].uops ){
+			if ( cntxt->bbl && smtWindow->uopIdx[curQ] < cntxt->bbl->oooBbl[0].uops ){
 				/* OOOE: Get UOP and BblContext from current Q */
-				*uop = &(cntxt->bbl->oooBbl[0].uop[curUop[curQ]]);
+				*uop = &(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]]);
 				*bblContext = cntxt;
-				printUop(cntxt->bbl->oooBbl[0].uop[curUop[curQ]], *cntxt, curQ, curUop[curQ], smtWindow->bblQueue[curQ].count());
-				curUop[curQ] += 1;
+				printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
+				smtWindow->uopIdx[curQ] += 1;
 				return true;
 			} 
 			else {
@@ -431,7 +429,7 @@ bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curUop)[SmtWindow::NUM_VCORES],
 				curBblSwap = true;
 				curBblSwapQ = curQ;
 				*bblContext = cntxt;
-				curUop[curQ] = 0;
+				smtWindow->uopIdx[curQ] = 0;
 				if(!smtWindow->bblQueue[curQ].pop()){
 					/* OOOE: Should not happen */
 				}
@@ -439,7 +437,7 @@ bool SMTCore::getUop(uint8_t &curQ, uint32_t (&curUop)[SmtWindow::NUM_VCORES],
 		}
 		else {
 			/* OOOE: No BBL are left */
-			curUop[curQ] = 0;
+			smtWindow->uopIdx[curQ] = 0;
 			if ( smtWindow->bblQueue[1-curQ].count() > 0 ){
 				curQ ^= 1;
 			}
