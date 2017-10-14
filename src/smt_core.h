@@ -75,57 +75,70 @@ template<uint32_t SZ>
 class BblQueue {
 	private:
 		BblContext buf[SZ];
-		uint32_t index;
+		uint32_t front;
+		uint32_t rear;
+		uint32_t num;
 	public:
         BblQueue() {
-            index = 0;
+			front = 0;
+			rear = -1;
+			num = 0;
         }
 
 		inline uint32_t count(){
-			return index;
+			return num;
 		}
 
         inline bool back( BblContext** cntxt ){
-			if ( index == 0 ){
+			if ( this->empty() ){
 				*cntxt = nullptr;
 				return false;
 			}
-			else {
-				*cntxt = &buf[index-1];
-				return true;
-			}
+
+			*cntxt = &buf[ front ];
+			return true;
         }
 
         inline bool push( BblContext** cntxt ){
-			if ( index == SZ ){
+			if ( this->full() ){
 				*cntxt = nullptr;
 				return false;
 			}
-			else {
-				*cntxt = &buf[index++];
-				return true;
-			}
+
+			rear = ( rear + 1 ) % SZ;
+			*cntxt = &buf[ rear ];
+			num += 1;
+			return true;
         }
 
 		inline bool pop(){
-			if ( index == 0 ){
+			if ( this->empty() ){
 				return false;
 			}
-			else {
-				index -= 1;
-				return true;
-			}
+
+			front = ( front + 1 ) % SZ;
+			num -= 1;
+			return true;
 		}
 
 		inline bool full(){
-			if ( index == SZ )
+			if ( num == SZ )
+				return true;
+			else
+				return false;
+		}
+		
+		inline bool empty(){
+			if ( num == 0 )
 				return true;
 			else
 				return false;
 		}
 		
 		inline void clear(){
-			index = 0;
+			front = 0;
+			rear = -1;
+			num = 0;
 		}
 };
 
@@ -138,6 +151,8 @@ class SmtWindow {
 			for( uint8_t i = 0; i < NUM_VCORES; ++i ){
 				bblQueue[i].clear();
 				uopIdx[i] = 0;
+				prevContext[i] = nullptr;
+				loadId[i] = storeId[i] = 0;
 			}
 		}
 
@@ -146,6 +161,9 @@ class SmtWindow {
 		uint8_t vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
 		BblQueue<QUEUE_SIZE> bblQueue[NUM_VCORES];
 		uint32_t uopIdx[NUM_VCORES];
+		BblContext* prevContext [NUM_VCORES];
+		uint32_t loadId[NUM_VCORES];
+		uint32_t storeId[NUM_VCORES];
 };
 
 class SMTCore : public Core {

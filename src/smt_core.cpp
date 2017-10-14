@@ -207,6 +207,13 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	if(smtWindow->bblQueue[vcore].full()){
 		this->playback();
 	}
+	
+	/* OOOE: Check to see that the right queue is filling up with the right PID's */
+	if(!smtWindow->bblQueue[vcore].empty()){
+		BblContext* temp;
+		smtWindow->bblQueue[vcore].back(&temp);
+		assert(temp->pid == getpid());
+	}
 
 	if(smtWindow->bblQueue[vcore].push(&curContext)){
 		/* Store the bbl within a new context that fits in the queue */
@@ -314,13 +321,10 @@ void SMTCore::playback() {
     uint8_t curQ = 0;
     bool curBblSwap = false; // OOOE: In the current Q, needed to move to the next Bbl
 	uint8_t curBblSwapQ = 0;
-    uint32_t loadId[2] = {0,0};
-    uint32_t storeId[2] = {0,0};
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
-	BblContext* prevContext [2] = {nullptr, nullptr};
 
-	//printf("OOOE: {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
+	//printf("OOOE: Enter playback {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 
 	// OOOE: TODO: what should happen when we switch away from fair arbitration? 
 	// we'll have to exit once ONE rather than BOTH window queues are empty. 
@@ -330,13 +334,17 @@ void SMTCore::playback() {
 		/* OOOE: Check if you need to run func's for a Bbl finishing */
 		if(curBblSwap){
 			curBblSwap = false;
+
+			//printf("OOOE: In while:\n");
+			//printf("OOOE: BblPtr:%p prevContxt:{%p,%p}\n", bblContext, smtWindow->prevContext[0], smtWindow->prevContext[1]);
+			//printf("OOOE: {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 			
 			/* OOOE: Update the stats for the finished Bbl */
-			runBblStatUpdate(prevContext[curBblSwapQ]);
+			runBblStatUpdate(smtWindow->prevContext[curBblSwapQ]);
 			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
-			runFrontend(loadId[curBblSwapQ], storeId[curBblSwapQ], lastCommitCycle, prevContext[curBblSwapQ]);
+			runFrontend(smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
 			/* OOOE: Clear the load/store indexes since Bbl finished */
-			loadId[curBblSwapQ] = storeId[curBblSwapQ] = 0;
+			smtWindow->loadId[curBblSwapQ] = smtWindow->storeId[curBblSwapQ] = 0;
 		}
 
 		/* OOOE: Always guaranteed to have a UOP with Bbl */
@@ -344,10 +352,10 @@ void SMTCore::playback() {
 		assert (bblContext != 0);
 
         /* OOOE: Run the uop here similar to bbl() */
-        runUop(loadId[curQ], storeId[curQ], prevDecCycle, lastCommitCycle, uop, bblContext);
+        runUop(smtWindow->loadId[curQ], smtWindow->storeId[curQ], prevDecCycle, lastCommitCycle, uop, bblContext);
 
 		/* OOOE: Keep the previous pointer to the last Bbl (on a per Q basis) */
-		prevContext[curQ] = bblContext;
+		smtWindow->prevContext[curQ] = bblContext;
 	}
 	
     /* OOOE: Check if you need to run func's for a Bbl finishing */
@@ -355,15 +363,21 @@ void SMTCore::playback() {
        frontend run for it */
 	if(curBblSwap){
 		curBblSwap = false;
+
+		//printf("OOOE: While exit:\n");
+		//printf("OOOE: BblPtr:%p prevContxt:{%p,%p}\n", bblContext, smtWindow->prevContext[0], smtWindow->prevContext[1]);
+		//printf("OOOE: {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 		
 		/* OOOE: Update the stats for the finished Bbl */
-		runBblStatUpdate(prevContext[curBblSwapQ]);
+		runBblStatUpdate(smtWindow->prevContext[curBblSwapQ]);
 		/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
-		runFrontend(loadId[curBblSwapQ], storeId[curBblSwapQ], lastCommitCycle, prevContext[curBblSwapQ]);
+		runFrontend(smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
 		/* OOOE: Clear the load/store indexes since Bbl finished */
-		loadId[curBblSwapQ] = storeId[curBblSwapQ] = 0;
+		smtWindow->loadId[curBblSwapQ] = smtWindow->storeId[curBblSwapQ] = 0;
 	}
 	
+
+	//printf("OOOE: On playback exit: {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
 	info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
@@ -406,7 +420,7 @@ static inline void printUop(DynUop uop, BblContext& cntxt, uint8_t curQ, uint16_
  */
 bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ) {
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
-	if(smtWindow->bblQueue[1 - curQ].count() != 0) {
+	if(!smtWindow->bblQueue[1 - curQ].empty()) {
 		curQ ^= 1; 
 	}
 	/* OOOE: End: Arbitration section */
@@ -415,6 +429,8 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 		/* OOOE: Determine if there is a valid context to read in the Q */
 		BblContext* cntxt;
 		if (smtWindow->bblQueue[curQ].back(&cntxt)){
+			//printf("OOOE: CurQ:%d Cntxt:%p Cntxt->bbl:%p Uop#:%d UopLeft:%d\n", curQ, cntxt, cntxt->bbl, smtWindow->uopIdx[curQ], cntxt->bbl->oooBbl[0].uops );
+			//printf("OOOE: Cnt {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 			/* OOOE: Determine if a UOP is present */
 			if ( cntxt->bbl && smtWindow->uopIdx[curQ] < cntxt->bbl->oooBbl[0].uops ){
 				/* OOOE: Get UOP and BblContext from current Q */
@@ -422,6 +438,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				*bblContext = cntxt;
 				printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
 				smtWindow->uopIdx[curQ] += 1;
+				//printf("OOOE: Got UOP\n");
 				return true;
 			} 
 			else {
@@ -430,20 +447,16 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				curBblSwapQ = curQ;
 				*bblContext = cntxt;
 				smtWindow->uopIdx[curQ] = 0;
+				//printf("	OOOE: Move to next BBL\n");
 				if(!smtWindow->bblQueue[curQ].pop()){
 					/* OOOE: Should not happen */
 				}
 			}
 		}
 		else {
-			/* OOOE: No BBL are left */
+			/* OOOE: No Bbl are left in the current queue so exit */
 			smtWindow->uopIdx[curQ] = 0;
-			if ( smtWindow->bblQueue[1-curQ].count() > 0 ){
-				curQ ^= 1;
-			}
-			else {
-				return false;
-			}
+			return false;
 		}
 	}
 }
