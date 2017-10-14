@@ -335,10 +335,6 @@ void SMTCore::playback() {
 		if(curBblSwap){
 			curBblSwap = false;
 
-			//printf("OOOE: In while:\n");
-			//printf("OOOE: BblPtr:%p prevContxt:{%p,%p}\n", bblContext, smtWindow->prevContext[0], smtWindow->prevContext[1]);
-			//printf("OOOE: {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
-			
 			/* OOOE: Update the stats for the finished Bbl */
 			runBblStatUpdate(smtWindow->prevContext[curBblSwapQ]);
 			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
@@ -364,10 +360,6 @@ void SMTCore::playback() {
 	if(curBblSwap){
 		curBblSwap = false;
 
-		//printf("OOOE: While exit:\n");
-		//printf("OOOE: BblPtr:%p prevContxt:{%p,%p}\n", bblContext, smtWindow->prevContext[0], smtWindow->prevContext[1]);
-		//printf("OOOE: {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
-		
 		/* OOOE: Update the stats for the finished Bbl */
 		runBblStatUpdate(smtWindow->prevContext[curBblSwapQ]);
 		/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
@@ -377,7 +369,6 @@ void SMTCore::playback() {
 	}
 	
 
-	//printf("OOOE: On playback exit: {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
 	info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
@@ -429,8 +420,6 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 		/* OOOE: Determine if there is a valid context to read in the Q */
 		BblContext* cntxt;
 		if (smtWindow->bblQueue[curQ].back(&cntxt)){
-			//printf("OOOE: CurQ:%d Cntxt:%p Cntxt->bbl:%p Uop#:%d UopLeft:%d\n", curQ, cntxt, cntxt->bbl, smtWindow->uopIdx[curQ], cntxt->bbl->oooBbl[0].uops );
-			//printf("OOOE: Cnt {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 			/* OOOE: Determine if a UOP is present */
 			if ( cntxt->bbl && smtWindow->uopIdx[curQ] < cntxt->bbl->oooBbl[0].uops ){
 				/* OOOE: Get UOP and BblContext from current Q */
@@ -438,7 +427,6 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				*bblContext = cntxt;
 				printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
 				smtWindow->uopIdx[curQ] += 1;
-				//printf("OOOE: Got UOP\n");
 				return true;
 			} 
 			else {
@@ -447,7 +435,6 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				curBblSwapQ = curQ;
 				*bblContext = cntxt;
 				smtWindow->uopIdx[curQ] = 0;
-				//printf("	OOOE: Move to next BBL\n");
 				if(!smtWindow->bblQueue[curQ].pop()){
 					/* OOOE: Should not happen */
 				}
@@ -672,8 +659,6 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
                 // Wait for all previous store addresses to be resolved
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
-				//printf("+LoadId of UOP:%p\n", uop);
-				//printf("INSIDE UOPRUN: %p\n", bblContext);
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
@@ -713,8 +698,6 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
                 // Wait for all previous store addresses to be resolved (not just ours :))
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
-
-				//printf("+StoreId of UOP:%p\n", uop);
 				Address addr = bblContext->storeAddrs[storeIdx++];
                 uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
                 cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
