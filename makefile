@@ -36,6 +36,9 @@ test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 test-clean:
 	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
 
+trace-clean:
+	$(RM) -rf $(TRACEDIR)
+
 plot: $(PLOTDIR) $(TRACEDIR)
 	bash -c "cd tests && python $(PLOTSCRIPT)"
 
