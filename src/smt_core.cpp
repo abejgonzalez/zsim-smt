@@ -54,7 +54,7 @@ extern GlobSimInfo* zinfo;
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	: Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
 
-    info("OOOE: Creating a SMT Core");
+    //info("OOOE: Creating a SMT Core");
 	futex_init(&windowLock);
 	prevContext = new(gm_memalign<BblContext>(CACHE_LINE_BYTES, 1)) BblContext();
 	smtWindow = new(gm_memalign< SmtWindow >(CACHE_LINE_BYTES, 1)) SmtWindow();
@@ -63,7 +63,7 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
-    info("OOOE: initStates()");
+    //info("OOOE: initStates()");
 }
 
 uint64_t SMTCore::getInstrs() const {
@@ -80,7 +80,7 @@ uint64_t SMTCore::getCycles() const {
 }
 
 void SMTCore::contextSwitch(int32_t gid) {
-    info("OOOE: contextSwitch(%d)", getpid());
+    //info("OOOE: contextSwitch(%d)", getpid());
 	
 	/* OOOE: Run from scheduler. gid = -1 is passed from scheduler in the
 	   deschedule function. */
@@ -109,7 +109,7 @@ void SMTCore::contextSwitch(int32_t gid) {
  * Can we update the virtual core number here?
  */
 void SMTCore::join() {
-    info("OOOE: join()");
+    //info("OOOE: join()");
 	info("[%s] Joining, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
     uint64_t targetCycle = cRec.notifyJoin(curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
@@ -125,7 +125,7 @@ void SMTCore::join() {
  * Can we update the virtual core number here?
  */
 void SMTCore::leave() {
-    info("OOOE: leave()");
+    //info("OOOE: leave()");
     info("[%s] Leaving, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
     cRec.notifyLeave(curCycle);
 }
@@ -324,7 +324,7 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 void SMTCore::playback() {
 	futex_lock(&windowLock);
     info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
-	info("OOOE: core(%p) window upon entry: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
+	//info("OOOE: core(%p) window upon entry: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 
 	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
     DynUop* uop;
@@ -381,7 +381,7 @@ void SMTCore::playback() {
 	
 
 	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
-	info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
+	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
 	futex_unlock(&windowLock);
 }
@@ -579,6 +579,7 @@ void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastC
 #endif
 		decodeCycle = minFetchDecCycle;
 	}
+	info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
 }
 
 /* OOOE: runUop()
@@ -589,9 +590,11 @@ void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastC
 void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {
     DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
     assert( bbl != nullptr );
+	info("\nrunUop: New UOP");
 
     uint32_t decDiff = uop->decCycle - prevDecCycle;
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
+	info("curCycle:%lu prevDecCycle:%d decodeCycle:%lu", curCycle, prevDecCycle, decodeCycle);
     if (decodeCycle > curCycle) {
         uint32_t cdDiff = decodeCycle - curCycle;
 #ifdef SMT_STALL_STATS
@@ -613,6 +616,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
         insWindow.advancePos(curCycle);
     }
     curCycleIssuedUops++;
+	info("curCycleIssuedUops:%d", curCycleIssuedUops);
 
     // Kill dependences on invalid register
     // Using curCycle saves us two unpredictable branches in the RF read stalls code
@@ -629,6 +633,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
         curCycleIssuedUops = 0;  // or 1? that's probably a 2nd-order detail
         insWindow.advancePos(curCycle);
     }
+	info("curCycleRFReads:%d", curCycleRFReads);
 
     uint64_t c2 = rob.minAllocCycle();
     uint64_t c3 = curCycle;
@@ -637,6 +642,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 
     // Model RAT + ROB + RS delay between issue and dispatch
     uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
+	info("dispatchCycle:%lu", dispatchCycle);
 
     // NOTE: Schedule can adjust both cur and dispatch cycles
     insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
@@ -654,6 +660,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
     switch (uop->type) {
         case UOP_GENERAL:
             commitCycle = dispatchCycle + uop->lat;
+			info("GEN: commitCycle:%lu", commitCycle);
             break;
 
         case UOP_LOAD:
@@ -691,6 +698,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
                 }
 
                 commitCycle = reqSatisfiedCycle;
+				info("LOAD: commitCycle:%lu", commitCycle);
                 loadQueue.markRetire(commitCycle);
             }
             break;
@@ -718,12 +726,14 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 
                 commitCycle = reqSatisfiedCycle;
                 lastStoreCommitCycle = MAX(lastStoreCommitCycle, reqSatisfiedCycle);
+				info("STORE: commitCycle:%lu", commitCycle);
                 storeQueue.markRetire(commitCycle);
             }
             break;
 
         case UOP_STORE_ADDR:
             commitCycle = dispatchCycle + uop->lat;
+			info("STOREADDR: commitCycle:%lu", commitCycle);
             lastStoreAddrCommitCycle = MAX(lastStoreAddrCommitCycle, commitCycle);
             break;
 
@@ -735,6 +745,8 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
             // force future load serialization
             lastStoreAddrCommitCycle = MAX(commitCycle, MAX(lastStoreAddrCommitCycle, lastStoreCommitCycle + uop->lat));
             // info("%d %ld %ld X", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);
+
+			info("FENCE: commitCycle:%lu", commitCycle);
     }
 
     // Mark retire at ROB

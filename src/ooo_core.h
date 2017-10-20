@@ -154,6 +154,7 @@ class WindowStructure {
             curWin[curPos].set(0, 0);
             curPos++;
             curCycle++;
+			info("AdvPos: curCycle:%lu", curCycle);
 
             if (curPos == H) {  // rebase
                 // info("[%ld] Rebasing, curCycle=%ld", curCycle/H, curCycle);

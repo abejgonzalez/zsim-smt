@@ -210,7 +210,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
      * they call this an instruction window? Even though the "instr
      * window" here is fixed to only the uops inside of the BBL.
      */
-    info("OOOE: PID:%d BBLADDR:0x%lx", getpid(), bbl->addr);
+    //info("OOOE: PID:%d BBLADDR:0x%lx", getpid(), bbl->addr);
     // Run dispatch/IW
 	//printf("OOOE: AMTUOPS:%u\n", bbl->uops);
     for (uint32_t i = 0; i < bbl->uops; i++) {
@@ -229,7 +229,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
          */
         /* OOOE: AG: 
          * Set when the prevDecCycle is the decode cycle count from the prev UOP */
-        info("OOOE: UOP#:%d UOPDECCYCLE:%d COREDECCYCLE:%lu", i, uop->decCycle, decodeCycle);
+        //info("OOOE: UOP#:%d UOPDECCYCLE:%d COREDECCYCLE:%lu", i, uop->decCycle, decodeCycle);
         uint32_t decDiff = uop->decCycle - prevDecCycle;
         /* OOOE: AG: uopQueue has amount of uops and when they are marked for retiring */
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
