@@ -148,10 +148,16 @@ EventRecorder* SMTCore::getEventRecorder() {
 
 void SMTCore::cSimStart(){
     //info("OOOE: cSimStart()");
+    uint64_t targetCycle = cRec.cSimStart(curCycle);
+    assert(targetCycle >= curCycle);
+    if (targetCycle > curCycle) advance(targetCycle);
 }
 
 void SMTCore::cSimEnd() {
     //info("OOOE: cSimEnd()");
+    uint64_t targetCycle = cRec.cSimEnd(curCycle);
+    assert(targetCycle >= curCycle);
+    if (targetCycle > curCycle) advance(targetCycle);
 }
 
 // Predicated loads and stores call this function, gets recorded as a 0-cycle op.
@@ -182,6 +188,11 @@ inline void SMTCore::store(Address addr) {
  * to advance the cycle counters in the whole core in lockstep.
  */
 inline void SMTCore::advance(uint64_t targetCycle) {
+	// advance internal cycle counts.
+	decodeCycle += targetCycle - curCycle;
+	insWindow.longAdvance(curCycle, targetCycle);
+	curCycleRFReads = 0;
+	curCycleIssuedUops = 0;
 }
 
 /** fPtrs Core Analysis functions. */
