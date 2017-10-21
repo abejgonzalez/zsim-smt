@@ -4,9 +4,7 @@
  *
  * This file is part of zsim.
  *
- * zsim is free software; you can redistribute it and/or modify it under the * terms of the GNU General Public License as published by the Free Software
- * Foundation, version 2.
- *
+ * zsim is free software; you can redistribute it and/or modify it under the * terms of the GNU General Public License as published by the Free Software * Foundation, version 2.  *
  * If you use this software in your research, we request that you reference
  * the zsim paper ("ZSim: Fast and Accurate Microarchitectural Simulation of
  * Thousand-Core Systems", Sanchez and Kozyrakis, ISCA-40, June 2013) as the
@@ -86,20 +84,31 @@ void SMTCore::contextSwitch(int32_t gid) {
 	   deschedule function. */
 	if (gid == -1) { 
 		smtWindow->vcore = (smtWindow->vcore + 1) % SmtWindow::NUM_VCORES;
+		info("OOOE: CntxtSw VC:%d PID:%d A[0]:%d A[1]:%d", smtWindow->vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 		if (smtWindow->vcore == 0) {
+            info("OOOE: Playback CntxtSw: VC:%d PID:%d A[0]:%d A[1]:%d", smtWindow->vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 			this->playback();
 		}
 
-		// Old OOO_CORE code
-        // Do not execute previous BBL, as we were context-switche
+        /*
+        smtWindow->oneLeft = smtWindow->bblQueue
+        if ( !smtWindow->bblQueue[0].empty() && !smtWindow->bblQueue[1].empty() ){
+            this->playback();
+        }
+        else if ( !smtWindow->bblQueue[0].empty() || !smtWindow->bblQueue[1].empty() ){
+            if ( smtWindow->oneLeft ){
+                this->playback();
+            }
+        }
+        */
+
+        // Do not store previous BBL, as we were context-switched
         if (prevContext->bbl) prevContext->bbl = nullptr;
 
-        // Invalidate virtually-addressed filter caches
         /* OOOE: AG: We dont want to clear the cache since they are shared */
         // l1i->contextSwitch();
         // l1d->contextSwitch();
     }
-
 }
 
 /**
@@ -206,7 +215,6 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	if (!prevContext->bbl) {
         // This is the 1st BBL since scheduled, nothing to simulate
-		prevContext->pid = tid;
 		prevContext->bbl = bblInfo;
 		prevContext->bblAddress = bblAddr;
         // Kill lingering ops from previous BBL
@@ -214,24 +222,43 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
         return;
     }
 
+	/*
 	uint8_t vcore = smtWindow->vcore;
 	if(smtWindow->bblQueue[vcore].full()){
+	    info("OOOE: Playback Top BBL: VC:%d PID:%d A[0]:%d A[1]:%d", vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 		this->playback();
 	}
+	*/
 	
 	/* OOOE: Check to see that the right queue is filling up with the right PID's */
-	if(!smtWindow->bblQueue[vcore].empty()){
-		BblContext* temp;
-		smtWindow->bblQueue[vcore].back(&temp);
-		assert(temp->pid == getpid());
+	uint8_t vcore = smtWindow->vcore;
+	if( smtWindow->bblQueue[vcore].empty() ){
+        if( smtWindow->bblQueue[1-vcore].empty() ){
+            /* Assign and fill */
+            smtWindow->bblQueue[vcore].pid = getpid();
+        }
+        else{
+            if ( smtWindow->bblQueue[1-vcore].pid == getpid() ){
+                /* Assign and fill but mark old */
+                smtWindow->bblQueue[vcore].pid = getpid();
+                smtWindow->bblQueue[vcore].older = true;
+            }
+            else{
+                /* Assign and fill */
+                smtWindow->bblQueue[vcore].pid = getpid();
+            }
+        }
 	}
+    else{
+        assert( smtWindow->bblQueue[vcore].pid == getpid() );
+        /* Fill (keep marking same) */
+    }
 
 	if(smtWindow->bblQueue[vcore].push(&curContext)){
 		/* Store the bbl within a new context that fits in the queue */
 		futex_lock(&windowLock);
 		
 		// construct and initialize new context from previous.
-		curContext->pid = getpid();
 		curContext->bbl = prevContext->bbl;
 		curContext->bblAddress = prevContext->bblAddress;
 		curContext->loads = prevContext->loads;
@@ -247,7 +274,6 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		curContext->branchNotTakenNpc = prevContext->branchNotTakenNpc;
 		
 		// set previous context
-		prevContext->pid = tid;
 		prevContext->bbl = bblInfo;
 		prevContext->bblAddress = bblAddr;
 		prevContext->loads = prevContext->stores = 0;
@@ -257,10 +283,14 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	}
 	else{
 		/* OOOE: Should not happen if playback worked correctly */
+		panic("OOOE: failure on updating bbl queue");
 	}
 
+
+    info("OOOE: Filled BBL: VC:%d PID:%d A[0]:%d A[1]:%d", vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	// filled last context, time to sleep.
 	if(smtWindow->bblQueue[vcore].full()) {
+	    info("OOOE: Yielded");
 		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
 		// zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
 		// zinfo->sched->leave(procIdx, tid, getCid(tid));
@@ -323,7 +353,7 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
  */
 void SMTCore::playback() {
 	futex_lock(&windowLock);
-    info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
+    //info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
 	//info("OOOE: core(%p) window upon entry: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 
 	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
@@ -335,7 +365,7 @@ void SMTCore::playback() {
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 
-	//printf("OOOE: Enter playback {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
+	printf("OOOE: Enter playback {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 
 	// OOOE: TODO: what should happen when we switch away from fair arbitration? 
 	// we'll have to exit once ONE rather than BOTH window queues are empty. 
@@ -391,14 +421,14 @@ void SMTCore::playback() {
  * Input: UOP, BBL and all other pointers/indices 
  * Output: None 
  */
-static inline void printUop(DynUop uop, BblContext& cntxt, uint8_t curQ, uint16_t numContextTot, uint32_t curUop) {
+static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t curQ, uint16_t numContextTot, uint32_t curUop) {
 	std::ostringstream oss1, oss2;
 	oss1 << "tests/traces/" << "itrace" << ".csv";
 	FILE *tfile = fopen(oss1.str().c_str(), "a+");
 	oss2 << "tests/traces/" << "itrace_verbose" << ".txt";
 	FILE *tfileVerb = fopen(oss2.str().c_str(), "a+");
-	fprintf(tfile, "%d, %d, %d, %d, %d, ", cntxt.pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
-	fprintf(tfileVerb, "PID:%d Q:%d BBL:%d UOP:%d/%d UOPTYPE:", cntxt.pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
+	fprintf(tfile, "%d, %d, %d, %d, %d, ", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
+	fprintf(tfileVerb, "PID:%d Q:%d BBL:%d UOP:%d/%d UOPTYPE:", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
 	if ( cntxt.bbl->oooBbl[0].uop[curUop].type == UOP_LOAD ){
 		fprintf(tfile, "LOAD\n");
 		fprintf(tfileVerb, "LOAD\n");
@@ -427,6 +457,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 	}
 	/* OOOE: End: Arbitration section */
 	
+	printf("Q[0]:%d Q[1]:%d\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].count());
 	while ( true ){
 		/* OOOE: Determine if there is a valid context to read in the Q */
 		BblContext* cntxt;
@@ -436,7 +467,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				/* OOOE: Get UOP and BblContext from current Q */
 				*uop = &(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]]);
 				*bblContext = cntxt;
-				printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
+				//printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
 				smtWindow->uopIdx[curQ] += 1;
 				return true;
 			} 
@@ -579,7 +610,7 @@ void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastC
 #endif
 		decodeCycle = minFetchDecCycle;
 	}
-	info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
+	//info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
 }
 
 /* OOOE: runUop()
@@ -590,11 +621,12 @@ void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastC
 void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {
     DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
     assert( bbl != nullptr );
-	info("\nrunUop: New UOP");
+    assert( uop != nullptr );
+	//info("\nrunUop: New UOP");
 
     uint32_t decDiff = uop->decCycle - prevDecCycle;
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
-	info("curCycle:%lu prevDecCycle:%d decodeCycle:%lu", curCycle, prevDecCycle, decodeCycle);
+	//info("curCycle:%lu prevDecCycle:%d decodeCycle:%lu", curCycle, prevDecCycle, decodeCycle);
     if (decodeCycle > curCycle) {
         uint32_t cdDiff = decodeCycle - curCycle;
 #ifdef SMT_STALL_STATS
@@ -616,7 +648,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
         insWindow.advancePos(curCycle);
     }
     curCycleIssuedUops++;
-	info("curCycleIssuedUops:%d", curCycleIssuedUops);
+	//info("curCycleIssuedUops:%d", curCycleIssuedUops);
 
     // Kill dependences on invalid register
     // Using curCycle saves us two unpredictable branches in the RF read stalls code
@@ -633,7 +665,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
         curCycleIssuedUops = 0;  // or 1? that's probably a 2nd-order detail
         insWindow.advancePos(curCycle);
     }
-	info("curCycleRFReads:%d", curCycleRFReads);
+	//info("curCycleRFReads:%d", curCycleRFReads);
 
     uint64_t c2 = rob.minAllocCycle();
     uint64_t c3 = curCycle;
@@ -642,7 +674,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 
     // Model RAT + ROB + RS delay between issue and dispatch
     uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
-	info("dispatchCycle:%lu", dispatchCycle);
+	//info("dispatchCycle:%lu", dispatchCycle);
 
     // NOTE: Schedule can adjust both cur and dispatch cycles
     insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
@@ -660,7 +692,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
     switch (uop->type) {
         case UOP_GENERAL:
             commitCycle = dispatchCycle + uop->lat;
-			info("GEN: commitCycle:%lu", commitCycle);
+			//info("GEN: commitCycle:%lu", commitCycle);
             break;
 
         case UOP_LOAD:
@@ -698,7 +730,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
                 }
 
                 commitCycle = reqSatisfiedCycle;
-				info("LOAD: commitCycle:%lu", commitCycle);
+				//info("LOAD: commitCycle:%lu", commitCycle);
                 loadQueue.markRetire(commitCycle);
             }
             break;
@@ -726,19 +758,20 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 
                 commitCycle = reqSatisfiedCycle;
                 lastStoreCommitCycle = MAX(lastStoreCommitCycle, reqSatisfiedCycle);
-				info("STORE: commitCycle:%lu", commitCycle);
+				//info("STORE: commitCycle:%lu", commitCycle);
                 storeQueue.markRetire(commitCycle);
             }
             break;
 
         case UOP_STORE_ADDR:
             commitCycle = dispatchCycle + uop->lat;
-			info("STOREADDR: commitCycle:%lu", commitCycle);
+			//info("STOREADDR: commitCycle:%lu", commitCycle);
             lastStoreAddrCommitCycle = MAX(lastStoreAddrCommitCycle, commitCycle);
             break;
 
         //case UOP_FENCE:  //make gcc happy
         default:
+            printf("UOPTYPE:%d\n", uop->type);
             assert((UopType) uop->type == UOP_FENCE);
             commitCycle = dispatchCycle + uop->lat;
             // info("%d %ld %ld", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);
@@ -746,7 +779,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
             lastStoreAddrCommitCycle = MAX(commitCycle, MAX(lastStoreAddrCommitCycle, lastStoreCommitCycle + uop->lat));
             // info("%d %ld %ld X", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);
 
-			info("FENCE: commitCycle:%lu", commitCycle);
+			//info("FENCE: commitCycle:%lu", commitCycle);
     }
 
     // Mark retire at ROB

@@ -57,7 +57,6 @@ class BblContext {
 			branchNotTakenNpc = 0;
 		}
 
-		pid_t pid; // process id
 		Address bblAddress; // bbl location
 		BblInfo *bbl; // bbl object reference
 		
@@ -79,10 +78,15 @@ class BblQueue {
 		uint32_t rear;
 		uint32_t num;
 	public:
+		pid_t pid; // process id
+		bool older;
+
         BblQueue() {
 			front = 0;
 			rear = -1;
 			num = 0;
+			older = false;
+			pid = 0;
         }
 
 		inline uint32_t count(){
@@ -153,13 +157,15 @@ class SmtWindow {
 				uopIdx[i] = 0;
 				prevContext[i] = nullptr;
 				loadId[i] = storeId[i] = 0;
+				queuePid[i] = 0;
 			}
 		}
 
 		static const uint8_t NUM_VCORES = 2;
-		static const uint16_t QUEUE_SIZE = 5000;
+		static const uint16_t QUEUE_SIZE = 500;
 		uint8_t vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
 		BblQueue<QUEUE_SIZE> bblQueue[NUM_VCORES];
+        pid_t queuePid[NUM_VCORES];
 		uint32_t uopIdx[NUM_VCORES];
 		BblContext* prevContext [NUM_VCORES];
 		uint32_t loadId[NUM_VCORES];
