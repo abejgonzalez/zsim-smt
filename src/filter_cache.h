@@ -121,8 +121,11 @@ class FilterCache : public Cache {
             } else {
 		//TODO: return MAX(curCycle, availCycle);
 		// store replace(vLineAddr, idx, true, curCycle); into our array of contention
-                *contention += replace(vLineAddr, idx, true, curCycle) - MAX(curCycle, availCycle);
-		info("contention cycles are %ld", *contention); 
+		uint64_t hold = replace(vLineAddr, idx, true, curCycle);
+		info("contention cycles1 are %ld", *contention); 
+		info("extra contention is are %ld", (hold- MAX(curCycle,availCycle))); 
+                *contention += hold - MAX(curCycle, availCycle);
+		info("contention cycles2 are %ld", *contention); 
                 return MAX(curCycle, availCycle);
             }
         }

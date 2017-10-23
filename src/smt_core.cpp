@@ -713,7 +713,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
-                    reqSatisfiedCycle = l1d->load(addr, dispatchCycle) + L1D_LAT;
+                    reqSatisfiedCycle = l1d->load2(addr, dispatchCycle, &contention_cycles) + L1D_LAT;
                     cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
                 }
 
