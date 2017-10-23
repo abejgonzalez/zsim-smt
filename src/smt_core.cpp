@@ -34,6 +34,7 @@
 #include "ooo_core_recorder.h"
 #include "filter_cache.h"
 #include "scheduler.h"
+#include "stats.h"
 #include "pad.h"
 #include "zsim.h"
 
@@ -49,6 +50,7 @@ extern GlobSimInfo* zinfo;
 #define ISSUES_PER_CYCLE 4
 #define RF_READS_PER_CYCLE 3
 
+
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	: Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
 
@@ -61,6 +63,44 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
+	AggregateStat* coreStat = new AggregateStat();
+    coreStat->init(name.c_str(), "Core stats");
+
+    auto x = [this]() { return cRec.getUnhaltedCycles(curCycle); };
+    LambdaStat<decltype(x)>* cyclesStat = new LambdaStat<decltype(x)>(x);
+    cyclesStat->init("cycles", "Simulated unhalted cycles");
+
+    auto y = [this]() { return cRec.getContentionCycles(); };
+    LambdaStat<decltype(y)>* cCyclesStat = new LambdaStat<decltype(y)>(y);
+    cCyclesStat->init("cCycles", "Cycles due to contention stalls");
+
+    ProxyStat* instrsStat = new ProxyStat();
+    instrsStat->init("instrs", "Simulated instructions", &instrs);
+    ProxyStat* uopsStat = new ProxyStat();
+    uopsStat->init("uops", "Retired micro-ops", &uops);
+    ProxyStat* bblsStat = new ProxyStat();
+    bblsStat->init("bbls", "Basic blocks", &bbls);
+    ProxyStat* approxInstrsStat = new ProxyStat();
+    approxInstrsStat->init("approxInstrs", "Instrs with approx uop decoding", &approxInstrs);
+    ProxyStat* mispredBranchesStat = new ProxyStat();
+    mispredBranchesStat->init("mispredBranches", "Mispredicted branches", &mispredBranches);
+
+    coreStat->append(cyclesStat);
+    coreStat->append(cCyclesStat);
+    coreStat->append(instrsStat);
+    coreStat->append(uopsStat);
+    coreStat->append(bblsStat);
+    coreStat->append(approxInstrsStat);
+    coreStat->append(mispredBranchesStat);
+
+#ifdef SMT_STALL_STATS
+    profFetchStalls.init("fetchStalls",  "Fetch stalls");  coreStat->append(&profFetchStalls);
+    profDecodeStalls.init("decodeStalls", "Decode stalls"); coreStat->append(&profDecodeStalls);
+    profIssueStalls.init("issueStalls",  "Issue stalls");  coreStat->append(&profIssueStalls);
+#endif
+
+    parentStat->append(coreStat);
+
 }
 
 uint64_t SMTCore::getInstrs() const {
@@ -270,6 +310,7 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	}
 	else{
 		/* OOOE: Should not happen if playback worked correctly */
+		printf("This should not happen\n");
 		panic("OOOE: failure on updating bbl queue");
 	}
 
@@ -304,21 +345,22 @@ void SMTCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
 }
 
 void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
-    static_cast<SMTCore*>(cores[tid])->bbl(tid, bblAddr, bblInfo);
-	//	while (core->curCycle > core->phaseEndCycle) {
-	//        core->phaseEndCycle += zinfo->phaseLength;
-	//
-	//        uint32_t cid = getCid(tid);
-	//        // NOTE: TakeBarrier may take ownership of the core, and so it will be used by some other thread. If TakeBarrier context-switches us,
-	//        // the *only* safe option is to return inmmediately after we detect this, or we can race and corrupt core state. However, the information
-	//        // here is insufficient to do that, so we could wind up double-counting phases.
-	//        uint32_t newCid = TakeBarrier(tid, cid);
-	//        // NOTE: Upon further observation, we cannot race if newCid == cid, so this code should be enough.
-	//        // It may happen that we had an intervening context-switch and we are now back to the same core.
-	//        // This is fine, since the loop looks at core values directly and there are no locals involved,
-	//        // so we should just advance as needed and move on.
-	//        if (newCid != cid) break;  /*context-switch, we do not own this context anymore*/
-	//    }
+    SMTCore* core = static_cast<SMTCore*>(cores[tid]);
+    core->bbl(tid, bblAddr, bblInfo);
+	while (core->curCycle > core->phaseEndCycle) {
+	      core->phaseEndCycle += zinfo->phaseLength;
+	
+	      uint32_t cid = getCid(tid);
+	      // NOTE: TakeBarrier may take ownership of the core, and so it will be used by some other thread. If TakeBarrier context-switches us,
+	      // the *only* safe option is to return inmmediately after we detect this, or we can race and corrupt core state. However, the information
+	      // here is insufficient to do that, so we could wind up double-counting phases.
+	      uint32_t newCid = TakeBarrier(tid, cid);
+	      // NOTE: Upon further observation, we cannot race if newCid == cid, so this code should be enough.
+	      // It may happen that we had an intervening context-switch and we are now back to the same core.
+	      // This is fine, since the loop looks at core values directly and there are no locals involved,
+	      // so we should just advance as needed and move on.
+	      if (newCid != cid) break;  /*context-switch, we do not own this context anymore*/
+	}
 }
 void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
     static_cast<SMTCore*>(cores[tid])->branch(pc, taken, takenNpc, notTakenNpc);

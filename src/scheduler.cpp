@@ -76,7 +76,7 @@ bool IsSleepingInFutex(uint32_t linuxPid, uint32_t linuxTid, uintptr_t futexAddr
 	std::string fname = "/proc/" + Str(linuxPid) + "/task/" + Str(linuxTid) + "/syscall";
 	std::ifstream fs(fname);
 	if (!fs.is_open()) {
-		warn("Could not open %s", fname.c_str());
+		// warn("Could not open %s", fname.c_str());
 		return false;
 	}
 

@@ -26,21 +26,24 @@ dset = f["stats"]["root"]
 
 # Phase count at end of simulation
 endPhase = dset[-1]['phase']
-print endPhase
+print "phase count: ", endPhase
 
 # If your L2 has a single bank, this is all the L2 hits. Otherwise it's the
 # hits of the first L2 bank
 l2_0_hits = dset[-1]['l2'][0]['hGETS'] + dset[-1]['l2'][0]['hGETX']
-print l2_0_hits
+print "l2_0 hits: ", l2_0_hits
 
 # Hits into all L2s
 l2_hits = np.sum(dset[-1]['l2']['hGETS'] + dset[-1]['l2']['hGETX'])
-print l2_hits
+print "l2_hits: ", l2_hits
 
 # Total number of instructions executed, counted by adding per-core counts
 # (you could also look at procInstrs)
-totalInstrs = np.sum(dset[-1]['simpleCore']['instrs'])
-print totalInstrs
+totalInstrs = np.sum(dset[-1]['coreA']['instrs'])
+print "totalInstrs: ", totalInstrs
+
+coreAstats = dset["coreA"]
+print "core stats: ", coreAstats, coreAstats.dtype
 
 # You can also focus on one sample, or index over multiple steps, e.g.,
 lastSample = dset[-1]

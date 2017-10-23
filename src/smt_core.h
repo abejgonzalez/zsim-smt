@@ -227,7 +227,7 @@ class SMTCore : public Core {
         // Since this is close enough, we'll leave it as is for now. Feel free to reverse-engineer the real thing...
         // UPDATE: Now pht index is XOR-folded BSHR. This has 6656 bytes total -- not negligible, but not ridiculous.
         BranchPredictorPAg<11, 18, 14> branchPred;
-		uint32_t mispredBranches;
+		uint64_t mispredBranches;
 
 		#ifdef SMT_STALL_STATS
         	Counter profFetchStalls, profDecodeStalls, profIssueStalls;
