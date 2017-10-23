@@ -572,7 +572,7 @@ void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastC
 		
 		uint64_t reqCycle = fetchCycle;
 		for (uint32_t i = 0; i < (5 * 64) / lineSize; i++) {
-			uint64_t fetchLat = l1i->load(wrongPathAddr + (i * lineSize), curCycle) - curCycle;
+			uint64_t fetchLat = l1i->load2(wrongPathAddr + (i * lineSize), curCycle, &contention_cycles) - curCycle;
 			cRec.record(curCycle, curCycle, curCycle + fetchLat);
 			uint64_t respCycle = reqCycle + fetchLat;
 			if (respCycle > lastCommitCycle) {
@@ -594,7 +594,8 @@ void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastC
 		// Do not model fetch throughput limit here, decoder-generated stalls already include it
 		// We always call fetches with curCycle to avoid upsetting the weave
 		// models (but we could move to a fetch-centric recorder to avoid this)
-		uint64_t fetchLat = l1i->load(fetchAddr, curCycle) - curCycle;
+		uint64_t fetchLat = l1i->load2(fetchAddr, curCycle, &contention_cycles) - curCycle;
+		//TODO: something with cycle for instruction cache Barak
 		cRec.record(curCycle, curCycle, curCycle + fetchLat);
 		fetchCycle += fetchLat;
 	}
@@ -712,7 +713,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
-                    reqSatisfiedCycle = l1d->load(addr, dispatchCycle) + L1D_LAT;
+                    reqSatisfiedCycle = l1d->load2(addr, dispatchCycle, &contention_cycles) + L1D_LAT;
                     cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
                 }
 

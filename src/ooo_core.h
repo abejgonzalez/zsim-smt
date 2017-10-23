@@ -380,6 +380,7 @@ class OOOCore : public Core {
 
         uint64_t lastStoreCommitCycle;
         uint64_t lastStoreAddrCommitCycle; //tracks last store addr uop, all loads queue behind it
+	uint64_t contention_cycles; //OOOE: barak made this to compile
 
         //LSU queues are modeled like the ROB. Surprising? Entries are grabbed in dataflow order,
         //and for ordering purposes should leave in program order. In reality they are associative
