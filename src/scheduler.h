@@ -339,6 +339,8 @@ class Scheduler : public GlobAlloc, public Callee {
             assert(th->gid == gid);
             assert(th->state == RUNNING);
             zinfo->cores[cid]->leave();
+			/* OOOE: Mark that a thread completed (SMTCore) */
+			zinfo->cores[cid]->markDone();
 
             if (th->markedForSleep) { //transition to SLEEPING, eagerly deschedule
                 trace(Sched, "Sched: %d going to SLEEP, wakeup on phase %ld", gid, th->wakeupPhase);

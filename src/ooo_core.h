@@ -448,6 +448,7 @@ class OOOCore : public Core {
 
         virtual void join();
         virtual void leave();
+		virtual void markDone();
 
         InstrFuncPtrs GetFuncPtrs();
 

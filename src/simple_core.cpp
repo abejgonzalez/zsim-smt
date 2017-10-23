@@ -74,6 +74,10 @@ void SimpleCore::contextSwitch(int32_t gid) {
     }
 }
 
+void SimpleCore::markDone(){
+	info("SimpleCore: markDone");
+}
+
 void SimpleCore::join() {
     //info("[%s] Joining, curCycle %ld phaseEnd %ld haltedCycles %ld", name.c_str(), curCycle, phaseEndCycle, haltedCycles);
     if (curCycle < zinfo->globPhaseCycles) { //carry up to the beginning of the phase

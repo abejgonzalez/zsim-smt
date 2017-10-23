@@ -77,6 +77,17 @@ uint64_t SMTCore::getCycles() const {
 	return cRec.getUnhaltedCycles(curCycle);
 }
 
+void SMTCore::markDone() {
+	//info("OOOE: markDone()");
+	//printf("OOOE: Mark done left ({%d,%d}, {%d,%d})\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+	if ( !smtWindow->oneThreadLeft ){
+		smtWindow->oneThreadLeft = true;
+	}
+	else{
+		this->playback();
+	}
+}
+
 void SMTCore::contextSwitch(int32_t gid) {
     //info("OOOE: contextSwitch(%d)", getpid());
 	
@@ -84,23 +95,22 @@ void SMTCore::contextSwitch(int32_t gid) {
 	   deschedule function. */
 	if (gid == -1) { 
 		smtWindow->vcore = (smtWindow->vcore + 1) % SmtWindow::NUM_VCORES;
-		info("OOOE: CntxtSw VC:%d PID:%d A[0]:%d A[1]:%d", smtWindow->vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
-		if (smtWindow->vcore == 0) {
+		//info("OOOE: CntxtSw VC:%d PID:%d A[0]:%d A[1]:%d", smtWindow->vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
+		/*if (smtWindow->vcore == 0) {
             info("OOOE: Playback CntxtSw: VC:%d PID:%d A[0]:%d A[1]:%d", smtWindow->vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 			this->playback();
 		}
+		*/
 
-        /*
-        smtWindow->oneLeft = smtWindow->bblQueue
         if ( !smtWindow->bblQueue[0].empty() && !smtWindow->bblQueue[1].empty() ){
             this->playback();
         }
         else if ( !smtWindow->bblQueue[0].empty() || !smtWindow->bblQueue[1].empty() ){
-            if ( smtWindow->oneLeft ){
+			//info("OOOE: oneLeft check:%d", smtWindow->oneThreadLeft);
+            if ( smtWindow->oneThreadLeft ){
                 this->playback();
             }
         }
-        */
 
         // Do not store previous BBL, as we were context-switched
         if (prevContext->bbl) prevContext->bbl = nullptr;
@@ -119,12 +129,12 @@ void SMTCore::contextSwitch(int32_t gid) {
  */
 void SMTCore::join() {
     //info("OOOE: join()");
-	info("[%s] Joining, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
+	//info("[%s] Joining, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
     uint64_t targetCycle = cRec.notifyJoin(curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
     phaseEndCycle = zinfo->globPhaseCycles + zinfo->phaseLength; // OOOE: possibly the global cycle count.
     // assert(targetCycle <= phaseEndCycle);
-    info("[%s] Joined, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
+    //info("[%s] Joined, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
 }
 
 /**
@@ -135,7 +145,7 @@ void SMTCore::join() {
  */
 void SMTCore::leave() {
     //info("OOOE: leave()");
-    info("[%s] Leaving, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
+    //info("[%s] Leaving, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
     cRec.notifyLeave(curCycle);
 }
 
@@ -222,14 +232,6 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
         return;
     }
 
-	/*
-	uint8_t vcore = smtWindow->vcore;
-	if(smtWindow->bblQueue[vcore].full()){
-	    info("OOOE: Playback Top BBL: VC:%d PID:%d A[0]:%d A[1]:%d", vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
-		this->playback();
-	}
-	*/
-	
 	/* OOOE: Check to see that the right queue is filling up with the right PID's */
 	uint8_t vcore = smtWindow->vcore;
 	if( smtWindow->bblQueue[vcore].empty() ){
@@ -250,8 +252,8 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
         }
 	}
     else{
-        assert( smtWindow->bblQueue[vcore].pid == getpid() );
         /* Fill (keep marking same) */
+        assert( smtWindow->bblQueue[vcore].pid == getpid() );
     }
 
 	if(smtWindow->bblQueue[vcore].push(&curContext)){
@@ -287,15 +289,9 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	}
 
 
-    info("OOOE: Filled BBL: VC:%d PID:%d A[0]:%d A[1]:%d", vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	// filled last context, time to sleep.
 	if(smtWindow->bblQueue[vcore].full()) {
-	    info("OOOE: Yielded");
-		warn("(pid: %d, tid: %d, phase: %lu)\n", getpid(), tid, zinfo->numPhases + 1);
-		// zinfo->sched->markForSleep(procIdx, tid, zinfo->numPhases + 1);
-		// zinfo->sched->leave(procIdx, tid, getCid(tid));
-		// zinfo->sched->join(procIdx, tid);
-		// sched_yield();
+		//warn("(pid: %d, tid: %d, phase: %lu)", getpid(), tid, zinfo->numPhases + 1);
 
 		// custom yield implementation.
 		zinfo->sched->yield(getCid(tid));
@@ -354,7 +350,7 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 void SMTCore::playback() {
 	futex_lock(&windowLock);
     //info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
-	//info("OOOE: core(%p) window upon entry: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
+	info("OOOE: core(%p) window upon entry: ({%d,%d}, {%d,%d})", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
 
 	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
     DynUop* uop;
@@ -365,7 +361,7 @@ void SMTCore::playback() {
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 
-	printf("OOOE: Enter playback {%d,%d}\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
+	//printf("OOOE: Enter Playback ({%d,%d}, {%d,%d})\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
 
 	// OOOE: TODO: what should happen when we switch away from fair arbitration? 
 	// we'll have to exit once ONE rather than BOTH window queues are empty. 
@@ -412,7 +408,9 @@ void SMTCore::playback() {
 
 	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
 	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
-	info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
+	
+	info("OOOE: Exit Playback ({%d,%d}, {%d,%d})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+	//info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
 	futex_unlock(&windowLock);
 }
 
@@ -453,11 +451,13 @@ static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t cu
 bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ) {
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
 	if(!smtWindow->bblQueue[1 - curQ].empty()) {
+		if(smtWindow->oneThreadLeft)
+			info("1TL: Swaped From Q%d->Q%d  Q[0]:%d Q[1]:%d", curQ, curQ^1, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 		curQ ^= 1; 
 	}
 	/* OOOE: End: Arbitration section */
 	
-	printf("Q[0]:%d Q[1]:%d\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].count());
+	//printf("Q[0]:%d Q[1]:%d\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	while ( true ){
 		/* OOOE: Determine if there is a valid context to read in the Q */
 		BblContext* cntxt;
@@ -467,7 +467,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				/* OOOE: Get UOP and BblContext from current Q */
 				*uop = &(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]]);
 				*bblContext = cntxt;
-				//printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
+				printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
 				smtWindow->uopIdx[curQ] += 1;
 				return true;
 			} 
@@ -771,7 +771,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 
         //case UOP_FENCE:  //make gcc happy
         default:
-            printf("UOPTYPE:%d\n", uop->type);
+            //printf("UOPTYPE:%d\n", uop->type);
             assert((UopType) uop->type == UOP_FENCE);
             commitCycle = dispatchCycle + uop->lat;
             // info("%d %ld %ld", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);

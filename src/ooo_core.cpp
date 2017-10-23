@@ -120,6 +120,10 @@ void OOOCore::initStats(AggregateStat* parentStat) {
 uint64_t OOOCore::getInstrs() const {return instrs;}
 uint64_t OOOCore::getPhaseCycles() const {return curCycle % zinfo->phaseLength;}
 
+void OOOCore::markDone() {
+	info("OOOCore: markDone");
+}
+
 void OOOCore::contextSwitch(int32_t gid) {
     if (gid == -1) {
         // Do not execute previous BBL, as we were context-switched
