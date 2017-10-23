@@ -333,22 +333,22 @@ void SMTCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
 }
 
 void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
-	//info ("OOOE: BblFunc");
-    static_cast<SMTCore*>(cores[tid])->bbl(tid, bblAddr, bblInfo);
-	//	while (core->curCycle > core->phaseEndCycle) {
-	//        core->phaseEndCycle += zinfo->phaseLength;
-	//
-	//        uint32_t cid = getCid(tid);
-	//        // NOTE: TakeBarrier may take ownership of the core, and so it will be used by some other thread. If TakeBarrier context-switches us,
-	//        // the *only* safe option is to return inmmediately after we detect this, or we can race and corrupt core state. However, the information
-	//        // here is insufficient to do that, so we could wind up double-counting phases.
-	//        uint32_t newCid = TakeBarrier(tid, cid);
-	//        // NOTE: Upon further observation, we cannot race if newCid == cid, so this code should be enough.
-	//        // It may happen that we had an intervening context-switch and we are now back to the same core.
-	//        // This is fine, since the loop looks at core values directly and there are no locals involved,
-	//        // so we should just advance as needed and move on.
-	//        if (newCid != cid) break;  /*context-switch, we do not own this context anymore*/
-	//    }
+    SMTCore* core = static_cast<SMTCore*>(cores[tid]);
+    core->bbl(tid, bblAddr, bblInfo);
+	while (core->curCycle > core->phaseEndCycle) {
+	      core->phaseEndCycle += zinfo->phaseLength;
+	
+	      uint32_t cid = getCid(tid);
+	      // NOTE: TakeBarrier may take ownership of the core, and so it will be used by some other thread. If TakeBarrier context-switches us,
+	      // the *only* safe option is to return inmmediately after we detect this, or we can race and corrupt core state. However, the information
+	      // here is insufficient to do that, so we could wind up double-counting phases.
+	      uint32_t newCid = TakeBarrier(tid, cid);
+	      // NOTE: Upon further observation, we cannot race if newCid == cid, so this code should be enough.
+	      // It may happen that we had an intervening context-switch and we are now back to the same core.
+	      // This is fine, since the loop looks at core values directly and there are no locals involved,
+	      // so we should just advance as needed and move on.
+	      if (newCid != cid) break;  /*context-switch, we do not own this context anymore*/
+	}
 }
 void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
     //info("OOOE: branchFunc");
