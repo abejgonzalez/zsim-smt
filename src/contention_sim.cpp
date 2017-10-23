@@ -33,6 +33,7 @@
 #include <vector>
 #include "log.h"
 #include "ooo_core.h"
+#include "smt_core.h"
 #include "timing_core.h"
 #include "timing_event.h"
 #include "zsim.h"
@@ -112,6 +113,11 @@ void ContentionSim::postInit() {
             skipContention = false;
             return;
         }
+		SMTCore* score = dynamic_cast<SMTCore*>(zinfo->cores[i]);
+		if (score) {
+			skipContention = false;
+			return;
+		}
     }
     skipContention = true;
 }
@@ -155,6 +161,8 @@ void ContentionSim::simulatePhase(uint64_t limit) {
         if (tcore) tcore->cSimStart();
         OOOCore* ocore = dynamic_cast<OOOCore*>(zinfo->cores[i]);
         if (ocore) ocore->cSimStart();
+		SMTCore* score = dynamic_cast<SMTCore*>(zinfo->cores[i]);
+		if (score) score->cSimStart();
     }
 
     inCSim = true;
@@ -176,6 +184,8 @@ void ContentionSim::simulatePhase(uint64_t limit) {
         if (tcore) tcore->cSimEnd();
         OOOCore* ocore = dynamic_cast<OOOCore*>(zinfo->cores[i]);
         if (ocore) ocore->cSimEnd();
+		SMTCore* score = dynamic_cast<SMTCore*>(zinfo->cores[i]);
+		if (score) score->cSimStart();
     }
 
     lastLimit = limit;

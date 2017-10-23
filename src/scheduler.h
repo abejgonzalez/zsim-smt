@@ -429,26 +429,29 @@ class Scheduler : public GlobAlloc, public Callee {
 			ThreadInfo* th = contexts[cid].curThread;
 			ContextInfo* ctx = &contexts[cid];
 
-			// prepare to sleep / rest
-			zinfo->cores[cid]->leave();
-			deschedule(th, ctx, BLOCKED);
-			runQueue.push_back(th);
-
-			ThreadInfo* inTh = schedContext(ctx);
-			if (inTh) {
-				schedule(inTh, ctx);
-				zinfo->cores[ctx->cid]->join(); // inTh does not do a sched->join, 
-				// so we need to notify the core since we just called leave() on it
-				// wakeup(inTh, false);
-				if (th != inTh) {
-					inTh->needsJoin = false;
-					inTh->futexWord = 0;
-					syscall(SYS_futex, &inTh->futexWord, FUTEX_WAKE, 1, nullptr, nullptr, 0);
-					waitForContext(th); //releases lock, might join
+			if (!runQueue.empty()) {
+				// prepare to sleep / rest
+				zinfo->cores[cid]->leave();
+				deschedule(th, ctx, BLOCKED);
+				runQueue.push_back(th);
+				
+				ThreadInfo* inTh = schedContext(ctx);
+				if (inTh) {
+					schedule(inTh, ctx);
+					zinfo->cores[ctx->cid]->join(); // inTh does not do a sched->join, 
+					// so we need to notify the core since we just called leave() on it
+					// wakeup(inTh, false);
+					if (th != inTh) {
+						inTh->needsJoin = false;
+						inTh->futexWord = 0;
+						syscall(SYS_futex, &inTh->futexWord, FUTEX_WAKE, 1, nullptr, nullptr, 0);
+						waitForContext(th); //releases lock, might join
+					}
 				}
 			}
+
 			futex_unlock(&schedLock);
-        }
+		}
 
         // This is called with schedLock held, and must not release it!
         virtual void callback() {

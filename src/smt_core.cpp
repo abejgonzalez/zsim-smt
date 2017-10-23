@@ -36,6 +36,7 @@
 #include "ooo_core_recorder.h"
 #include "filter_cache.h"
 #include "scheduler.h"
+#include "stats.h"
 #include "pad.h"
 #include "zsim.h"
 
@@ -51,6 +52,7 @@ extern GlobSimInfo* zinfo;
 #define ISSUES_PER_CYCLE 4
 #define RF_READS_PER_CYCLE 3
 
+
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	: Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
 
@@ -64,6 +66,44 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 
 void SMTCore::initStats(AggregateStat* parentStat) {
     info("OOOE: initStates()");
+	AggregateStat* coreStat = new AggregateStat();
+    coreStat->init(name.c_str(), "Core stats");
+
+    auto x = [this]() { return cRec.getUnhaltedCycles(curCycle); };
+    LambdaStat<decltype(x)>* cyclesStat = new LambdaStat<decltype(x)>(x);
+    cyclesStat->init("cycles", "Simulated unhalted cycles");
+
+    auto y = [this]() { return cRec.getContentionCycles(); };
+    LambdaStat<decltype(y)>* cCyclesStat = new LambdaStat<decltype(y)>(y);
+    cCyclesStat->init("cCycles", "Cycles due to contention stalls");
+
+    ProxyStat* instrsStat = new ProxyStat();
+    instrsStat->init("instrs", "Simulated instructions", &instrs);
+    ProxyStat* uopsStat = new ProxyStat();
+    uopsStat->init("uops", "Retired micro-ops", &uops);
+    ProxyStat* bblsStat = new ProxyStat();
+    bblsStat->init("bbls", "Basic blocks", &bbls);
+    ProxyStat* approxInstrsStat = new ProxyStat();
+    approxInstrsStat->init("approxInstrs", "Instrs with approx uop decoding", &approxInstrs);
+    ProxyStat* mispredBranchesStat = new ProxyStat();
+    mispredBranchesStat->init("mispredBranches", "Mispredicted branches", &mispredBranches);
+
+    coreStat->append(cyclesStat);
+    coreStat->append(cCyclesStat);
+    coreStat->append(instrsStat);
+    coreStat->append(uopsStat);
+    coreStat->append(bblsStat);
+    coreStat->append(approxInstrsStat);
+    coreStat->append(mispredBranchesStat);
+
+#ifdef SMT_STALL_STATS
+    profFetchStalls.init("fetchStalls",  "Fetch stalls");  coreStat->append(&profFetchStalls);
+    profDecodeStalls.init("decodeStalls", "Decode stalls"); coreStat->append(&profDecodeStalls);
+    profIssueStalls.init("issueStalls",  "Issue stalls");  coreStat->append(&profIssueStalls);
+#endif
+
+    parentStat->append(coreStat);
+
 }
 
 uint64_t SMTCore::getInstrs() const {
@@ -146,14 +186,14 @@ EventRecorder* SMTCore::getEventRecorder() {
 }
 
 void SMTCore::cSimStart(){
-    //info("OOOE: cSimStart()");
+    info("OOOE: cSimStart()");
     uint64_t targetCycle = cRec.cSimStart(curCycle);
     assert(targetCycle >= curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
 }
 
 void SMTCore::cSimEnd() {
-    //info("OOOE: cSimEnd()");
+    info("OOOE: cSimEnd()");
     uint64_t targetCycle = cRec.cSimEnd(curCycle);
     assert(targetCycle >= curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
