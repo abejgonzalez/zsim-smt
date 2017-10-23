@@ -159,12 +159,12 @@ class SmtWindow {
 				loadId[i] = storeId[i] = 0;
 				queuePid[i] = 0;
 			}
-			oneThreadLeft = false;
+			thCompleted = false;
 		}
 
 		static const uint8_t NUM_VCORES = 2;
 		static const uint16_t QUEUE_SIZE = 500;
-		bool oneThreadLeft;
+		bool thCompleted;
 		uint8_t vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
 		BblQueue<QUEUE_SIZE> bblQueue[NUM_VCORES];
         pid_t queuePid[NUM_VCORES];

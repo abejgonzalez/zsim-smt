@@ -61,7 +61,6 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
-    //info("OOOE: initStates()");
 }
 
 uint64_t SMTCore::getInstrs() const {
@@ -77,11 +76,10 @@ uint64_t SMTCore::getCycles() const {
 	return cRec.getUnhaltedCycles(curCycle);
 }
 
+/* OOOE: Function to mark if a thread has completed on the core. Used to playback only when the last thread needs to be completed */
 void SMTCore::markDone() {
-	//info("OOOE: markDone()");
-	//printf("OOOE: Mark done left ({%d,%d}, {%d,%d})\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
-	if ( !smtWindow->oneThreadLeft ){
-		smtWindow->oneThreadLeft = true;
+	if ( !smtWindow->thCompleted ){
+		smtWindow->thCompleted = true;
 	}
 	else{
 		this->playback();
@@ -89,25 +87,19 @@ void SMTCore::markDone() {
 }
 
 void SMTCore::contextSwitch(int32_t gid) {
-    //info("OOOE: contextSwitch(%d)", getpid());
-	
 	/* OOOE: Run from scheduler. gid = -1 is passed from scheduler in the
 	   deschedule function. */
 	if (gid == -1) { 
 		smtWindow->vcore = (smtWindow->vcore + 1) % SmtWindow::NUM_VCORES;
-		//info("OOOE: CntxtSw VC:%d PID:%d A[0]:%d A[1]:%d", smtWindow->vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
-		/*if (smtWindow->vcore == 0) {
-            info("OOOE: Playback CntxtSw: VC:%d PID:%d A[0]:%d A[1]:%d", smtWindow->vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
-			this->playback();
-		}
-		*/
 
+		//info("OOOE: CntxtSw VC:%d PID:%d A[0]:%d A[1]:%d", smtWindow->vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
+
+		/* Playback on context switch if both queues are full, else only playback if there is one thread left */
         if ( !smtWindow->bblQueue[0].empty() && !smtWindow->bblQueue[1].empty() ){
             this->playback();
         }
         else if ( !smtWindow->bblQueue[0].empty() || !smtWindow->bblQueue[1].empty() ){
-			//info("OOOE: oneLeft check:%d", smtWindow->oneThreadLeft);
-            if ( smtWindow->oneThreadLeft ){
+            if ( smtWindow->thCompleted ){
                 this->playback();
             }
         }
@@ -128,13 +120,12 @@ void SMTCore::contextSwitch(int32_t gid) {
  * Can we update the virtual core number here?
  */
 void SMTCore::join() {
-    //info("OOOE: join()");
-	//info("[%s] Joining, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
+	info("[%s] Joining, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
     uint64_t targetCycle = cRec.notifyJoin(curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
-    phaseEndCycle = zinfo->globPhaseCycles + zinfo->phaseLength; // OOOE: possibly the global cycle count.
+    phaseEndCycle = zinfo->globPhaseCycles + zinfo->phaseLength;
     // assert(targetCycle <= phaseEndCycle);
-    //info("[%s] Joined, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
+    info("[%s] Joined, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
 }
 
 /**
@@ -144,8 +135,7 @@ void SMTCore::join() {
  * Can we update the virtual core number here?
  */
 void SMTCore::leave() {
-    //info("OOOE: leave()");
-    //info("[%s] Leaving, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
+    info("[%s] Leaving, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
     cRec.notifyLeave(curCycle);
 }
 
@@ -160,19 +150,16 @@ InstrFuncPtrs SMTCore::GetFuncPtrs() {
 
 // Contention simulation interface
 EventRecorder* SMTCore::getEventRecorder() {
-	// OOOE: should we create a new event recorder?
 	return cRec.getEventRecorder();
 }
 
 void SMTCore::cSimStart(){
-    //info("OOOE: cSimStart()");
     uint64_t targetCycle = cRec.cSimStart(curCycle);
     assert(targetCycle >= curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
 }
 
 void SMTCore::cSimEnd() {
-    //info("OOOE: cSimEnd()");
     uint64_t targetCycle = cRec.cSimEnd(curCycle);
     assert(targetCycle >= curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
@@ -187,8 +174,6 @@ inline void SMTCore::predFalseMemOp() {
 	prevContext->loadAddrs[prevContext->loads++] = -1L;
 }
 
-
-//TODO: These are incrementing the wrong context object!!!!!!!!!
 inline void SMTCore::load(Address addr) {
 	prevContext->loadAddrs[prevContext->loads++] = addr;
 }
@@ -221,7 +206,7 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 	prevContext->branchNotTakenNpc = notTakenNpc;
 }
 
-// TODO: reimplement the original bbl func algorithm in playback()
+/* OOOE: Refactored BBL function to store BBL's and not run them */
 void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	if (!prevContext->bbl) {
         // This is the 1st BBL since scheduled, nothing to simulate
@@ -319,7 +304,6 @@ void SMTCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
 }
 
 void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
-	//info ("OOOE: BblFunc");
     static_cast<SMTCore*>(cores[tid])->bbl(tid, bblAddr, bblInfo);
 	//	while (core->curCycle > core->phaseEndCycle) {
 	//        core->phaseEndCycle += zinfo->phaseLength;
@@ -337,7 +321,6 @@ void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
 	//    }
 }
 void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
-    //info("OOOE: branchFunc");
     static_cast<SMTCore*>(cores[tid])->branch(pc, taken, takenNpc, notTakenNpc);
 }
 
@@ -350,7 +333,7 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 void SMTCore::playback() {
 	futex_lock(&windowLock);
     //info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
-	info("OOOE: core(%p) window upon entry: ({%d,%d}, {%d,%d})", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+	//info("OOOE: core(%p) window upon entry: ({%d,%d}, {%d,%d})", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
 
 	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
     DynUop* uop;
@@ -360,8 +343,6 @@ void SMTCore::playback() {
 	uint8_t curBblSwapQ = 0;
     uint32_t prevDecCycle = 0;
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
-
-	//printf("OOOE: Enter Playback ({%d,%d}, {%d,%d})\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
 
 	// OOOE: TODO: what should happen when we switch away from fair arbitration? 
 	// we'll have to exit once ONE rather than BOTH window queues are empty. 
@@ -405,11 +386,7 @@ void SMTCore::playback() {
 		smtWindow->loadId[curBblSwapQ] = smtWindow->storeId[curBblSwapQ] = 0;
 	}
 	
-
-	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->numContexts[0], smtWindow->numContexts[1]);
-	//info("OOOE: core(%p) window upon exit: (%d, %d)", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
-	
-	info("OOOE: Exit Playback ({%d,%d}, {%d,%d})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+	//info("OOOE: Exit Playback ({%d,%d}, {%d,%d})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
 	//info("OOOE: playback(%d) updated curCycle: %lu", getpid(), curCycle);
 	futex_unlock(&windowLock);
 }
@@ -451,8 +428,6 @@ static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t cu
 bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ) {
 	/* OOOE: Arbitration section: The UOP chosen is based on the core state, etc */
 	if(!smtWindow->bblQueue[1 - curQ].empty()) {
-		if(smtWindow->oneThreadLeft)
-			info("1TL: Swaped From Q%d->Q%d  Q[0]:%d Q[1]:%d", curQ, curQ^1, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 		curQ ^= 1; 
 	}
 	/* OOOE: End: Arbitration section */
