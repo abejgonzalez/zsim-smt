@@ -187,6 +187,7 @@ class SMTCore : public Core {
         uint64_t phaseEndCycle; //next stopping point
         uint64_t curCycle; //this model is issue-centric; curCycle refers to the current issue cycle
         uint64_t decodeCycle;
+	uint64_t contention_cycles; //OOOE: barak for holding both contention cycles
 
         CycleQueue<28> uopQueue;  // models issue queue
         uint64_t instrs, uops, bbls, approxInstrs;
