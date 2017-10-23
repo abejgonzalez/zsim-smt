@@ -185,7 +185,7 @@ void ContentionSim::simulatePhase(uint64_t limit) {
         OOOCore* ocore = dynamic_cast<OOOCore*>(zinfo->cores[i]);
         if (ocore) ocore->cSimEnd();
 		SMTCore* score = dynamic_cast<SMTCore*>(zinfo->cores[i]);
-		if (score) score->cSimStart();
+		if (score) score->cSimEnd();
     }
 
     lastLimit = limit;
