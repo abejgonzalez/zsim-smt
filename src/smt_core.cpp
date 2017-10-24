@@ -149,7 +149,7 @@ void SMTCore::contextSwitch(int32_t gid) {
         // Do not store previous BBL, as we were context-switched
         if (prevContext->bbl){
             prevContext->bbl = nullptr;
-            printf("prevContext cleared\n");
+            //printf("prevContext cleared\n");
         }
 
         /* OOOE: AG: We dont want to clear the cache since they are shared */
@@ -257,8 +257,9 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
         // This is the 1st BBL since scheduled, nothing to simulate
 		prevContext->bbl = bblInfo;
 
+        /*
         BblInfo* bbl = bblInfo;
-        printf("First: BblInfoPtr:%p | OooBblPtr:%p #Instr:%u #Bytes:%u | #Uops:%u Addr:%lu #ApproxInstrs:%u\n", bbl, bbl->oooBbl, bbl->instrs, bbl->bytes, bbl->oooBbl[0].uops, bbl->oooBbl[0].addr, bbl->oooBbl[0].approxInstrs);
+        //printf("First: BblInfoPtr:%p | OooBblPtr:%p #Instr:%u #Bytes:%u | #Uops:%u Addr:%lu #ApproxInstrs:%u\n", bbl, bbl->oooBbl, bbl->instrs, bbl->bytes, bbl->oooBbl[0].uops, bbl->oooBbl[0].addr, bbl->oooBbl[0].approxInstrs);
 		if(!bblInfo)
 		    printf(">>>> bblInfo null");
 		if(bblInfo->instrs <= 0)
@@ -267,6 +268,7 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		    printf(">>>> oooBbl invalid");
 		if(bblInfo->oooBbl[0].uops <= 0)
 		    printf(">>>> no uops in oooBbl (<=0)");
+        */
 
 		prevContext->bblAddress = bblAddr;
         // Kill lingering ops from previous BBL
@@ -299,7 +301,7 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
     }
 
     if( smtWindow->bblQueue[vcore].full() ){
-        printf("Needed to flush before fill: ({%u,%u}, {%u,%u})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+        //printf("Needed to flush before fill: ({%u,%u}, {%u,%u})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
         this->playback();
     }
 
@@ -342,14 +344,14 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	}
 	else{
 		/* OOOE: Should not happen if playback worked correctly */
-		printf("OOOE: This should not happen\n");
+		//printf("OOOE: This should not happen\n");
 		panic("OOOE: failure on updating bbl queue");
 	}
 
 	if(smtWindow->bblQueue[vcore].count() == 1){
         BblContext* cntxt;
         smtWindow->bblQueue[vcore].back(&cntxt);
-        printf("First After Append: CntxtPtr:%p BblInfoPtr:%p | OooBblPtr:%p #Instr:%u #Bytes:%u | #Uops:%u Addr:%lu #ApproxInstrs:%u\n", cntxt, cntxt->bbl, cntxt->bbl->oooBbl, cntxt->bbl->instrs, cntxt->bbl->bytes, cntxt->bbl->oooBbl[0].uops, cntxt->bbl->oooBbl[0].addr, cntxt->bbl->oooBbl[0].approxInstrs);
+        //printf("First After Append: CntxtPtr:%p BblInfoPtr:%p | OooBblPtr:%p #Instr:%u #Bytes:%u | #Uops:%u Addr:%lu #ApproxInstrs:%u\n", cntxt, cntxt->bbl, cntxt->bbl->oooBbl, cntxt->bbl->instrs, cntxt->bbl->bytes, cntxt->bbl->oooBbl[0].uops, cntxt->bbl->oooBbl[0].addr, cntxt->bbl->oooBbl[0].approxInstrs);
     }
 
 
@@ -413,7 +415,7 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 void SMTCore::playback() {
 	futex_lock(&windowLock);
     //info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
-	printf("OOOE: core(%p) window upon entry: ({%u,%u}, {%u,%u})\n", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+	//printf("OOOE: core(%p) window upon entry: ({%u,%u}, {%u,%u})\n", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
 
 	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
     DynUop* uop;
@@ -484,7 +486,7 @@ static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t cu
 	FILE *tfileVerb = fopen(oss2.str().c_str(), "a+");
 	fprintf(tfile, "%u, %u, %u, %u, %u, ", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
 	fprintf(tfileVerb, "PID:%u Q:%u BBL:%u UOP:%u/%u UOPTYPE:", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
-	printf("PID:%u Q:%u BBL:%u UOP:%u/%u \n", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
+	//printf("PID:%u Q:%u BBL:%u UOP:%u/%u \n", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
 	if ( cntxt.bbl->oooBbl[0].uop[curUop].type == UOP_LOAD ){
 		fprintf(tfile, "LOAD\n");
 		fprintf(tfileVerb, "LOAD\n");
@@ -518,7 +520,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 		/* OOOE: Determine if there is a valid context to read in the Q */
 		BblContext* cntxt;
 		if (smtWindow->bblQueue[curQ].back(&cntxt)){
-		    printf("CntxtPtr:%p BblInfoPtr:%p | OooBblPtr:%p #Instr:%u #Bytes:%u | #Uops:%u Addr:%lu #ApproxInstrs:%u\n", cntxt, cntxt->bbl, cntxt->bbl->oooBbl, cntxt->bbl->instrs, cntxt->bbl->bytes, cntxt->bbl->oooBbl[0].uops, cntxt->bbl->oooBbl[0].addr, cntxt->bbl->oooBbl[0].approxInstrs);
+		    //printf("CntxtPtr:%p BblInfoPtr:%p | OooBblPtr:%p #Instr:%u #Bytes:%u | #Uops:%u Addr:%lu #ApproxInstrs:%u\n", cntxt, cntxt->bbl, cntxt->bbl->oooBbl, cntxt->bbl->instrs, cntxt->bbl->bytes, cntxt->bbl->oooBbl[0].uops, cntxt->bbl->oooBbl[0].addr, cntxt->bbl->oooBbl[0].approxInstrs);
 			/* OOOE: Determine if a UOP is present */
 			if ( cntxt->bbl && smtWindow->uopIdx[curQ] < cntxt->bbl->oooBbl[0].uops ){
 				/* OOOE: Get UOP and BblContext from current Q */
@@ -539,7 +541,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 					printf(">>>> Error on pop");
 					panic("BblQueue failed to pop");
 				}
-				printf("Bblpopped\n");
+			//	printf("Bblpopped\n");
 			}
 		}
 		else {
@@ -833,12 +835,14 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 
         //case UOP_FENCE:  //make gcc happy
         default:
+            /*
             printf("cnt:%p, bbl:%p\n", bblContext, bblContext->bbl);
             printf("oooBbl:%p\n", bblContext->bbl->oooBbl);
             printf("amtofinstr:%u\n", bblContext->bbl->instrs);
             printf("UOP:%u", bblContext->bbl->oooBbl[0].uops);
             printf(" UOPTYPE:%u", uop->type);
             printf("Window ({%u,%u}, {%u,%u})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+            */
             assert((UopType) uop->type == UOP_FENCE);
             commitCycle = dispatchCycle + uop->lat;
             // info("%d %ld %ld", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);
