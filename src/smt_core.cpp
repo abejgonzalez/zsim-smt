@@ -789,7 +789,11 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 
         //case UOP_FENCE:  //make gcc happy
         default:
-            //printf("UOPTYPE:%d\n", uop->type);
+            printf("cnt:%p, bbl:%p\n", bblContext, bblContext->bbl);
+            printf("oooBbl:%p\n", bblContext->bbl->oooBbl);
+            printf("UOP:%d", bblContext->bbl->oooBbl[0].uops);
+            printf(" UOPTYPE:%d", uop->type);
+            printf("Window ({%d,%d}, {%d,%d})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
             assert((UopType) uop->type == UOP_FENCE);
             commitCycle = dispatchCycle + uop->lat;
             // info("%d %ld %ld", uop->lat, lastStoreAddrCommitCycle, lastStoreCommitCycle);
