@@ -281,6 +281,11 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
         assert( smtWindow->bblQueue[vcore].pid == getpid() );
     }
 
+    if( smtWindow->bblQueue[vcore].full() ){
+        printf("Needed to flush before fill: ({%d,%d}, {%d,%d})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+        this->playback();
+    }
+
 	if(smtWindow->bblQueue[vcore].push(&curContext)){
 		/* Store the bbl within a new context that fits in the queue */
 		futex_lock(&windowLock);
@@ -302,6 +307,12 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		
 		// set previous context
 		prevContext->bbl = bblInfo;
+		if(!bblInfo->instrs){
+		    printf("WHY ARE INSTRS 0!!!!!!!\n");
+        }
+        else{
+            printf("INSTR NOT 0\n");
+        }
 		prevContext->bblAddress = bblAddr;
 		prevContext->loads = prevContext->stores = 0;
 
@@ -310,7 +321,7 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	}
 	else{
 		/* OOOE: Should not happen if playback worked correctly */
-		printf("This should not happen\n");
+		printf("OOOE: This should not happen\n");
 		panic("OOOE: failure on updating bbl queue");
 	}
 
@@ -375,7 +386,7 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 void SMTCore::playback() {
 	futex_lock(&windowLock);
     //info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
-	//info("OOOE: core(%p) window upon entry: ({%d,%d}, {%d,%d})", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+	printf("OOOE: core(%p) window upon entry: ({%d,%d}, {%d,%d})\n", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
 
 	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
     DynUop* uop;
@@ -446,6 +457,7 @@ static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t cu
 	FILE *tfileVerb = fopen(oss2.str().c_str(), "a+");
 	fprintf(tfile, "%d, %d, %d, %d, %d, ", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
 	fprintf(tfileVerb, "PID:%d Q:%d BBL:%d UOP:%d/%d UOPTYPE:", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
+	printf("PID:%d Q:%d BBL:%d UOP:%d/%d \n", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
 	if ( cntxt.bbl->oooBbl[0].uop[curUop].type == UOP_LOAD ){
 		fprintf(tfile, "LOAD\n");
 		fprintf(tfileVerb, "LOAD\n");
@@ -479,6 +491,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 		/* OOOE: Determine if there is a valid context to read in the Q */
 		BblContext* cntxt;
 		if (smtWindow->bblQueue[curQ].back(&cntxt)){
+		    printf("uopAmt:%u\n", cntxt->bbl->oooBbl[0].uops);
 			/* OOOE: Determine if a UOP is present */
 			if ( cntxt->bbl && smtWindow->uopIdx[curQ] < cntxt->bbl->oooBbl[0].uops ){
 				/* OOOE: Get UOP and BblContext from current Q */
@@ -502,6 +515,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 		else {
 			/* OOOE: No Bbl are left in the current queue so exit */
 			smtWindow->uopIdx[curQ] = 0;
+			smtWindow->bblQueue[curQ].clear();
 			return false;
 		}
 	}
@@ -791,7 +805,8 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
         default:
             printf("cnt:%p, bbl:%p\n", bblContext, bblContext->bbl);
             printf("oooBbl:%p\n", bblContext->bbl->oooBbl);
-            printf("UOP:%d", bblContext->bbl->oooBbl[0].uops);
+            printf("amtofinstr:%d\n", bblContext->bbl->instrs);
+            printf("UOP:%u", bblContext->bbl->oooBbl[0].uops);
             printf(" UOPTYPE:%d", uop->type);
             printf("Window ({%d,%d}, {%d,%d})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
             assert((UopType) uop->type == UOP_FENCE);
