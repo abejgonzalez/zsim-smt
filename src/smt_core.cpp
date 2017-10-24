@@ -60,6 +60,7 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	smtWindow = new(gm_memalign< SmtWindow >(CACHE_LINE_BYTES, 1)) SmtWindow();
 	smtWindow->vcore = 0;
 	curCycle = 0;
+	prevContext->bbl = nullptr;
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
@@ -129,7 +130,7 @@ void SMTCore::markDone() {
 void SMTCore::contextSwitch(int32_t gid) {
 	/* OOOE: Run from scheduler. gid = -1 is passed from scheduler in the
 	   deschedule function. */
-	printf("CONTEXT SWTICH\n");
+	//printf("CONTEXT SWTICH\n");
 	if (gid == -1) { 
 		smtWindow->vcore = (smtWindow->vcore + 1) % SmtWindow::NUM_VCORES;
 
@@ -252,7 +253,7 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 
 /* OOOE: Refactored BBL function to store BBL's and not run them */
 void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
-	if (!prevContext->bbl) {
+	if ( !prevContext->bbl ) {
         // This is the 1st BBL since scheduled, nothing to simulate
 		prevContext->bbl = bblInfo;
 
@@ -302,6 +303,7 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
         this->playback();
     }
 
+    BblContext * curContext = nullptr;
 	if(smtWindow->bblQueue[vcore].push(&curContext)){
 		/* Store the bbl within a new context that fits in the queue */
 		futex_lock(&windowLock);

@@ -55,6 +55,10 @@ class BblContext {
 			branchPc = 0;
 			branchTakenNpc = 0;
 			branchNotTakenNpc = 0;
+			bbl = nullptr;
+			loads = 0;
+			stores = 0;
+			bblAddress = 0;
 		}
 
 		Address bblAddress; // bbl location
@@ -183,7 +187,8 @@ class SMTCore : public Core {
 		/* OOOE: Current bbl context that is filled with the simulator running. i
 		 * Queued on the next bbl() function call. */
 		// prevContextd used to append BblContext objects to the queues 
-		BblContext *curContext = NULL, *prevContext = NULL;
+		//BblContext *curContext;
+		BblContext *prevContext;
 
 		// timing 
         uint64_t phaseEndCycle; //next stopping point
