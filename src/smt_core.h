@@ -74,6 +74,8 @@ class BblContext {
         Address branchTakenNpc, branchNotTakenNpc;
 }; 
 
+
+
 template<uint32_t SZ>
 class BblQueue {
 	private:
@@ -150,6 +152,20 @@ class BblQueue {
 		}
 };
 
+
+class Contention {
+	public:
+		uint64_t cache;
+		uint64_t branchPrediction;
+		uint64_t memory;
+
+		Contention() {
+			cache = 0;
+			branchPrediction = 0;
+			memory = 0;
+		}
+};
+
 /** OOOE:
  * Container that holds 2 BblContext queues to store the core state.
  */
@@ -176,8 +192,9 @@ class SmtWindow {
 		BblContext* prevContext [NUM_VCORES];
 		uint32_t loadId[NUM_VCORES];
 		uint32_t storeId[NUM_VCORES];
-        uint64_t cacheContention[NUM_VCORES]; //OOOE: barak for holding both contention cycles
-        pid_t contentionPid[NUM_VCORES];
+
+		// tracks contention cycles.
+		g_unordered_map<pid_t, Contention> contentionMap;
 };
 
 class SMTCore : public Core {
