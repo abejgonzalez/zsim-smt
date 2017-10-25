@@ -120,6 +120,10 @@ void OOOCore::initStats(AggregateStat* parentStat) {
 uint64_t OOOCore::getInstrs() const {return instrs;}
 uint64_t OOOCore::getPhaseCycles() const {return curCycle % zinfo->phaseLength;}
 
+void OOOCore::markDone() {
+	info("OOOCore: markDone");
+}
+
 void OOOCore::contextSwitch(int32_t gid) {
     if (gid == -1) {
         // Do not execute previous BBL, as we were context-switched
@@ -210,7 +214,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
      * they call this an instruction window? Even though the "instr
      * window" here is fixed to only the uops inside of the BBL.
      */
-    info("OOOE: PID:%d BBLADDR:0x%lx", getpid(), bbl->addr);
+    //info("OOOE: PID:%d BBLADDR:0x%lx", getpid(), bbl->addr);
     // Run dispatch/IW
 	//printf("OOOE: AMTUOPS:%u\n", bbl->uops);
     for (uint32_t i = 0; i < bbl->uops; i++) {
@@ -229,7 +233,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
          */
         /* OOOE: AG: 
          * Set when the prevDecCycle is the decode cycle count from the prev UOP */
-        info("OOOE: UOP#:%d UOPDECCYCLE:%d COREDECCYCLE:%lu", i, uop->decCycle, decodeCycle);
+        //info("OOOE: UOP#:%d UOPDECCYCLE:%d COREDECCYCLE:%lu", i, uop->decCycle, decodeCycle);
         uint32_t decDiff = uop->decCycle - prevDecCycle;
         /* OOOE: AG: uopQueue has amount of uops and when they are marked for retiring */
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
@@ -549,12 +553,14 @@ void OOOCore::leave() {
 }
 
 void OOOCore::cSimStart() {
+    info("OOOE: cSimStart()");
     uint64_t targetCycle = cRec.cSimStart(curCycle);
     assert(targetCycle >= curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
 }
 
 void OOOCore::cSimEnd() {
+    info("OOOE: cSimEnd()");
     uint64_t targetCycle = cRec.cSimEnd(curCycle);
     assert(targetCycle >= curCycle);
     if (targetCycle > curCycle) advance(targetCycle);

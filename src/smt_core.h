@@ -55,9 +55,12 @@ class BblContext {
 			branchPc = 0;
 			branchTakenNpc = 0;
 			branchNotTakenNpc = 0;
+			bbl = nullptr;
+			loads = 0;
+			stores = 0;
+			bblAddress = 0;
 		}
 
-		pid_t pid; // process id
 		Address bblAddress; // bbl location
 		BblInfo *bbl; // bbl object reference
 		
@@ -79,10 +82,15 @@ class BblQueue {
 		uint32_t rear;
 		uint32_t num;
 	public:
+		pid_t pid; // process id
+		bool older;
+
         BblQueue() {
 			front = 0;
 			rear = -1;
 			num = 0;
+			older = false;
+			pid = 0;
         }
 
 		inline uint32_t count(){
@@ -153,13 +161,17 @@ class SmtWindow {
 				uopIdx[i] = 0;
 				prevContext[i] = nullptr;
 				loadId[i] = storeId[i] = 0;
+				queuePid[i] = 0;
 			}
+			thCompleted = false;
 		}
 
 		static const uint8_t NUM_VCORES = 2;
 		static const uint16_t QUEUE_SIZE = 5000;
+		bool thCompleted;
 		uint8_t vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
 		BblQueue<QUEUE_SIZE> bblQueue[NUM_VCORES];
+        pid_t queuePid[NUM_VCORES];
 		uint32_t uopIdx[NUM_VCORES];
 		BblContext* prevContext [NUM_VCORES];
 		uint32_t loadId[NUM_VCORES];
@@ -175,12 +187,14 @@ class SMTCore : public Core {
 		/* OOOE: Current bbl context that is filled with the simulator running. i
 		 * Queued on the next bbl() function call. */
 		// prevContextd used to append BblContext objects to the queues 
-		BblContext *curContext = NULL, *prevContext = NULL;
+		//BblContext *curContext;
+		BblContext *prevContext;
 
 		// timing 
         uint64_t phaseEndCycle; //next stopping point
         uint64_t curCycle; //this model is issue-centric; curCycle refers to the current issue cycle
         uint64_t decodeCycle;
+	uint64_t contention_cycles; //OOOE: barak for holding both contention cycles
 
         CycleQueue<28> uopQueue;  // models issue queue
         uint64_t instrs, uops, bbls, approxInstrs;
@@ -218,7 +232,7 @@ class SMTCore : public Core {
         // Since this is close enough, we'll leave it as is for now. Feel free to reverse-engineer the real thing...
         // UPDATE: Now pht index is XOR-folded BSHR. This has 6656 bytes total -- not negligible, but not ridiculous.
         BranchPredictorPAg<11, 18, 14> branchPred;
-		uint32_t mispredBranches;
+		uint64_t mispredBranches;
 
 		#ifdef SMT_STALL_STATS
         	Counter profFetchStalls, profDecodeStalls, profIssueStalls;
@@ -252,6 +266,7 @@ class SMTCore : public Core {
 
         virtual void join();
         virtual void leave();
+		virtual void markDone();
 
         InstrFuncPtrs GetFuncPtrs();
 

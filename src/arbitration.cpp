@@ -63,11 +63,14 @@ void Arbitration::addProcess(int pid){
  */
 void Arbitration::printWorkingSet(){
 	// printf("method: printWorkingSet. \n");
-	if(pids.empty()){printf("bad pids vector!!!\n"); return;}
+	if( pids.empty() ){
+	    printf("PID vector empty\n");
+	    return;
+	}
 	std::stringstream ss;
 	std::copy(pids.begin(), pids.end() - 1, std::ostream_iterator<int>(ss, ", "));
 	ss << pids.back();
 
-	printf("[ %s ]\n", ss.str().c_str());
+	printf("OOOE: PIDS: [ %s ]\n", ss.str().c_str());
 }
 

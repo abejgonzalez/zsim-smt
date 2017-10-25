@@ -83,6 +83,7 @@ class Core : public GlobAlloc {
         //Called by scheduler on every leave and join action, before barrier methods are called
         virtual void leave() {}
         virtual void join() {}
+		virtual void markDone() {}
 
         virtual InstrFuncPtrs GetFuncPtrs() = 0;
         

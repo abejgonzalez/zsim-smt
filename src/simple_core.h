@@ -54,6 +54,7 @@ class SimpleCore : public Core {
 
         void contextSwitch(int32_t gid);
         virtual void join();
+		virtual void markDone();
 
         InstrFuncPtrs GetFuncPtrs();
 
