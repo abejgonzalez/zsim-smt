@@ -535,7 +535,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
  * Input: A BblContext reference
  * Output: None 
  */
-void SMTCore::runBblStatUpdate(uint8_t presQ, BblContext* bblContext){
+void SMTCore::runBblStatUpdate(BblContext* bblContext){
 	/* OOOE: TODO: Implement instrs */
 	//instrs += bblInstrs;
 	uops += bblContext->bbl->oooBbl[0].uops;
