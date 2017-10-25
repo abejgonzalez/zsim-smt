@@ -188,7 +188,7 @@ class Scheduler : public GlobAlloc, public Callee {
 
             blockingSyscalls.resize(MAX_THREADS /* TODO: max # procs */);
 
-            info("Started RR scheduler, quantum=%d phases", schedQuantum);
+            //info("Started RR scheduler, quantum=%d phases", schedQuantum);
             terminateWatchdogThread = false;
             startWatchdogThread();
         }
@@ -273,6 +273,7 @@ class Scheduler : public GlobAlloc, public Callee {
 
         uint32_t join(uint32_t pid, uint32_t tid) {
             futex_lock(&schedLock);
+			//info("OOOE: Join");
             //If leave was in this phase, call bar.join()
             //Otherwise, try to grab a free context; if all are taken, queue up
             uint32_t gid = getGid(pid, tid);
@@ -315,7 +316,8 @@ class Scheduler : public GlobAlloc, public Callee {
                 ContextInfo* ctx = schedThread(th);
                 if (ctx) {
                     schedule(th, ctx);
-                    zinfo->cores[th->cid]->join(); bar.join(th->cid, &schedLock); //releases lock
+                    zinfo->cores[th->cid]->join();
+					bar.join(th->cid, &schedLock); //releases lock
                 } else if (th->state != BLOCKED) {
                     th->state = QUEUED;
                     runQueue.push_back(th);
@@ -331,11 +333,14 @@ class Scheduler : public GlobAlloc, public Callee {
         void leave(uint32_t pid, uint32_t tid, uint32_t cid) {
             futex_lock(&schedLock);
             //Just call bar.leave
+			//info("leave");
             uint32_t gid = getGid(pid, tid);
             ThreadInfo* th = contexts[cid].curThread;
             assert(th->gid == gid);
             assert(th->state == RUNNING);
             zinfo->cores[cid]->leave();
+			/* OOOE: Mark that a thread completed (SMTCore) */
+			zinfo->cores[cid]->markDone();
 
             if (th->markedForSleep) { //transition to SLEEPING, eagerly deschedule
                 trace(Sched, "Sched: %d going to SLEEP, wakeup on phase %ld", gid, th->wakeupPhase);
@@ -388,6 +393,7 @@ class Scheduler : public GlobAlloc, public Callee {
             ThreadInfo* th = contexts[cid].curThread;
             assert(!th->markedForSleep);
             bar.sync(cid, &schedLock); //releases lock, may trigger end of phase, may block us
+			//info("sync");
 
             //No locks at this point; we need to check whether we need to hand off our context
             if (th->handoffThread) {
@@ -425,34 +431,39 @@ class Scheduler : public GlobAlloc, public Callee {
 		 */
 		void yield(uint32_t cid) {
 			futex_lock(&schedLock);
+			//info("yield");
 			trace(Sched, "Sched: core %d was yielded by %d.", cid, procIdx);
 			ThreadInfo* th = contexts[cid].curThread;
 			ContextInfo* ctx = &contexts[cid];
 
-			// prepare to sleep / rest
-			zinfo->cores[cid]->leave();
-			deschedule(th, ctx, BLOCKED);
-			runQueue.push_back(th);
-
-			ThreadInfo* inTh = schedContext(ctx);
-			if (inTh) {
-				schedule(inTh, ctx);
-				zinfo->cores[ctx->cid]->join(); // inTh does not do a sched->join, 
-				// so we need to notify the core since we just called leave() on it
-				// wakeup(inTh, false);
-				if (th != inTh) {
-					inTh->needsJoin = false;
-					inTh->futexWord = 0;
-					syscall(SYS_futex, &inTh->futexWord, FUTEX_WAKE, 1, nullptr, nullptr, 0);
-					waitForContext(th); //releases lock, might join
+			if (!runQueue.empty()) {
+				// prepare to sleep / rest
+				zinfo->cores[cid]->leave();
+				deschedule(th, ctx, BLOCKED);
+				runQueue.push_back(th);
+				
+				ThreadInfo* inTh = schedContext(ctx);
+				if (inTh) {
+					schedule(inTh, ctx);
+					zinfo->cores[ctx->cid]->join(); // inTh does not do a sched->join, 
+					// so we need to notify the core since we just called leave() on it
+					// wakeup(inTh, false);
+					if (th != inTh) {
+						inTh->needsJoin = false;
+						inTh->futexWord = 0;
+						syscall(SYS_futex, &inTh->futexWord, FUTEX_WAKE, 1, nullptr, nullptr, 0);
+						waitForContext(th); //releases lock, might join
+					}
 				}
 			}
+
 			futex_unlock(&schedLock);
-        }
+		}
 
         // This is called with schedLock held, and must not release it!
         virtual void callback() {
             //End of phase stats
+			//info("callback");
             assert(scheduledThreads <= numCores);
             occHist.inc(scheduledThreads);
             uint32_t rqPos = (runQueue.size() < (runQueueHist.size()-1))? runQueue.size() : (runQueueHist.size()-1);
@@ -493,6 +504,7 @@ class Scheduler : public GlobAlloc, public Callee {
 
         volatile uint32_t* markForSleep(uint32_t pid, uint32_t tid, uint64_t wakeupPhase) {
             futex_lock(&schedLock);
+			//info("markForSleep");
             uint32_t gid = getGid(pid, tid);
             trace(Sched, "%d marking for sleep", gid);
             ThreadInfo* th = gidMap[gid];
@@ -514,6 +526,7 @@ class Scheduler : public GlobAlloc, public Callee {
 
         bool isSleeping(uint32_t pid, uint32_t tid) {
             futex_lock(&schedLock);
+			//info("isSleeping");
             uint32_t gid = getGid(pid, tid);
             ThreadInfo* th = gidMap[gid];
             bool res = th->state == SLEEPING;
@@ -523,6 +536,7 @@ class Scheduler : public GlobAlloc, public Callee {
 
         void notifySleepEnd(uint32_t pid, uint32_t tid) {
             futex_lock(&schedLock);
+			//info("notifySleepEnd");
             uint32_t gid = getGid(pid, tid);
             ThreadInfo* th = gidMap[gid];
             assert(th->markedForSleep == false);
@@ -539,6 +553,7 @@ class Scheduler : public GlobAlloc, public Callee {
 
         void printThreadState(uint32_t pid, uint32_t tid) {
             futex_lock(&schedLock);
+			//info("printThreadState");
             uint32_t gid = getGid(pid, tid);
             ThreadInfo* th = gidMap[gid];
             info("[%d] is in scheduling state %d", tid, th->state);
@@ -550,6 +565,7 @@ class Scheduler : public GlobAlloc, public Callee {
              * Leaving the lock off is safe now, but if this function gets more complex, we may have to rethink this.
              */
             //futex_lock(&schedLock);
+			//info("notifyTermination");
             terminateWatchdogThread = true;
             //futex_unlock(&schedLock);
         }
@@ -561,6 +577,7 @@ class Scheduler : public GlobAlloc, public Callee {
         //much bigger problem.
         void processCleanup(uint32_t pid) {
             futex_lock(&schedLock);
+			//info("processCleanup");
             std::vector<uint32_t> doomedTids;
             g_unordered_map<uint32_t, ThreadInfo*>::iterator it;
             for (it = gidMap.begin(); it != gidMap.end(); it++) {
@@ -576,7 +593,7 @@ class Scheduler : public GlobAlloc, public Callee {
                     }
                     finish(pid, tid);
                 }
-                info("[sched] Cleaned up pid %d, %ld tids", pid, doomedTids.size());
+                //info("[sched] Cleaned up pid %d, %ld tids", pid, doomedTids.size());
             }
         }
 
@@ -584,6 +601,7 @@ class Scheduler : public GlobAlloc, public Callee {
         //so we'll just have the watchdog thread to it once we're gone
         void queueProcessCleanup(uint32_t pid, uint32_t osPid) {
             futex_lock(&schedLock);
+			//info("queueProcessCleanup");
             pendingPidCleanups.push_back(std::make_pair(pid, osPid));
             futex_unlock(&schedLock);
         }
@@ -663,7 +681,7 @@ class Scheduler : public GlobAlloc, public Callee {
                     else panic("Invalid state cid=%d, threadState=%d", c, contexts[c].curThread->state);
                 }
             }
-            info(" State: %s", ss.str().c_str());
+            //info(" State: %s", ss.str().c_str());
         }
 
 
@@ -677,6 +695,7 @@ class Scheduler : public GlobAlloc, public Callee {
          */
         ContextInfo* schedThread(ThreadInfo* th) {
             ContextInfo* ctx = nullptr;
+			//info("schedThread");
 
             //First, try to get scheduled in the last context we were running at
             assert(th->cid < numCores); //though old, it should be in a valid range
@@ -724,6 +743,7 @@ class Scheduler : public GlobAlloc, public Callee {
         ThreadInfo* schedContext(ContextInfo* ctx) {
             ThreadInfo* th = nullptr;
             ThreadInfo* blockedTh = runQueue.front();  // null if empty
+			//info("schedContext");
             while (blockedTh) {
                 if (blockedTh->mask[ctx->cid]) {
                     th = blockedTh;
@@ -742,6 +762,7 @@ class Scheduler : public GlobAlloc, public Callee {
         void schedTick() {
             std::vector<uint32_t> availVec;
             availVec.resize(zinfo->numCores);
+			//info("schedTick");
             for (uint32_t i = 0; i < zinfo->numCores; i++) availVec[i] = i;
 
             //Random shuffle (Fisher-Yates)
@@ -782,7 +803,7 @@ class Scheduler : public GlobAlloc, public Callee {
                 if (scheduled) runQueue.remove(pth);
             }
 
-            info("Time slice ended, context-switched %d threads, runQueue size %ld, available %ld", contextSwitches, runQueue.size(), avail.size());
+            //info("Time slice ended, context-switched %d threads, runQueue size %ld, available %ld", contextSwitches, runQueue.size(), avail.size());
             printState();
         }
 

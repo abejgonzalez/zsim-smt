@@ -265,8 +265,9 @@ void LaunchProcess(uint32_t procIdx) {
 		for (unsigned int i = 0; i < args.size(); i++) {
 			trace(Harness, " arg%d = %s", i, args[i].c_str());
 			aptrs[i] = args[i].c_str();
-            //OOOE
-            printf("(%d, %s) ", i, aptrs[i]);
+			/* OOOE: */
+			printf("%s ", aptrs[i]);
+            //printf("(%d, %s) ", i, aptrs[i]);
 		}
 		aptrs[nargs - 1] = nullptr;
         printf("\n");
