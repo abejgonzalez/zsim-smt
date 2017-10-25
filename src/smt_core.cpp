@@ -533,6 +533,10 @@ void SMTCore::runBblStatUpdate(BblContext* bblContext){
 #endif
 }
 
+void SMTCore::blah(){
+	printf("OOOE: (%d, %lu) (%d, %lu)\n", smtWindow->bblQueue[0].pid, smtWindow->contentionMap[smtWindow->bblQueue[0].pid].cache, smtWindow->bblQueue[1].pid, smtWindow->contentionMap[smtWindow->bblQueue[1].pid].cache);
+}
+
 /* OOOE: runFrontend()
  * Description: Function to update the appropriate cycle counts for branchPred, iFetch and decode 
  * Input: Load/Store pointers for the current bblContext, previous Bbl commitcycle, and the current BblContext reference
@@ -597,7 +601,11 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		
 		uint64_t reqCycle = fetchCycle;
 		for (uint32_t i = 0; i < (5 * 64) / lineSize; i++) {
+			uint64_t prev = smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache;
 			uint64_t fetchLat = l1i->load2(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache) - curCycle;
+			if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
+				blah();
+			}
 			cRec.record(curCycle, curCycle, curCycle + fetchLat);
 			uint64_t respCycle = reqCycle + fetchLat;
 			if (respCycle > lastCommitCycle) {
@@ -619,7 +627,11 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		// Do not model fetch throughput limit here, decoder-generated stalls already include it
 		// We always call fetches with curCycle to avoid upsetting the weave
 		// models (but we could move to a fetch-centric recorder to avoid this)
+		uint64_t prev = smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache;
 		uint64_t fetchLat = l1i->load2(fetchAddr, curCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache) - curCycle;
+		if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
+			blah();
+		}
 		//TODO: something with cycle for instruction cache Barak
 		cRec.record(curCycle, curCycle, curCycle + fetchLat);
 		fetchCycle += fetchLat;
@@ -738,7 +750,11 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
+					uint64_t prev = smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache;
                     reqSatisfiedCycle = l1d->load2(addr, dispatchCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache) + L1D_LAT;
+					if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
+						blah();
+					}
                     cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
                 }
 

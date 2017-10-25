@@ -310,6 +310,7 @@ class SMTCore : public Core {
          */
         inline void advance(uint64_t targetCycle);
         inline void branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc);
+		void blah();
 
 		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
 		// leave these functions uninlined for debugging purposes.
