@@ -249,18 +249,6 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 	prevContext->branchNotTakenNpc = notTakenNpc;
 }
 
-inline void SMTCore::assignPidArray(pid_t pid){
-    for ( uint8_t i = 0; i < 2; i++ ){
-        if ( smtWindow->contentionPid[i] == pid )
-            return;
-        else if ( !smtWindow->contentionPid[i] ){
-            smtWindow->contentionPid[i] = pid;
-            return;
-        }
-    }
-    return;
-}
-
 /* OOOE: Refactored BBL function to store BBL's and not run them */
 void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	if ( !prevContext->bbl ) {
@@ -278,18 +266,15 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
         if( smtWindow->bblQueue[1-vcore].empty() ){
             /* Assign and fill */
             smtWindow->bblQueue[vcore].pid = getpid();
-            assignPidArray(getpid());
         }
         else{
             if ( smtWindow->bblQueue[1-vcore].pid == getpid() ){
                 /* Assign and fill but mark old */
                 smtWindow->bblQueue[vcore].pid = getpid();
-                assignPidArray(getpid());
                 smtWindow->bblQueue[vcore].older = true;
             }
             else{
                 /* Assign and fill */
-                assignPidArray(getpid());
                 smtWindow->bblQueue[vcore].pid = getpid();
             }
         }
@@ -416,7 +401,7 @@ void SMTCore::playback() {
 			curBblSwap = false;
 
 			/* OOOE: Update the stats for the finished Bbl */
-			runBblStatUpdate(curBblSwapQ, smtWindow->prevContext[curBblSwapQ]);
+			runBblStatUpdate(smtWindow->prevContext[curBblSwapQ]);
 			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
 			runFrontend(curBblSwapQ, smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
 			/* OOOE: Clear the load/store indexes since Bbl finished */
@@ -441,7 +426,7 @@ void SMTCore::playback() {
 		curBblSwap = false;
 
 		/* OOOE: Update the stats for the finished Bbl */
-		runBblStatUpdate(curBblSwapQ, smtWindow->prevContext[curBblSwapQ]);
+		runBblStatUpdate(smtWindow->prevContext[curBblSwapQ]);
 		/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
 		runFrontend(curBblSwapQ, smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
 		/* OOOE: Clear the load/store indexes since Bbl finished */
@@ -612,7 +597,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		
 		uint64_t reqCycle = fetchCycle;
 		for (uint32_t i = 0; i < (5 * 64) / lineSize; i++) {
-			uint64_t fetchLat = l1i->load2(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->cacheContention[presQ]) - curCycle;
+			uint64_t fetchLat = l1i->load2(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache) - curCycle;
 			cRec.record(curCycle, curCycle, curCycle + fetchLat);
 			uint64_t respCycle = reqCycle + fetchLat;
 			if (respCycle > lastCommitCycle) {
@@ -634,7 +619,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		// Do not model fetch throughput limit here, decoder-generated stalls already include it
 		// We always call fetches with curCycle to avoid upsetting the weave
 		// models (but we could move to a fetch-centric recorder to avoid this)
-		uint64_t fetchLat = l1i->load2(fetchAddr, curCycle, &smtWindow->cacheContention[presQ]) - curCycle;
+		uint64_t fetchLat = l1i->load2(fetchAddr, curCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache) - curCycle;
 		//TODO: something with cycle for instruction cache Barak
 		cRec.record(curCycle, curCycle, curCycle + fetchLat);
 		fetchCycle += fetchLat;
@@ -753,7 +738,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
-                    reqSatisfiedCycle = l1d->load2(addr, dispatchCycle, &smtWindow->cacheContention[presQ]) + L1D_LAT;
+                    reqSatisfiedCycle = l1d->load2(addr, dispatchCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache) + L1D_LAT;
                     cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
                 }
 

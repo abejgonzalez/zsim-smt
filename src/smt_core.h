@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include "core.h"
 #include "g_std/g_multimap.h"
+#include "g_std/g_unordered_map.h"
 #include "memory_hierarchy.h"
 #include "ooo_core_recorder.h"
 #include "ooo_core.h"
@@ -177,8 +178,6 @@ class SmtWindow {
 				uopIdx[i] = 0;
 				prevContext[i] = nullptr;
 				loadId[i] = storeId[i] = 0;
-				cacheContention[i] = 0;
-				contentionPid[i] = 0;
 			}
 			thCompleted = false;
 		}
@@ -311,7 +310,6 @@ class SMTCore : public Core {
          */
         inline void advance(uint64_t targetCycle);
         inline void branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc);
-        inline void assignPidArray(pid_t pid);
 
 		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
 		// leave these functions uninlined for debugging purposes.
