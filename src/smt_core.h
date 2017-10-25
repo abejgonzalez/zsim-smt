@@ -161,7 +161,8 @@ class SmtWindow {
 				uopIdx[i] = 0;
 				prevContext[i] = nullptr;
 				loadId[i] = storeId[i] = 0;
-				queuePid[i] = 0;
+				cacheContention[i] = 0;
+				contentionPid[i] = 0;
 			}
 			thCompleted = false;
 		}
@@ -171,11 +172,12 @@ class SmtWindow {
 		bool thCompleted;
 		uint8_t vcore; // Current virtual core in use (used to access right queue)(vcore < numCores)
 		BblQueue<QUEUE_SIZE> bblQueue[NUM_VCORES];
-        pid_t queuePid[NUM_VCORES];
 		uint32_t uopIdx[NUM_VCORES];
 		BblContext* prevContext [NUM_VCORES];
 		uint32_t loadId[NUM_VCORES];
 		uint32_t storeId[NUM_VCORES];
+        uint64_t cacheContention[NUM_VCORES]; //OOOE: barak for holding both contention cycles
+        pid_t contentionPid[NUM_VCORES];
 };
 
 class SMTCore : public Core {
@@ -194,7 +196,6 @@ class SMTCore : public Core {
         uint64_t phaseEndCycle; //next stopping point
         uint64_t curCycle; //this model is issue-centric; curCycle refers to the current issue cycle
         uint64_t decodeCycle;
-	uint64_t contention_cycles; //OOOE: barak for holding both contention cycles
 
         CycleQueue<28> uopQueue;  // models issue queue
         uint64_t instrs, uops, bbls, approxInstrs;
@@ -293,15 +294,16 @@ class SMTCore : public Core {
          */
         inline void advance(uint64_t targetCycle);
         inline void branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc);
+        inline void assignPidArray(pid_t pid);
 
 		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
 		// leave these functions uninlined for debugging purposes.
 		void playback();
 		bool getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ);
         
-		void runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext * bblContext);
-		void runBblStatUpdate(BblContext * bblContext);
-		void runFrontend(uint32_t &loadIdx, uint32_t &storeIdx, uint64_t &lastCommitCycle, BblContext * bblContext);
+		void runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext * bblContext);
+		void runBblStatUpdate(uint8_t presQ, BblContext * bblContext);
+		void runFrontend(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint64_t &lastCommitCycle, BblContext * bblContext);
 
 		/* OOOE: bbl analysis function. constructs a BblContext */
         void bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo);

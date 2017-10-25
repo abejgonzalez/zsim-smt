@@ -249,6 +249,18 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 	prevContext->branchNotTakenNpc = notTakenNpc;
 }
 
+inline void SMTCore::assignPidArray(pid_t pid){
+    for ( uint8_t i = 0; i < 2; i++ ){
+        if ( smtWindow->contentionPid[i] == pid )
+            return;
+        else if ( !smtWindow->contentionPid[i] ){
+            smtWindow->contentionPid[i] = pid;
+            return;
+        }
+    }
+    return;
+}
+
 /* OOOE: Refactored BBL function to store BBL's and not run them */
 void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	if ( !prevContext->bbl ) {
@@ -266,15 +278,18 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
         if( smtWindow->bblQueue[1-vcore].empty() ){
             /* Assign and fill */
             smtWindow->bblQueue[vcore].pid = getpid();
+            assignPidArray(getpid());
         }
         else{
             if ( smtWindow->bblQueue[1-vcore].pid == getpid() ){
                 /* Assign and fill but mark old */
                 smtWindow->bblQueue[vcore].pid = getpid();
+                assignPidArray(getpid());
                 smtWindow->bblQueue[vcore].older = true;
             }
             else{
                 /* Assign and fill */
+                assignPidArray(getpid());
                 smtWindow->bblQueue[vcore].pid = getpid();
             }
         }
@@ -401,9 +416,9 @@ void SMTCore::playback() {
 			curBblSwap = false;
 
 			/* OOOE: Update the stats for the finished Bbl */
-			runBblStatUpdate(smtWindow->prevContext[curBblSwapQ]);
+			runBblStatUpdate(curBblSwapQ, smtWindow->prevContext[curBblSwapQ]);
 			/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
-			runFrontend(smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
+			runFrontend(curBblSwapQ, smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
 			/* OOOE: Clear the load/store indexes since Bbl finished */
 			smtWindow->loadId[curBblSwapQ] = smtWindow->storeId[curBblSwapQ] = 0;
 		}
@@ -413,7 +428,7 @@ void SMTCore::playback() {
 		assert (bblContext != 0);
 
         /* OOOE: Run the uop here similar to bbl() */
-        runUop(smtWindow->loadId[curQ], smtWindow->storeId[curQ], prevDecCycle, lastCommitCycle, uop, bblContext);
+        runUop(curQ, smtWindow->loadId[curQ], smtWindow->storeId[curQ], prevDecCycle, lastCommitCycle, uop, bblContext);
 
 		/* OOOE: Keep the previous pointer to the last Bbl (on a per Q basis) */
 		smtWindow->prevContext[curQ] = bblContext;
@@ -426,9 +441,9 @@ void SMTCore::playback() {
 		curBblSwap = false;
 
 		/* OOOE: Update the stats for the finished Bbl */
-		runBblStatUpdate(smtWindow->prevContext[curBblSwapQ]);
+		runBblStatUpdate(curBblSwapQ, smtWindow->prevContext[curBblSwapQ]);
 		/* OOOE: Run the other functions (BranchPred, iFetch, Decode) */
-		runFrontend(smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
+		runFrontend(curBblSwapQ, smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
 		/* OOOE: Clear the load/store indexes since Bbl finished */
 		smtWindow->loadId[curBblSwapQ] = smtWindow->storeId[curBblSwapQ] = 0;
 	}
@@ -520,7 +535,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
  * Input: A BblContext reference
  * Output: None 
  */
-void SMTCore::runBblStatUpdate(BblContext* bblContext){
+void SMTCore::runBblStatUpdate(uint8_t presQ, BblContext* bblContext){
 	/* OOOE: TODO: Implement instrs */
 	//instrs += bblInstrs;
 	uops += bblContext->bbl->oooBbl[0].uops;
@@ -545,7 +560,7 @@ void SMTCore::runBblStatUpdate(BblContext* bblContext){
  * decoder.cpp). So here, we compute fetchCycle, then use it to adjust
  * decodeCycle. 
  */
-void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){
+void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){
 	// Check full match between expected and actual mem ops
 	// If these assertions fail, most likely, something's off in the decoder
 	// assert_msg(loadIdx == bblContext->loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, bblContext->loads);
@@ -597,7 +612,7 @@ void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastC
 		
 		uint64_t reqCycle = fetchCycle;
 		for (uint32_t i = 0; i < (5 * 64) / lineSize; i++) {
-			uint64_t fetchLat = l1i->load2(wrongPathAddr + (i * lineSize), curCycle, &contention_cycles) - curCycle;
+			uint64_t fetchLat = l1i->load2(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->cacheContention[presQ]) - curCycle;
 			cRec.record(curCycle, curCycle, curCycle + fetchLat);
 			uint64_t respCycle = reqCycle + fetchLat;
 			if (respCycle > lastCommitCycle) {
@@ -619,7 +634,7 @@ void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastC
 		// Do not model fetch throughput limit here, decoder-generated stalls already include it
 		// We always call fetches with curCycle to avoid upsetting the weave
 		// models (but we could move to a fetch-centric recorder to avoid this)
-		uint64_t fetchLat = l1i->load2(fetchAddr, curCycle, &contention_cycles) - curCycle;
+		uint64_t fetchLat = l1i->load2(fetchAddr, curCycle, &smtWindow->cacheContention[presQ]) - curCycle;
 		//TODO: something with cycle for instruction cache Barak
 		cRec.record(curCycle, curCycle, curCycle + fetchLat);
 		fetchCycle += fetchLat;
@@ -644,7 +659,7 @@ void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastC
  * Input: Load/Store pointers for the current bblContext, previous Bbl commitcycle, and the current UOP/BblContext reference
  * Output: None 
  */
-void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {
+void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {
     DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
     assert( bbl != nullptr );
     assert( uop != nullptr );
@@ -738,7 +753,7 @@ void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycl
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
-                    reqSatisfiedCycle = l1d->load2(addr, dispatchCycle, &contention_cycles) + L1D_LAT;
+                    reqSatisfiedCycle = l1d->load2(addr, dispatchCycle, &smtWindow->cacheContention[presQ]) + L1D_LAT;
                     cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
                 }
 

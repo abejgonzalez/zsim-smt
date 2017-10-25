@@ -119,14 +119,11 @@ class FilterCache : public Cache {
                 fGETSHit++;
                 return MAX(curCycle, availCycle);
             } else {
-		//TODO: return MAX(curCycle, availCycle);
-		// store replace(vLineAddr, idx, true, curCycle); into our array of contention
-		uint64_t hold = replace(vLineAddr, idx, true, curCycle);
-		info("contention cycles1 are %ld", *contention); 
-		info("extra contention is are %ld", (hold- MAX(curCycle,availCycle))); 
-                *contention += hold - MAX(curCycle, availCycle);
-		info("contention cycles2 are %ld", *contention); 
-                return MAX(curCycle, availCycle);
+                uint64_t hold = replace(vLineAddr, idx, true, curCycle);
+                info("OOOE: Hold Cycles:%lu CurCycles:%lu Max Cycles:%lu", hold, curCycle, MAX(curCycle, availCycle));
+                info("OOOE: ContentionCycles updated: %lu -> %lu with extra contention: %lu", *contention, *contention + hold - curCycle, hold - curCycle);
+                *contention += hold - curCycle;
+                return curCycle;
             }
         }
 
