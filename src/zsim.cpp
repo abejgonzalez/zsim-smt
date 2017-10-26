@@ -177,10 +177,10 @@ VOID PIN_FAST_ANALYSIS_CALL IndirectStoreSingle(THREADID tid, ADDRINT addr) {
 }
 
 VOID PIN_FAST_ANALYSIS_CALL IndirectBasicBlock(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
-	FILE *traceFile = fopen("tests/traces/ctrace.txt", "a+");
-	fprintf(traceFile, "/** IndirectBasicBlock(%d, %p): (%d, %p) **/\n", getpid(), cores[tid], tid, fPtrs[tid].loadPtr);
+	//FILE *traceFile = fopen("tests/traces/ctrace.txt", "a+");
+	//fprintf(traceFile, "/** IndirectBasicBlock(%d, %p): (%d, %p) **/\n", getpid(), cores[tid], tid, fPtrs[tid].loadPtr);
     fPtrs[tid].bblPtr(tid, bblAddr, bblInfo);
-	fclose(traceFile);
+	//fclose(traceFile);
 }
 
 VOID PIN_FAST_ANALYSIS_CALL IndirectRecordBranch(THREADID tid, ADDRINT branchPc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
@@ -629,7 +629,7 @@ static void PrintInstruction(INS ins){
 
 VOID Instruction(INS ins) {
     //Uncomment to print an instruction trace
-    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)PrintIp, IARG_THREAD_ID, IARG_REG_VALUE, REG_INST_PTR, IARG_END);
+    //INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)PrintIp, IARG_THREAD_ID, IARG_REG_VALUE, REG_INST_PTR, IARG_END);
 
     if (!procTreeNode->isInFastForward() || !zinfo->ffReinstrument) {
         AFUNPTR LoadFuncPtr = (AFUNPTR) IndirectLoadSingle;
@@ -718,7 +718,7 @@ VOID Trace(TRACE trace, VOID *v) {
     //Instruction instrumentation now here to ensure proper ordering
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
-			PrintInstruction(ins); /* OOOE: RM: Print to tests/traces/itrace.txt */
+			//PrintInstruction(ins); /* OOOE: RM: Print to tests/traces/itrace.txt */
 			if (!INS_IsXend(ins)) {
             	Instruction(ins);
 			}
