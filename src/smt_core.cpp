@@ -517,6 +517,19 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 	}
 }
 
+/* OOOE: printBBL()
+ * Description: Function to print what BBL has completed, of which process
+ * Input: BBL and all other pointers/indices 
+ * Output: None 
+ */
+static inline void printBbl(BblContext& cntxt, pid_t pid) {
+	std::ostringstream oss1;
+	oss1 << "tests/traces/" << "bbl_trace" << ".csv";
+	FILE *tfile = fopen(oss1.str().c_str(), "a+");
+	fprintf(tfile, "%u, %u", pid, cntxt.bbl->oooBbl[0].uops);
+	fclose(tfile);
+}
+
 /* OOOE: runBblStatUpdate()
  * Description: Function to update the core globals for simulation stats 
  * Input: A BblContext reference
@@ -528,6 +541,8 @@ void SMTCore::runBblStatUpdate(BblContext* bblContext){
 	uops += bblContext->bbl->oooBbl[0].uops;
 	bbls++;
 	approxInstrs += bblContext->bbl->oooBbl[0].approxInstrs;
+	/* OOOE: Print end of BBL */
+	printBbl(*bblContext, getpid());
 
 #ifdef BBL_PROFILING
 	fprintf(stderr, "OOOE: BBlProfiling enabled\n");

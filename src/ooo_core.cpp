@@ -553,14 +553,14 @@ void OOOCore::leave() {
 }
 
 void OOOCore::cSimStart() {
-    info("OOOE: cSimStart()");
+    //info("OOOE: cSimStart()");
     uint64_t targetCycle = cRec.cSimStart(curCycle);
     assert(targetCycle >= curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
 }
 
 void OOOCore::cSimEnd() {
-    info("OOOE: cSimEnd()");
+    //info("OOOE: cSimEnd()");
     uint64_t targetCycle = cRec.cSimEnd(curCycle);
     assert(targetCycle >= curCycle);
     if (targetCycle > curCycle) advance(targetCycle);
