@@ -524,8 +524,6 @@ static inline void printBbl(BblContext& cntxt, pid_t pid) {
 	std::ostringstream oss1;
 	oss1 << "tests/traces/" << "bbl_trace" << ".csv";
 	FILE *tfile = fopen(oss1.str().c_str(), "a+");
-	printf("%p file\n", tfile);
-	printf("Doing the printBBL");
 	fprintf(tfile, "%u, %u", pid, cntxt.bbl->oooBbl[0].uops);
 	fclose(tfile);
 }
