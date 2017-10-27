@@ -158,12 +158,10 @@ class Contention {
 	public:
 		uint64_t cache;
 		uint64_t branchPrediction;
-		uint64_t memory;
 
 		Contention() {
 			cache = 0;
 			branchPrediction = 0;
-			memory = 0;
 		}
 };
 
@@ -310,7 +308,7 @@ class SMTCore : public Core {
          */
         inline void advance(uint64_t targetCycle);
         inline void branch(Address pc, bool taken, Address takenNpc, Address notTakenNpc);
-		void blah();
+		inline void printContention();
 
 		/* OOOE: Functions to implement old Bbl() logic with interleaved instruction streams */
 		// leave these functions uninlined for debugging purposes.
