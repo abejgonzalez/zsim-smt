@@ -111,7 +111,7 @@ class FilterCache : public Cache {
             }
         }
 
-        inline uint64_t load2(Address vAddr, uint64_t curCycle, uint64_t* contention) {
+        inline uint64_t loadSeparate(Address vAddr, uint64_t curCycle, uint64_t* contention) {
             Address vLineAddr = vAddr >> lineBits;
             uint32_t idx = vLineAddr & setMask;
             uint64_t availCycle = filterArray[idx].availCycle; //read before, careful with ordering to avoid timing races
@@ -119,14 +119,11 @@ class FilterCache : public Cache {
                 fGETSHit++;
                 return MAX(curCycle, availCycle);
             } else {
-		//TODO: return MAX(curCycle, availCycle);
-		// store replace(vLineAddr, idx, true, curCycle); into our array of contention
-		uint64_t hold = replace(vLineAddr, idx, true, curCycle);
-		info("contention cycles1 are %ld", *contention); 
-		info("extra contention is are %ld", (hold- MAX(curCycle,availCycle))); 
-                *contention += hold - MAX(curCycle, availCycle);
-		info("contention cycles2 are %ld", *contention); 
-                return MAX(curCycle, availCycle);
+                uint64_t hold = replace(vLineAddr, idx, true, curCycle);
+                //info("OOOE: Hold Cycles:%lu CurCycles:%lu Max Cycles:%lu", hold, curCycle, MAX(curCycle, availCycle));
+                //info("OOOE: ContentionCycles updated: %lu -> %lu with extra contention: %lu", *contention, *contention + hold - curCycle, hold - curCycle);
+                *contention += hold - curCycle;
+                return curCycle;
             }
         }
 
