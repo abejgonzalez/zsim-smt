@@ -37,6 +37,7 @@
 
 // Uncomment to enable stall stats
 // #define OOO_STALL_STATS
+#define CSV_STATS
 
 class FilterCache;
 
@@ -398,7 +399,7 @@ class OOOCore : public Core {
 
         //Nehalem
         WindowStructure<1024, 36 /*size*/> insWindow; //NOTE: IW width is implicitly determined by the decoder, which sets the port masks according to uop type
-        ReorderBuffer<128, 4> rob;
+        ReorderBuffer<32, 4> rob;
 
         // Agner's guide says it's a 2-level pred and BHSR is 18 bits, so this is the config that makes sense;
         // in practice, this is probably closer to the Pentium M's branch predictor, (see Uzelac and Milenkovic,
@@ -486,6 +487,11 @@ class OOOCore : public Core {
         static void PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred);
         static void BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo);
         static void BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc);
+		
+#ifdef CSV_STAT
+		
+#endif
+
 } ATTR_LINE_ALIGNED;  // Take up an int number of cache lines
 
 #endif  // OOO_CORE_H_

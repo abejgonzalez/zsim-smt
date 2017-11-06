@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import mpld3
 
 TRACEDIR = "traces"
 PLOTDIR = "plots"
@@ -15,14 +16,13 @@ mpl.style.use("fivethirtyeight")
 # itrace plots
 itrace = pd.read_csv(TRACEDIR + "/itrace.csv", index_col=False,
     names=["pid", "queue", "numContexts", "uop", "numUops", "cycleCount"])
-print itrace.head()
+# print itrace.head()
 num_pid = len(itrace["pid"].get_values())
 unique_pids = set(itrace["pid"].get_values())
 num_unique_pid = len(unique_pids)
-print unique_pids
+# print unique_pids
 
 
-# instructions executed by vcore
 fig, ax = plt.subplots(figsize=(10, 6))
 # plt.scatter(itrace["cycleCount"], itrace["pid"], c=cm.hot(np.abs(y)), edgecolor='none')
 plt.scatter(itrace["cycleCount"], itrace["pid"], c=itrace["pid"])
@@ -33,11 +33,13 @@ plt.yticks(list(unique_pids))
 plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 plt.tight_layout()
 plt.savefig(PLOTDIR + "/vcore_exec2.png")
+# print mpld3.fig_to_d3(fig)
 
+# instructions executed by vcore
 fig, ax = plt.subplots(figsize=(10, 6))
 sns.countplot(y="queue", hue="pid", data=itrace)
 ax.set_title("Virtual Core Thread Execution")
 ax.set_xlabel("Microinstructions Executed", labelpad=10)
 ax.set_ylabel("Virtual Core", labelpad=10)
 plt.savefig(PLOTDIR + "/vcore_exec.png")
-plt.show()
+print mpld3.fig_to_d3(fig)

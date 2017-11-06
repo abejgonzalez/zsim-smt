@@ -9,7 +9,7 @@ LOGDIR = ./log
 TRACEDIR = ./tests/traces
 PLOTDIR = ./tests/plots
 PLOTSCRIPT = visual.py
-TEST = $(TESTDIR)/smt.cfg
+TEST = $(TESTDIR)/ooo.cfg
 ZSIM = $(BUILDDIR)/debug/zsim
 
 # outputs
@@ -35,6 +35,9 @@ test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 
 test-clean:
 	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
+
+log-clean:
+	$(RM) $(LOGDIR)/*
 
 trace-clean:
 	$(RM) -rf $(TRACEDIR)
