@@ -1,0 +1,32 @@
+#include <iostream>
+#include <stdlib.h>
+#include <ctime>
+
+/*
+ * This program supposedly causes a large amount of instruction
+ * cache misses. It does this by performing random accesses into
+ * a VERY large switch statement
+ * NOTE: DO NOT COMPILE WITH OPTIMIZATIONS
+ */
+
+<%  NUM_CASES = 1000000 %>
+
+int big_switch(int n) {
+    switch (n) {
+        <% (0..NUM_CASES).each do |s| %> case <%= s %>: n += <%= s+s/2 %>; 
+        <% end %>
+    }
+    return n;
+}
+
+int main() {
+    int n = 0;
+    clock_t start = clock();
+    for (int i = 0; i < 100000; i++) {
+        int num = rand() % <%= NUM_CASES %>;
+        n += big_switch(num);
+    }
+    double elapsed_time = static_cast<double>(clock() - start) / CLOCKS_PER_SEC;
+    std::cout << "Elapsed Time: " << elapsed_time << std::endl;
+    std::cout << "Sum: " << n << std::endl;
+}
