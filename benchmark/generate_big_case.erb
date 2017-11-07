@@ -13,7 +13,8 @@
 
 int big_switch(int n) {
     switch (n) {
-        <% (0..NUM_CASES).each do |s| %> case <%= s %>: n += <%= s+s/2 %>; 
+        <% (0..NUM_CASES).each do |s| %> case <%= s %>: n += <%= s+s/2 %>;
+            break;
         <% end %>
     }
     return n;
@@ -22,11 +23,11 @@ int big_switch(int n) {
 int main() {
     int n = 0;
     clock_t start = clock();
-    for (int i = 0; i < 100000; i++) {
+    for (int i = 0; i < 100000000; i++) {
         int num = rand() % <%= NUM_CASES %>;
         n += big_switch(num);
     }
     double elapsed_time = static_cast<double>(clock() - start) / CLOCKS_PER_SEC;
-    std::cout << "Elapsed Time: " << elapsed_time << std::endl;
+    std::cout << "Elapsed Time: " << elapsed_time << "s" << std::endl;
     std::cout << "Sum: " << n << std::endl;
 }
