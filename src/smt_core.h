@@ -163,6 +163,10 @@ class Contention {
 			cache = 0;
 			branchPrediction = 0;
 		}
+
+		inline uint64_t contentionTotal(){
+				return cache + branchPrediction;
+		}
 };
 
 /** OOOE:

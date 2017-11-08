@@ -621,7 +621,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 			/*if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
 				printContention();
 			}*/
-			cRec.record(curCycle, curCycle, curCycle + fetchLat);
+			cRec.record(curCycle, curCycle, curCycle + smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].contentionTotal());
 			uint64_t respCycle = reqCycle + fetchLat;
 			if (respCycle > lastCommitCycle) {
 				break;
@@ -648,7 +648,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 			printContention();
 		}*/
 		//TODO: something with cycle for instruction cache Barak
-		cRec.record(curCycle, curCycle, curCycle + fetchLat);
+		cRec.record(curCycle, curCycle, curCycle + smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].contentionTotal());
 		fetchCycle += fetchLat;
 	}
 
@@ -770,7 +770,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 					/*if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
 						printContention();
 					}*/
-                    cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
+                    cRec.record(curCycle, dispatchCycle, smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].contentionTotal());
                 }
 
                 // Enforce st-ld forwarding
