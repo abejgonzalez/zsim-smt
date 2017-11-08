@@ -10,7 +10,7 @@ int main() {
 	std::default_random_engine generator;
 	std::uniform_int_distribution<int> distribution(0,MAX_SIZE);
 
-	for (int i=0; i<100; ++i) {
+	for (int i=0; i<1000; ++i) {
 		int number = distribution(generator);
 		x[number] = distribution(generator);
 	}
