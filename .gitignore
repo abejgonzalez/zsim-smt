@@ -44,3 +44,6 @@ heartbeat
 *.log*
 out.cfg
 /log
+
+# sample_single.sh
+# sample_double.sh
