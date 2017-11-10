@@ -28,7 +28,6 @@
 #include <algorithm>
 #include <queue>
 #include <string>
-#include <inttypes.h>
 #include "bithacks.h"
 #include "g_std/g_multimap.h"
 #include "memory_hierarchy.h"
@@ -444,7 +443,7 @@ void SMTCore::playback() {
  * Input: UOP, BBL and all other pointers/indices 
  * Output: None 
  */
-static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t curQ, uint16_t numContextTot, uint32_t curUop, uint64_t curCycle) {
+static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t curQ, uint16_t numContextTot, uint32_t curUop) {
 	std::ostringstream oss1, oss2;
 	oss1 << "tests/traces/" << "itrace" << ".csv";
 	FILE *tfile = fopen(oss1.str().c_str(), "a+");
@@ -452,7 +451,6 @@ static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t cu
 	FILE *tfileVerb = fopen(oss2.str().c_str(), "a+");
 	fprintf(tfile, "%u, %u, %u, %u, %u, ", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
 	fprintf(tfileVerb, "PID:%u Q:%u BBL:%u UOP:%u/%u UOPTYPE:", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
-	fprintf(tfile, "%" PRIu64 ", ", curCycle);
 	if ( cntxt.bbl->oooBbl[0].uop[curUop].type == UOP_LOAD ){
 		fprintf(tfile, "LOAD\n");
 		fprintf(tfileVerb, "LOAD\n");
@@ -492,7 +490,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				/* OOOE: Get UOP and BblContext from current Q */
 				*uop = &(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]]);
 				*bblContext = cntxt;
-				printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ], curCycle);
+				printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
 				smtWindow->uopIdx[curQ] += 1;
 				return true;
 			} 

@@ -9,7 +9,7 @@ LOGDIR = ./log
 TRACEDIR = ./tests/traces
 PLOTDIR = ./tests/plots
 PLOTSCRIPT = visual.py
-TEST = $(TESTDIR)/ooo.cfg
+TEST = $(TESTDIR)/smt.cfg
 ZSIM = $(BUILDDIR)/debug/zsim
 
 # outputs
