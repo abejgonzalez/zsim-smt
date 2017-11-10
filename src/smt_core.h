@@ -158,14 +158,16 @@ class Contention {
 	public:
 		uint64_t cache;
 		uint64_t branchPrediction;
+		uint64_t bblFetch;
 
 		Contention() {
 			cache = 0;
 			branchPrediction = 0;
+			bblFetch = 0;
 		}
 
 		inline uint64_t contentionTotal(){
-				return cache + branchPrediction;
+			return cache + branchPrediction + bblFetch;
 		}
 };
 
@@ -229,6 +231,7 @@ class SMTCore : public Core {
         //to not overlap more than 10 misses.
         ReorderBuffer<32, 4> loadQueue;
         ReorderBuffer<32, 4> storeQueue;
+		g_unordered_map<pid_t, ReorderBuffer<64, 4>> dualRob;
         ReorderBuffer<128, 4> rob;
         uint32_t curCycleRFReads; //for RF read stalls
         uint32_t curCycleIssuedUops; //for uop issue limits

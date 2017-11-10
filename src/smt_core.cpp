@@ -643,7 +643,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		// We always call fetches with curCycle to avoid upsetting the weave
 		// models (but we could move to a fetch-centric recorder to avoid this)
 		//uint64_t prev = smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache;
-		uint64_t fetchLat = l1i->loadSeparate(fetchAddr, curCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].branchPrediction) - curCycle;
+		uint64_t fetchLat = l1i->loadSeparate(fetchAddr, curCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].bblFetch) - curCycle;
 		/*if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
 			printContention();
 		}*/
@@ -720,7 +720,8 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     }
 	//info("curCycleRFReads:%d", curCycleRFReads);
 
-    uint64_t c2 = rob.minAllocCycle();
+    //uint64_t c2 = rob.minAllocCycle();
+	uint64_t c2 = dualRob[smtWindow->bblQueue[presQ].pid].minAllocCycle();
     uint64_t c3 = curCycle;
 
     uint64_t cOps = MAX(c0, c1);
@@ -839,7 +840,8 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     }
 
     // Mark retire at ROB
-    rob.markRetire(commitCycle);
+    //rob.markRetire(commitCycle);
+	dualRob[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
 
     // Record dependences
     regScoreboard[uop->rd[0]] = commitCycle;
