@@ -56,6 +56,7 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 
     //info("OOOE: Creating a SMT Core");
 	futex_init(&windowLock);
+	futex_init(&weaveLock);
 	prevContext = new(gm_memalign<BblContext>(CACHE_LINE_BYTES, 1)) BblContext();
 	smtWindow = new(gm_memalign< SmtWindow >(CACHE_LINE_BYTES, 1)) SmtWindow();
 	smtWindow->vcore = 0;
@@ -135,15 +136,15 @@ void SMTCore::contextSwitch(int32_t gid) {
 
 		//info("OOOE: CntxtSw VC:%d PID:%d A[0]:%d A[1]:%d", smtWindow->vcore, getpid(), smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 
-		/* Playback on context switch if both queues are full, else only playback if there is one thread left */
-        if ( !smtWindow->bblQueue[0].empty() && !smtWindow->bblQueue[1].empty() ){
-            this->playback();
-        }
-        else if ( !smtWindow->bblQueue[0].empty() || !smtWindow->bblQueue[1].empty() ){
-            if ( smtWindow->thCompleted ){
-                this->playback();
-            }
-        }
+		// /* Playback on context switch if both queues are full, else only playback if there is one thread left */
+        // if ( !smtWindow->bblQueue[0].empty() && !smtWindow->bblQueue[1].empty() ){
+        //     this->playback();
+        // }
+        // else if ( !smtWindow->bblQueue[0].empty() || !smtWindow->bblQueue[1].empty() ){
+        //     if ( smtWindow->thCompleted ){
+        //         this->playback();
+        //     }
+        // }
 
         // Do not store previous BBL, as we were context-switched
         if (prevContext->bbl){
@@ -352,8 +353,21 @@ void SMTCore::PredStoreFunc(THREADID tid, ADDRINT addr, BOOL pred) {
 void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
     SMTCore* core = static_cast<SMTCore*>(cores[tid]);
     core->bbl(tid, bblAddr, bblInfo);
-	while (core->curCycle > core->phaseEndCycle) {
-	      core->phaseEndCycle += zinfo->phaseLength;
+	core->tid = tid;
+
+	// OOOE: wrong place. executes after every playback rather than every bbl.
+	if (core->curCycle > core->phaseEndCycle) {
+		core->weave();
+	}
+
+}
+void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
+    static_cast<SMTCore*>(cores[tid])->branch(pc, taken, takenNpc, notTakenNpc);
+}
+
+void SMTCore::weave() {
+	while (this->curCycle > this->phaseEndCycle) {
+	      this->phaseEndCycle += zinfo->phaseLength;
 	
 	      uint32_t cid = getCid(tid);
 	      // NOTE: TakeBarrier may take ownership of the core, and so it will be used by some other thread. If TakeBarrier context-switches us,
@@ -366,9 +380,6 @@ void SMTCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
 	      // so we should just advance as needed and move on.
 	      if (newCid != cid) break;  /*context-switch, we do not own this context anymore*/
 	}
-}
-void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {
-    static_cast<SMTCore*>(cores[tid])->branch(pc, taken, takenNpc, notTakenNpc);
 }
 
 
@@ -503,6 +514,11 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				if(!smtWindow->bblQueue[curQ].pop()){
 					/* OOOE: Should not happen */
 					panic("BblQueue failed to pop");
+				}
+				
+				// check for early weave exit.
+				if (!this->smtWindow->thCompleted && (this->curCycle > this->phaseEndCycle)) {
+					this->weave();
 				}
 			}
 		}

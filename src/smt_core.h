@@ -204,7 +204,7 @@ class SMTCore : public Core {
     private:
         FilterCache *l1i, *l1d;
 		SmtWindow *smtWindow;
-		lock_t windowLock;
+		lock_t windowLock, weaveLock;
 
 		/* OOOE: Current bbl context that is filled with the simulator running. i
 		 * Queued on the next bbl() function call. */
@@ -231,7 +231,7 @@ class SMTCore : public Core {
         //to not overlap more than 10 misses.
         g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualLoadQueue;
         g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualStoreQueue;
-		g_unordered_map<pid_t, ReorderBuffer<64, 4>> dualRob;
+		g_unordered_map<pid_t, ReorderBuffer<128, 4>> dualRob;
         uint32_t curCycleRFReads; //for RF read stalls
         uint32_t curCycleIssuedUops; //for uop issue limits
 
@@ -279,6 +279,7 @@ class SMTCore : public Core {
 
         void initStats(AggregateStat* parentStat);
 
+		THREADID tid = 0;
         uint64_t getInstrs() const;
         uint64_t getPhaseCycles() const;
         uint64_t getCycles() const; 
@@ -324,6 +325,9 @@ class SMTCore : public Core {
 		void runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext * bblContext);
 		void runBblStatUpdate(BblContext * bblContext);
 		void runFrontend(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint64_t &lastCommitCycle, BblContext * bblContext);
+
+		// kicks off the weave cycle.
+		void weave();
 
 		/* OOOE: bbl analysis function. constructs a BblContext */
         void bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo);
