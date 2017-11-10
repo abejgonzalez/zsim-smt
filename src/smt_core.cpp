@@ -633,16 +633,12 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		
 		uint64_t reqCycle = fetchCycle;
 		for (uint32_t i = 0; i < (5 * 64) / lineSize; i++) {
-			//uint64_t prev = smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache;
 			// TODO: Cache hit delays the entire pipeline somehow store the hti count and contention count
 			// and do not update the core count main (but somehow keep track of the different hit/miss counts)
-			uint64_t fetchLat = l1i->loadSeparate(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].branchPrediction) - curCycle;
-			/*if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
-				printContention();
-			}*/
-			smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cacheReturnTime += fetchLat;
-			cRec.record(curCycle, curCycle, curCycle + smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].contentionTotal());
-			uint64_t respCycle = reqCycle + fetchLat;
+			pid_t curPid = smtWindow->bblQueue[presQ].pid;
+			uint64_t fetchLat = l1i->loadSeparate(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].branchPrediction);
+			cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
+			uint64_t respCycle = reqCycle;
 			if (respCycle > lastCommitCycle) {
 				break;
 			}
@@ -662,15 +658,12 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		// Do not model fetch throughput limit here, decoder-generated stalls already include it
 		// We always call fetches with curCycle to avoid upsetting the weave
 		// models (but we could move to a fetch-centric recorder to avoid this)
-		//uint64_t prev = smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache;
-		uint64_t fetchLat = l1i->loadSeparate(fetchAddr, curCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].bblFetch) - curCycle;
-		/*if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
-			printContention();
-		}*/
-		//TODO: something with cycle for instruction cache Barak
-		cRec.record(curCycle, curCycle, curCycle + smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].contentionTotal());
-		fetchCycle += fetchLat;
-		info("FetchCycle updated to: fetchCycle:%lu %ld from prevFetch:%lu", fetchCycle, fetchCycle, fetchCycle - fetchLat);
+
+        pid_t curPid = smtWindow->bblQueue[presQ].pid;
+        uint64_t fetchLat = l1i->loadSeparate(fetchAddr, curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].bblFetch);
+        cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
+		//fetchCycle += fetchLat;
+		//info("FetchCycle updated to: fetchCycle:%lu %ld from prevFetch:%lu", fetchCycle, fetchCycle, fetchCycle - fetchLat);
 	}
 
 	// If fetch rules, take into account delay between fetch and decode;
@@ -802,12 +795,10 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 				Address addr = bblContext->loadAddrs[loadIdx++];
                 uint64_t reqSatisfiedCycle = dispatchCycle;
                 if (addr != ((Address)-1L)) {
-					//uint64_t prev = smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache;
-                    reqSatisfiedCycle = l1d->loadSeparate(addr, dispatchCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache) + L1D_LAT;
-					/*if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
-						printContention();
-					}*/
-                    cRec.record(curCycle, dispatchCycle, smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].contentionTotal());
+                    pid_t curPid = smtWindow->bblQueue[presQ].pid;
+                    /* TODO: Actually update the reqCycle since it is updating just the commit not the actual cycle count*/
+                    reqSatisfiedCycle = l1d->loadSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
+                    cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
                 }
 
                 // Enforce st-ld forwarding
@@ -844,7 +835,10 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
 				Address addr = bblContext->storeAddrs[storeIdx++];
-                uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
+
+                pid_t curPid = smtWindow->bblQueue[presQ].pid;
+                /* TODO: Actually update the reqCycle since it is updating just the commit not the actual cycle count*/
+                uint64_t reqSatisfiedCycle = l1d->storeSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
                 cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
 
                 // Fill the forwarding table

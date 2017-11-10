@@ -199,6 +199,8 @@ class SmtWindow {
 		// tracks contention cycles.
 		g_unordered_map<pid_t, Contention> contentionMap;
 		g_unordered_map<pid_t, uint64_t> cacheReturnTime;
+
+		uint64_t cacheTotal(pid_t pid){ return contentionMap[pid].contentionTotal() + cacheReturnTime[pid]; }
 };
 
 class SMTCore : public Core {

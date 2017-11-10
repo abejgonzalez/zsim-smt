@@ -111,20 +111,21 @@ class FilterCache : public Cache {
             }
         }
 
-        inline uint64_t loadSeparate(Address vAddr, uint64_t curCycle, uint64_t* contention) {
+        inline uint64_t loadSeparate(Address vAddr, uint64_t curCycle, uint64_t* hitCycle, uint64_t* contentionCycle) {
             Address vLineAddr = vAddr >> lineBits;
             uint32_t idx = vLineAddr & setMask;
             uint64_t availCycle = filterArray[idx].availCycle; //read before, careful with ordering to avoid timing races
             info("CACHE curCycle:%lu availCycle:%lu", curCycle, availCycle);
             if (vLineAddr == filterArray[idx].rdAddr) {
                 fGETSHit++;
+                *hitCycle += MAX(curCycle, availCycle) - curCycle;
                 return MAX(curCycle, availCycle);
             } else {
                 uint64_t hold = replace(vLineAddr, idx, true, curCycle);
                 //info("OOOE: Hold Cycles:%lu CurCycles:%lu Max Cycles:%lu", hold, curCycle, MAX(curCycle, availCycle));
                 //info("OOOE: ContentionCycles updated: %lu -> %lu with extra contention: %lu", *contention, *contention + hold - curCycle, hold - curCycle);
-                *contention += hold - curCycle;
-                return curCycle;
+                *contentionCycle += hold - curCycle;
+                return hold;
             }
         }
 
@@ -139,6 +140,25 @@ class FilterCache : public Cache {
                 return MAX(curCycle, availCycle);
             } else {
                 return replace(vLineAddr, idx, false, curCycle);
+            }
+        }
+
+        
+        inline uint64_t storeSeparate(Address vAddr, uint64_t curCycle, uint64_t* hitCycle, uint64_t* contentionCycle) {
+            Address vLineAddr = vAddr >> lineBits;
+            uint32_t idx = vLineAddr & setMask;
+            uint64_t availCycle = filterArray[idx].availCycle; //read before, careful with ordering to avoid timing races
+            if (vLineAddr == filterArray[idx].wrAddr) {
+                fGETXHit++;
+                //NOTE: Stores don't modify availCycle; we'll catch matches in the core
+                //filterArray[idx].availCycle = curCycle; //do optimistic store-load forwarding
+                *hitCycle += MAX(curCycle, availCycle) - curCycle;
+                return MAX(curCycle, availCycle);
+            } else {
+
+                uint64_t hold = replace(vLineAddr, idx, false, curCycle);
+                *contentionCycle += hold - curCycle;
+                return hold; 
             }
         }
 
