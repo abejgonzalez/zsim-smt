@@ -235,6 +235,7 @@ inline void SMTCore::store(Address addr) {
  */
 inline void SMTCore::advance(uint64_t targetCycle) {
 	// advance internal cycle counts.
+	info("Advancing targetCycle:%lu curCycle:%lu", targetCycle, curCycle);
 	decodeCycle += targetCycle - curCycle;
 	insWindow.longAdvance(curCycle, targetCycle);
 	curCycleRFReads = 0;
@@ -617,10 +618,13 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		uint64_t reqCycle = fetchCycle;
 		for (uint32_t i = 0; i < (5 * 64) / lineSize; i++) {
 			//uint64_t prev = smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache;
+			// TODO: Cache hit delays the entire pipeline somehow store the hti count and contention count
+			// and do not update the core count main (but somehow keep track of the different hit/miss counts)
 			uint64_t fetchLat = l1i->loadSeparate(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].branchPrediction) - curCycle;
 			/*if (prev != smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cache){
 				printContention();
 			}*/
+			smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].cacheReturnTime += fetchLat;
 			cRec.record(curCycle, curCycle, curCycle + smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].contentionTotal());
 			uint64_t respCycle = reqCycle + fetchLat;
 			if (respCycle > lastCommitCycle) {
@@ -650,6 +654,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		//TODO: something with cycle for instruction cache Barak
 		cRec.record(curCycle, curCycle, curCycle + smtWindow->contentionMap[smtWindow->bblQueue[presQ].pid].contentionTotal());
 		fetchCycle += fetchLat;
+		info("FetchCycle updated to: fetchCycle:%lu %ld from prevFetch:%lu", fetchCycle, fetchCycle, fetchCycle - fetchLat);
 	}
 
 	// If fetch rules, take into account delay between fetch and decode;
@@ -663,7 +668,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 #endif
 		decodeCycle = minFetchDecCycle;
 	}
-	//info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
+	info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
 }
 
 /* OOOE: runUop()
