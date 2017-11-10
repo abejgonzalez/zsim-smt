@@ -229,10 +229,9 @@ class SMTCore : public Core {
         //buffers, but we split the associative component from the limited-size modeling.
         //NOTE: We do not model the 10-entry fill buffer here; the weave model should take care
         //to not overlap more than 10 misses.
-        ReorderBuffer<32, 4> loadQueue;
-        ReorderBuffer<32, 4> storeQueue;
+        g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualLoadQueue;
+        g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualStoreQueue;
 		g_unordered_map<pid_t, ReorderBuffer<64, 4>> dualRob;
-        ReorderBuffer<128, 4> rob;
         uint32_t curCycleRFReads; //for RF read stalls
         uint32_t curCycleIssuedUops; //for uop issue limits
 

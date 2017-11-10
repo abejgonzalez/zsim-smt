@@ -675,11 +675,22 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
     assert( bbl != nullptr );
     assert( uop != nullptr );
-	//info("\nrunUop: New UOP");
+	info("\nOOOE: New UOP Pid:%d curCycle:%lu prevDecCycle:%d decodeCycle:%lu", smtWindow->bblQueue[presQ].pid, curCycle, prevDecCycle, decodeCycle);
+    if ( uop->type == UOP_LOAD ){
+		info("LOAD");
+	}
+	else if ( uop->type == UOP_STORE ){
+		info("STORE");
+	}
+	else{
+		info("OTHER");
+	}
 
     uint32_t decDiff = uop->decCycle - prevDecCycle;
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
-	//info("curCycle:%lu prevDecCycle:%d decodeCycle:%lu", curCycle, prevDecCycle, decodeCycle);
+
+	info("decodeCycle:%lu", decodeCycle);
+
     if (decodeCycle > curCycle) {
         uint32_t cdDiff = decodeCycle - curCycle;
 #ifdef SMT_STALL_STATS
@@ -689,6 +700,9 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
         curCycleRFReads = 0;
         for (uint32_t i = 0; i < cdDiff; i++) insWindow.advancePos(curCycle);
     }
+    
+	info("curCycle:%lu", curCycle);
+
     prevDecCycle = uop->decCycle;
     uopQueue.markLeave(curCycle);
 
@@ -701,7 +715,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
         insWindow.advancePos(curCycle);
     }
     curCycleIssuedUops++;
-	//info("curCycleIssuedUops:%d", curCycleIssuedUops);
+	info("curCycleIssuedUops:%d", curCycleIssuedUops);
 
     // Kill dependences on invalid register
     // Using curCycle saves us two unpredictable branches in the RF read stalls code
@@ -718,9 +732,8 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
         curCycleIssuedUops = 0;  // or 1? that's probably a 2nd-order detail
         insWindow.advancePos(curCycle);
     }
-	//info("curCycleRFReads:%d", curCycleRFReads);
+	info("curCycleRFReads:%d", curCycleRFReads);
 
-    //uint64_t c2 = rob.minAllocCycle();
 	uint64_t c2 = dualRob[smtWindow->bblQueue[presQ].pid].minAllocCycle();
     uint64_t c3 = curCycle;
 
@@ -728,10 +741,12 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
     // Model RAT + ROB + RS delay between issue and dispatch
     uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
-	//info("dispatchCycle:%lu", dispatchCycle);
+	info("dispatchCycle:%lu", dispatchCycle);
 
     // NOTE: Schedule can adjust both cur and dispatch cycles
     insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
+
+	info("curCycle:%lu dispatchCycle:%lu", curCycle, dispatchCycle);
 
     // If we have advanced, we need to reset the curCycle counters
     if (curCycle > c3) {
@@ -752,7 +767,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
         case UOP_LOAD:
             {
                 // dispatchCycle = MAX(loadQueue.minAllocCycle(), dispatchCycle);
-                uint64_t lqCycle = loadQueue.minAllocCycle();
+                uint64_t lqCycle = dualLoadQueue[smtWindow->bblQueue[presQ].pid].minAllocCycle();
                 if (lqCycle > dispatchCycle) {
 #ifdef LSU_IW_BACKPRESSURE
                     insWindow.poisonRange(curCycle, lqCycle, 0x4 /*PORT_2, loads*/);
@@ -789,14 +804,14 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
                 commitCycle = reqSatisfiedCycle;
 				//info("LOAD: commitCycle:%lu", commitCycle);
-                loadQueue.markRetire(commitCycle);
+                dualLoadQueue[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
             }
             break;
 
         case UOP_STORE:
             {
                 // dispatchCycle = MAX(storeQueue.minAllocCycle(), dispatchCycle);
-                uint64_t sqCycle = storeQueue.minAllocCycle();
+                uint64_t sqCycle = dualStoreQueue[smtWindow->bblQueue[presQ].pid].minAllocCycle();
                 if (sqCycle > dispatchCycle) {
 #ifdef LSU_IW_BACKPRESSURE
                     insWindow.poisonRange(curCycle, sqCycle, 0x10 /*PORT_4, stores*/);
@@ -817,7 +832,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
                 commitCycle = reqSatisfiedCycle;
                 lastStoreCommitCycle = MAX(lastStoreCommitCycle, reqSatisfiedCycle);
 				//info("STORE: commitCycle:%lu", commitCycle);
-                storeQueue.markRetire(commitCycle);
+                dualStoreQueue[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
             }
             break;
 
@@ -839,8 +854,8 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 			//info("FENCE: commitCycle:%lu", commitCycle);
     }
 
+    info("commitCycle:%lu", commitCycle);
     // Mark retire at ROB
-    //rob.markRetire(commitCycle);
 	dualRob[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
 
     // Record dependences
