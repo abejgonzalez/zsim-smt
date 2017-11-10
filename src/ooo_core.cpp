@@ -219,6 +219,16 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 	//printf("OOOE: AMTUOPS:%u\n", bbl->uops);
     for (uint32_t i = 0; i < bbl->uops; i++) {
         DynUop* uop = &(bbl->uop[i]);
+        info("\nOOOE: curCycle:%lu prevDecCycle:%d decodeCycle:%lu", curCycle, prevDecCycle, decodeCycle);
+        if ( uop->type == UOP_LOAD ){
+            info("LOAD");
+        }
+        else if ( uop->type == UOP_STORE ){
+            info("STORE");
+        }
+        else{
+            info("OTHER");
+        }
 
         /* OOOE: AG:
          * Does decCycle mean "arbitrary time associated with this uops decode?"
@@ -237,6 +247,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         uint32_t decDiff = uop->decCycle - prevDecCycle;
         /* OOOE: AG: uopQueue has amount of uops and when they are marked for retiring */
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
+        info("decodeCycle:%lu", decodeCycle);
         /* OOOE: AG: curCycle is current issue cycle
          * Maybe decodeCycle is the decode cycle that is kept track of with the simulator
          * (when the decode is supposed to start?)
@@ -255,6 +266,8 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
              */
             for (uint32_t i = 0; i < cdDiff; i++) insWindow.advancePos(curCycle);
         }
+
+        info("curCycle:%lu", curCycle);
         prevDecCycle = uop->decCycle;
         /* OOOE: AG: Appends in the queue when this UOP should finish so that
          * in the next iteration of the for loop it has when this UOP should finish
@@ -274,6 +287,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
             insWindow.advancePos(curCycle);
         }
         curCycleIssuedUops++;
+        info("curCycleIssuedUops:%d", curCycleIssuedUops);
 
         // Kill dependences on invalid register
         // Using curCycle saves us two unpredictable branches in the RF read stalls code
@@ -298,6 +312,8 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
             insWindow.advancePos(curCycle);
         }
 
+        info("curCycleRFReads:%d", curCycleRFReads);
+
         uint64_t c2 = rob.minAllocCycle();
         uint64_t c3 = curCycle;
 
@@ -307,10 +323,12 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         // Model RAT + ROB + RS delay between issue and dispatch
         /* OOOE: AG: Estimating the delay to dispatch to the execution units */
         uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
+        info("dispatchCycle:%lu", dispatchCycle);
 
         // info("IW 0x%lx %d %ld %ld %x", bblAddr, i, c2, dispatchCycle, uop->portMask);
         // NOTE: Schedule can adjust both cur and dispatch cycles
         insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
+        info("curCycle:%lu dispatchCycle:%lu", curCycle, dispatchCycle);
 
         // If we have advanced, we need to reset the curCycle counters
         if (curCycle > c3) {
@@ -411,6 +429,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         // Mark retire at ROB
         rob.markRetire(commitCycle);
 
+        info("commitCycle:%lu", commitCycle);
         // Record dependences
         /* OOOE: AG: Seems like regscorebd puts the actual cycle # inside to
          * when it is ready to be issued or ready to be committed */
@@ -535,6 +554,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 #endif
         decodeCycle = minFetchDecCycle;
     }
+	info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
 }
 
 // Timing simulation code

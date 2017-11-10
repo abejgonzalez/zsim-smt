@@ -30,7 +30,7 @@ AccessTraceReader	access_tracing.cpp	/^ AccessTraceReader::AccessTraceReader(std
 AccessTraceReader	access_tracing.h	/^class AccessTraceReader {$/;"	c
 AccessTraceWriter	access_tracing.cpp	/^ AccessTraceWriter::AccessTraceWriter(g_string _fname, uint32_t numChildren):fname(_fname) {$/;"	f	class:AccessTraceWriter
 AccessTraceWriter	access_tracing.h	/^class AccessTraceWriter : public GlobAlloc {$/;"	c
-AccessType	memory_hierarchy.h	/^} AccessType;$/;"	t	typeref:enum:__anon1
+AccessType	memory_hierarchy.h	/^} AccessType;$/;"	t	typeref:enum:__anon5
 AccessTypeName	memory_hierarchy.cpp	/^const char *AccessTypeName(AccessType t) {$/;"	f
 ActWindow	ddr_mem.h	/^class ActWindow {$/;"	c
 AdaptiveEvent	event_queue.h	/^        AdaptiveEvent(G _get, F _fire, uint64_t _start, uint64_t _target, uint64_t _maxRate) : Event(0), get(_get), fire(_fire), target(_target), maxRate(_maxRate) {$/;"	f	class:AdaptiveEvent
@@ -144,6 +144,8 @@ CompareRespEvents	ooo_core_recorder.h	/^        struct CompareRespEvents : publi
 CompileTimeAsserts	memory_hierarchy.cpp	/^static inline void CompileTimeAsserts() {$/;"	f	file:
 Config	config.cpp	/^Config::Config(const char *inFile) {$/;"	f	class:Config
 Config	config.h	/^class Config {$/;"	c
+Contention	smt_core.h	/^		Contention() {$/;"	f	class:Contention
+Contention	smt_core.h	/^class Contention {$/;"	c
 ContentionSim	contention_sim.cpp	/^ContentionSim::ContentionSim(uint32_t _numDomains, uint32_t _numSimThreads) {$/;"	f	class:ContentionSim
 ContentionSim	contention_sim.h	/^class ContentionSim : public GlobAlloc {$/;"	c
 ContextChange	zsim.cpp	/^VOID ContextChange(THREADID tid, CONTEXT_CHANGE_REASON reason, const CONTEXT* from, CONTEXT* to, INT32 info, VOID* v) {$/;"	f
@@ -196,7 +198,7 @@ DECL_RANK_BINDINGS	repl_policies.h	/^        DECL_RANK_BINDINGS;$/;"	m	class:Leg
 DECL_RANK_BINDINGS	repl_policies.h	65;"	d
 DECODER_H_	decoder.h	27;"	d
 DECODE_STAGE	ooo_core.cpp	50;"	d	file:
-DECODE_STAGE	smt_core.cpp	45;"	d	file:
+DECODE_STAGE	smt_core.cpp	44;"	d	file:
 DEFAULT_GRANULARITY	g_heap/dlmalloc.h.c	672;"	d	file:
 DEFAULT_GRANULARITY	g_heap/dlmalloc.h.c	674;"	d	file:
 DEFAULT_MMAP_THRESHOLD	g_heap/dlmalloc.h.c	686;"	d	file:
@@ -209,10 +211,10 @@ DIRECT_MMAP	g_heap/dlmalloc.h.c	1640;"	d	file:
 DIRECT_MMAP_DEFAULT	g_heap/dlmalloc.h.c	1553;"	d	file:
 DIRECT_MMAP_DEFAULT	g_heap/dlmalloc.h.c	1590;"	d	file:
 DISPATCH_STAGE	ooo_core.cpp	52;"	d	file:
-DISPATCH_STAGE	smt_core.cpp	47;"	d	file:
+DISPATCH_STAGE	smt_core.cpp	46;"	d	file:
 DLMALLOC_VERSION	g_heap/dlmalloc.h.c	540;"	d	file:
-DRAINING	core_recorder.h	/^            DRAINING \/\/Not scheduled, but events remain. join() --> RUNNING; all events done --> HALTED$/;"	e	enum:CoreRecorder::__anon5
-DRAINING	ooo_core_recorder.h	/^            DRAINING \/\/Not scheduled, but events remain. join() --> RUNNING; all events done --> HALTED$/;"	e	enum:OOOCoreRecorder::__anon12
+DRAINING	core_recorder.h	/^            DRAINING \/\/Not scheduled, but events remain. join() --> RUNNING; all events done --> HALTED$/;"	e	enum:CoreRecorder::__anon8
+DRAINING	ooo_core_recorder.h	/^            DRAINING \/\/Not scheduled, but events remain. join() --> RUNNING; all events done --> HALTED$/;"	e	enum:OOOCoreRecorder::__anon11
 DRAMSIM_MEM_CTRL_H_	dramsim_mem_ctrl.h	27;"	d
 DRAMSim	dramsim_mem_ctrl.h	/^namespace DRAMSim {$/;"	n
 DRAMSimAccEvent	dramsim_mem_ctrl.cpp	/^	 DRAMSimAccEvent(DRAMSimMemory * _dram, bool _write, Address _addr, int32_t domain):TimingEvent(0, 0, domain),$/;"	f	class:DRAMSimAccEvent
@@ -231,7 +233,7 @@ DumpWalk	proc_stats.cpp	/^static uint64_t *DumpWalk(Stat * s, uint64_t * curPtr)
 DynBbl	decoder.h	/^struct DynBbl {$/;"	s
 DynUop	decoder.h	/^struct DynUop {$/;"	s
 DynUopVec	decoder.h	/^typedef std::vector<DynUop> DynUopVec;$/;"	t
-E	memory_hierarchy.h	/^    E, \/\/ exclusive and clean$/;"	e	enum:__anon3
+E	memory_hierarchy.h	/^    E, \/\/ exclusive and clean$/;"	e	enum:__anon7
 EVENT_QUEUE_H_	event_queue.h	27;"	d
 EVENT_RECORDER_H_	event_recorder.h	27;"	d
 EV_DONE	timing_event.h	/^enum EventState {EV_INVALID, EV_NONE, EV_QUEUED, EV_RUNNING, EV_HELD, EV_DONE};$/;"	e	enum:EventState
@@ -263,9 +265,9 @@ FEMap	prio_queue.h	/^    typedef g_multimap<uint64_t, T*> FEMap; \/\/far element
 FEMapIterator	prio_queue.h	/^    typedef typename FEMap::iterator FEMapIterator;$/;"	t	class:PrioQueue
 FENCEPOST_HEAD	g_heap/dlmalloc.h.c	2216;"	d	file:
 FETCH_BYTES_PER_CYCLE	ooo_core.cpp	55;"	d	file:
-FETCH_BYTES_PER_CYCLE	smt_core.cpp	50;"	d	file:
+FETCH_BYTES_PER_CYCLE	smt_core.cpp	49;"	d	file:
 FETCH_STAGE	ooo_core.cpp	49;"	d	file:
-FETCH_STAGE	smt_core.cpp	44;"	d	file:
+FETCH_STAGE	smt_core.cpp	43;"	d	file:
 FFBasicBlock	zsim.cpp	/^VOID FFBasicBlock(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {$/;"	f
 FFIAdvance	zsim.cpp	/^VOID FFIAdvance() {$/;"	f
 FFIBasicBlock	zsim.cpp	/^VOID FFIBasicBlock(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {$/;"	f
@@ -289,9 +291,9 @@ FPTR_ANALYSIS	core.h	58;"	d
 FPTR_JOIN	core.h	59;"	d
 FPTR_NOP	core.h	60;"	d
 FPTR_RETRY	core.h	61;"	d
-FWD	memory_hierarchy.h	/^    FWD,  \/\/ don't invalidate, just send up the data (used by directories). Only valid on S lines.$/;"	e	enum:__anon2
-FWD_ENTRIES	ooo_core.h	432;"	d
-FWD_ENTRIES	smt_core.h	236;"	d
+FWD	memory_hierarchy.h	/^    FWD,  \/\/ don't invalidate, just send up the data (used by directories). Only valid on S lines.$/;"	e	enum:__anon6
+FWD_ENTRIES	ooo_core.h	434;"	d
+FWD_ENTRIES	smt_core.h	274;"	d
 FakeCPUIDPost	zsim.cpp	/^VOID FakeCPUIDPost(THREADID tid, ADDRINT* eax, ADDRINT* ebx, ADDRINT* ecx, ADDRINT* edx) {$/;"	f
 FakeCPUIDPre	zsim.cpp	/^VOID FakeCPUIDPre(THREADID tid, REG eax, REG ecx) {$/;"	f
 FakeLeaveInfo	scheduler.h	/^            FakeLeaveInfo(uint64_t _pc, ThreadInfo* _th, int _syscallNumber, uint64_t _arg0, uint64_t _arg1) :$/;"	f	struct:Scheduler::FakeLeaveInfo
@@ -315,11 +317,11 @@ FwdEntry	ooo_core.h	/^        struct FwdEntry {$/;"	s	class:OOOCore
 FwdEntry	smt_core.h	/^        struct FwdEntry {$/;"	s	class:SMTCore
 GALLOC_H_	galloc.h	27;"	d
 GDB_TIMEOUT	pin_cmd.cpp	36;"	d	file:
-GETS	memory_hierarchy.h	/^    GETS, \/\/ get line, exclusive permission not needed (triggered by a processor load)$/;"	e	enum:__anon1
-GETX	memory_hierarchy.h	/^    GETX, \/\/ get line, exclusive permission needed (triggered by a processor store o atomic access)$/;"	e	enum:__anon1
+GETS	memory_hierarchy.h	/^    GETS, \/\/ get line, exclusive permission not needed (triggered by a processor load)$/;"	e	enum:__anon5
+GETX	memory_hierarchy.h	/^    GETX, \/\/ get line, exclusive permission needed (triggered by a processor store o atomic access)$/;"	e	enum:__anon5
 GM	galloc.cpp	/^static gm_segment *GM = nullptr;$/;"	v	file:
 GM_BASE_ADDR	galloc.cpp	51;"	d	file:
-GRACEFUL_TERMINATION	zsim_harness.cpp	/^	GRACEFUL_TERMINATION,$/;"	e	enum:__anon6	file:
+GRACEFUL_TERMINATION	zsim_harness.cpp	/^	GRACEFUL_TERMINATION,$/;"	e	enum:__anon9	file:
 G_LIST_H_	g_std/g_list.h	27;"	d
 G_MULTIMAP_H_	g_std/g_multimap.h	27;"	d
 G_STRING_H_	g_std/g_string.h	27;"	d
@@ -379,8 +381,8 @@ GlobSimInfo	zsim.h	/^struct GlobSimInfo {$/;"	s
 H3HashFamily	hash.cpp	/^ H3HashFamily::H3HashFamily(uint32_t numFunctions, uint32_t outputBits, uint64_t randSeed):numFuncs(numFunctions) {$/;"	f	class:H3HashFamily
 H3HashFamily	hash.h	/^class H3HashFamily : public HashFamily {$/;"	c
 HALF_MAX_SIZE_T	g_heap/dlmalloc.h.c	1503;"	d	file:
-HALTED	core_recorder.h	/^            HALTED, \/\/Not scheduled, no events left. Initial state. join() --> RUNNING$/;"	e	enum:CoreRecorder::__anon5
-HALTED	ooo_core_recorder.h	/^            HALTED, \/\/Not scheduled, no events left. Initial state. join() --> RUNNING$/;"	e	enum:OOOCoreRecorder::__anon12
+HALTED	core_recorder.h	/^            HALTED, \/\/Not scheduled, no events left. Initial state. join() --> RUNNING$/;"	e	enum:CoreRecorder::__anon8
+HALTED	ooo_core_recorder.h	/^            HALTED, \/\/Not scheduled, no events left. Initial state. join() --> RUNNING$/;"	e	enum:OOOCoreRecorder::__anon11
 HASH_H_	hash.h	27;"	d
 HAVE_MMAP	g_heap/dlmalloc.h.c	37;"	d	file:
 HAVE_MMAP	g_heap/dlmalloc.h.c	555;"	d	file:
@@ -403,7 +405,7 @@ HashFamily	hash.h	/^        HashFamily() {}$/;"	f	class:HashFamily
 HashFamily	hash.h	/^class HashFamily : public GlobAlloc {$/;"	c
 HitEvent	timing_cache.cpp	/^	HitEvent(TimingCache * _cache, uint32_t postDelay, int32_t domain):TimingEvent(0, postDelay, domain),$/;"	f	class:HitEvent
 HitEvent	timing_cache.cpp	/^class HitEvent:public TimingEvent {$/;"	c	file:
-I	memory_hierarchy.h	/^    I, \/\/ invalid$/;"	e	enum:__anon3
+I	memory_hierarchy.h	/^    I, \/\/ invalid$/;"	e	enum:__anon7
 IDD0	detailed_mem_params.h	/^            uint32_t IDD0;$/;"	m	struct:MemParam::IDDs
 IDD2N	detailed_mem_params.h	/^            uint32_t IDD2N;$/;"	m	struct:MemParam::IDDs
 IDD2P	detailed_mem_params.h	/^            uint32_t IDD2P;$/;"	m	struct:MemParam::IDDs
@@ -427,13 +429,13 @@ INIT_H_	init.h	27;"	d
 INSECURE	g_heap/dlmalloc.h.c	637;"	d	file:
 INTRUSIVE_LIST_H_	intrusive_list.h	27;"	d
 INUSE_BITS	g_heap/dlmalloc.h.c	2212;"	d	file:
-INV	memory_hierarchy.h	/^    INV,  \/\/ fully invalidate this line$/;"	e	enum:__anon2
+INV	memory_hierarchy.h	/^    INV,  \/\/ fully invalidate this line$/;"	e	enum:__anon6
 INVALID_CID	zsim.cpp	110;"	d	file:
-INVX	memory_hierarchy.h	/^    INVX, \/\/ invalidate exclusive access to this line (lower level can still keep a non-exclusive copy)$/;"	e	enum:__anon2
+INVX	memory_hierarchy.h	/^    INVX, \/\/ invalidate exclusive access to this line (lower level can still keep a non-exclusive copy)$/;"	e	enum:__anon6
 ISSUES_PER_CYCLE	ooo_core.cpp	56;"	d	file:
-ISSUES_PER_CYCLE	smt_core.cpp	51;"	d	file:
+ISSUES_PER_CYCLE	smt_core.cpp	50;"	d	file:
 ISSUE_STAGE	ooo_core.cpp	51;"	d	file:
-ISSUE_STAGE	smt_core.cpp	46;"	d	file:
+ISSUE_STAGE	smt_core.cpp	45;"	d	file:
 IdHashFamily	hash.h	/^class IdHashFamily : public HashFamily {$/;"	c
 IdPartInfo	ideal_arrays.h	/^        struct IdPartInfo : public PartInfo {$/;"	s	class:IdealLRUPartReplPolicy
 IdealLRUArray	ideal_arrays.h	/^        explicit IdealLRUArray(uint32_t _numLines) : numLines(_numLines), cc(nullptr) {$/;"	f	class:IdealLRUArray
@@ -471,7 +473,7 @@ InstrFuncPtrs	core.h	/^struct InstrFuncPtrs {  \/\/ NOLINT(whitespace)$/;"	s
 Instruction	zsim.cpp	/^VOID Instruction(INS ins) {$/;"	f
 InternalExceptionHandler	zsim.cpp	/^static EXCEPT_HANDLING_RESULT InternalExceptionHandler(THREADID tid, EXCEPTION_INFO *pExceptInfo, PHYSICAL_CONTEXT *pPhysCtxt, VOID *) {$/;"	f	file:
 InvReq	memory_hierarchy.h	/^struct InvReq {$/;"	s
-InvType	memory_hierarchy.h	/^} InvType;$/;"	t	typeref:enum:__anon2
+InvType	memory_hierarchy.h	/^} InvType;$/;"	t	typeref:enum:__anon6
 InvTypeName	memory_hierarchy.cpp	/^const char *InvTypeName(InvType t) {$/;"	f
 IsCloseRowBufPolicy	detailed_mem_params.cpp	/^bool MemParam::IsCloseRowBufPolicy() {$/;"	f	class:MemParam
 IsGet	memory_hierarchy.h	/^inline bool IsGet(AccessType t) { return t == GETS || t == GETX; }$/;"	f
@@ -489,9 +491,9 @@ JoinAndPredLoadSingle	zsim.cpp	/^VOID JoinAndPredLoadSingle(THREADID tid, ADDRIN
 JoinAndPredStoreSingle	zsim.cpp	/^VOID JoinAndPredStoreSingle(THREADID tid, ADDRINT addr, BOOL pred) {$/;"	f
 JoinAndRecordBranch	zsim.cpp	/^VOID JoinAndRecordBranch(THREADID tid, ADDRINT branchPc, BOOL taken, ADDRINT takenNpc, ADDRINT notTakenNpc) {$/;"	f
 JoinAndStoreSingle	zsim.cpp	/^VOID JoinAndStoreSingle(THREADID tid, ADDRINT addr) {$/;"	f
-KILL_EM_ALL	zsim_harness.cpp	/^	KILL_EM_ALL,$/;"	e	enum:__anon6	file:
+KILL_EM_ALL	zsim_harness.cpp	/^	KILL_EM_ALL,$/;"	e	enum:__anon9	file:
 L1D_LAT	ooo_core.cpp	54;"	d	file:
-L1D_LAT	smt_core.cpp	49;"	d	file:
+L1D_LAT	smt_core.cpp	48;"	d	file:
 LACKS_ERRNO_H	g_heap/dlmalloc.h.c	563;"	d	file:
 LACKS_FCNTL_H	g_heap/dlmalloc.h.c	548;"	d	file:
 LACKS_STRINGS_H	g_heap/dlmalloc.h.c	561;"	d	file:
@@ -507,15 +509,15 @@ LFUReplPolicy	repl_policies.h	/^class LFUReplPolicy : public LegacyReplPolicy {$
 LIBCONFIG_VERSION	config.cpp	37;"	d	file:
 LIBCONFIG_VERSION	config.cpp	39;"	d	file:
 LOCKS_H_	locks.h	29;"	d
-LOG_Cache	log.h	/^    LOG_Cache,$/;"	e	enum:__anon8
-LOG_Config	log.h	/^    LOG_Config,$/;"	e	enum:__anon8
-LOG_FSVirt	log.h	/^    LOG_FSVirt,$/;"	e	enum:__anon8
+LOG_Cache	log.h	/^    LOG_Cache,$/;"	e	enum:__anon4
+LOG_Config	log.h	/^    LOG_Config,$/;"	e	enum:__anon4
+LOG_FSVirt	log.h	/^    LOG_FSVirt,$/;"	e	enum:__anon4
 LOG_H_	log.h	29;"	d
-LOG_Harness	log.h	/^    LOG_Harness,$/;"	e	enum:__anon8
-LOG_Mem	log.h	/^    LOG_Mem,$/;"	e	enum:__anon8
-LOG_Process	log.h	/^    LOG_Process,$/;"	e	enum:__anon8
-LOG_Sched	log.h	/^    LOG_Sched,$/;"	e	enum:__anon8
-LOG_TimeVirt	log.h	/^    LOG_TimeVirt,$/;"	e	enum:__anon8
+LOG_Harness	log.h	/^    LOG_Harness,$/;"	e	enum:__anon4
+LOG_Mem	log.h	/^    LOG_Mem,$/;"	e	enum:__anon4
+LOG_Process	log.h	/^    LOG_Process,$/;"	e	enum:__anon4
+LOG_Sched	log.h	/^    LOG_Sched,$/;"	e	enum:__anon4
+LOG_TimeVirt	log.h	/^    LOG_TimeVirt,$/;"	e	enum:__anon4
 LRUReplPolicy	repl_policies.h	/^        explicit LRUReplPolicy(uint32_t _numLines) : timestamp(1), numLines(_numLines) {$/;"	f	class:LRUReplPolicy
 LRUReplPolicy	repl_policies.h	/^class LRUReplPolicy : public ReplPolicy {$/;"	c
 LambdaStat	stats.h	/^        explicit LambdaStat(F _f) : f(_f) {} \/\/copy the lambda$/;"	f	class:LambdaStat
@@ -537,11 +539,11 @@ LoadFunc	simple_core.cpp	/^void SimpleCore::LoadFunc(THREADID tid, ADDRINT addr)
 LoadFunc	smt_core.cpp	/^void SMTCore::LoadFunc(THREADID tid, ADDRINT addr) {$/;"	f	class:SMTCore
 LoadPower	detailed_mem_params.cpp	/^void MemParam::LoadPower(Config &cfg)$/;"	f	class:MemParam
 LoadTiming	detailed_mem_params.cpp	/^void MemParam::LoadTiming(Config &cfg)$/;"	f	class:MemParam
-LogType	log.h	/^} LogType;$/;"	t	typeref:enum:__anon8
+LogType	log.h	/^} LogType;$/;"	t	typeref:enum:__anon4
 LookaheadPartitioner	lookahead.cpp	/^LookaheadPartitioner::LookaheadPartitioner(PartReplPolicy * _repl, uint32_t _numPartitions, uint32_t _buckets,$/;"	f	class:LookaheadPartitioner
 LookaheadPartitioner	partitioner.h	/^class LookaheadPartitioner : public Partitioner {$/;"	c
-M	memory_hierarchy.h	/^    M  \/\/ exclusive and dirty$/;"	e	enum:__anon3
-M	mtrand.h	/^        enum { M = 397 };  \/\/ period parameter$/;"	e	enum:MTRand::__anon11
+M	memory_hierarchy.h	/^    M  \/\/ exclusive and dirty$/;"	e	enum:__anon7
+M	mtrand.h	/^        enum { M = 397 };  \/\/ period parameter$/;"	e	enum:MTRand::__anon3
 MALLINFO_FIELD_TYPE	g_heap/dlmalloc.h.c	708;"	d	file:
 MALLOC_ALIGNMENT	g_heap/dlmalloc.h.c	581;"	d	file:
 MALLOC_ALIGNMENT	g_heap/dlmalloc.h.c	612;"	d	file:
@@ -583,7 +585,7 @@ MESIBottomCC	coherence_ctrls.h	/^        MESIBottomCC(uint32_t _numLines, uint32
 MESIBottomCC	coherence_ctrls.h	/^class MESIBottomCC : public GlobAlloc {$/;"	c
 MESICC	coherence_ctrls.h	/^        MESICC(uint32_t _numLines, bool _nonInclusiveHack, g_string& _name) : tcc(nullptr), bcc(nullptr),$/;"	f	class:MESICC
 MESICC	coherence_ctrls.h	/^class MESICC : public CC {$/;"	c
-MESIState	memory_hierarchy.h	/^} MESIState;$/;"	t	typeref:enum:__anon3
+MESIState	memory_hierarchy.h	/^} MESIState;$/;"	t	typeref:enum:__anon7
 MESIStateName	memory_hierarchy.cpp	/^const char *MESIStateName(MESIState s) {$/;"	f
 MESITerminalCC	coherence_ctrls.h	/^        MESITerminalCC(uint32_t _numLines, const g_string& _name) : bcc(nullptr), numLines(_numLines), name(_name) {}$/;"	f	class:MESITerminalCC
 MESITerminalCC	coherence_ctrls.h	/^class MESITerminalCC : public CC {$/;"	c
@@ -656,7 +658,7 @@ MissStartEvent	timing_cache.cpp	/^	MissStartEvent(TimingCache * _cache, uint32_t
 MissStartEvent	timing_cache.cpp	/^class MissStartEvent:public TimingEvent {$/;"	c	file:
 MissWritebackEvent	timing_cache.cpp	/^	 MissWritebackEvent(TimingCache * _cache, MissStartEvent * _mse, uint32_t postDelay,$/;"	f	class:MissWritebackEvent
 MissWritebackEvent	timing_cache.cpp	/^class MissWritebackEvent:public TimingEvent {$/;"	c	file:
-N	mtrand.h	/^        enum { N = 624 };       \/\/ length of state vector$/;"	e	enum:MTRand::__anon9
+N	mtrand.h	/^        enum { N = 624 };       \/\/ length of state vector$/;"	e	enum:MTRand::__anon1
 NEED_GLOBAL_LOCK_INIT	g_heap/dlmalloc.h.c	1950;"	d	file:
 NETWORK_H_	network.h	27;"	d
 NOEXCL	memory_hierarchy.h	/^        NOEXCL        = (1<<2), \/\/Do not give back E on a GETS request (turns MESI protocol into MSI for this line). Used on e.g., ifetches and NUCA.$/;"	e	enum:MemReq::Flag
@@ -689,7 +691,7 @@ NullCore	null_core.h	/^class NullCore : public Core {$/;"	c
 NullPatch	virt/virt.cpp	/^PostPatchFn NullPatch(PrePatchArgs) {$/;"	f
 NullPostPatch	virt/virt.cpp	/^const PostPatchFn NullPostPatch = [](PostPatchArgs) {return PPA_NOTHING;};$/;"	v
 OFFLINE	barrier.h	/^        enum State {OFFLINE, WAITING, RUNNING, LEFT};$/;"	e	enum:Barrier::State
-OK	zsim_harness.cpp	/^	OK,$/;"	e	enum:__anon6	file:
+OK	zsim_harness.cpp	/^	OK,$/;"	e	enum:__anon9	file:
 ONLY_MSPACES	g_heap/dlmalloc.h.c	28;"	d	file:
 ONLY_MSPACES	g_heap/dlmalloc.h.c	600;"	d	file:
 ONLY_MSPACES	g_heap/dlmalloc.h.c	602;"	d	file:
@@ -729,7 +731,7 @@ PORT_4	decoder.cpp	49;"	d	file:
 PORT_5	decoder.cpp	50;"	d	file:
 POSTACTION	g_heap/dlmalloc.h.c	2694;"	d	file:
 POSTACTION	g_heap/dlmalloc.h.c	2702;"	d	file:
-POST_MORTEM	contention_sim.cpp	41;"	d	file:
+POST_MORTEM	contention_sim.cpp	42;"	d	file:
 PPA_NOTHING	virt/virt.h	/^    PPA_NOTHING,$/;"	e	enum:PostPatchAction
 PPA_USE_JOIN_PTRS	virt/virt.h	/^    PPA_USE_JOIN_PTRS,$/;"	e	enum:PostPatchAction
 PPA_USE_RETRY_PTRS	virt/virt.h	/^    PPA_USE_RETRY_PTRS,$/;"	e	enum:PostPatchAction
@@ -754,13 +756,13 @@ PROF_BOUND	zsim.h	/^    PROF_BOUND = 1,$/;"	e	enum:ProfileStates
 PROF_FF	zsim.h	/^    PROF_FF = 3,$/;"	e	enum:ProfileStates
 PROF_INIT	zsim.h	/^    PROF_INIT = 0,$/;"	e	enum:ProfileStates
 PROF_WEAVE	zsim.h	/^    PROF_WEAVE = 2,$/;"	e	enum:ProfileStates
-PS_DONE	zsim_harness.cpp	/^	PS_DONE,$/;"	e	enum:__anon7	file:
-PS_INVALID	zsim_harness.cpp	/^	PS_INVALID,$/;"	e	enum:__anon7	file:
-PS_RUNNING	zsim_harness.cpp	/^	PS_RUNNING,$/;"	e	enum:__anon7	file:
+PS_DONE	zsim_harness.cpp	/^	PS_DONE,$/;"	e	enum:__anon10	file:
+PS_INVALID	zsim_harness.cpp	/^	PS_INVALID,$/;"	e	enum:__anon10	file:
+PS_RUNNING	zsim_harness.cpp	/^	PS_RUNNING,$/;"	e	enum:__anon10	file:
 PTHREAD_MUTEX_RECURSIVE	g_heap/dlmalloc.h.c	1928;"	d	file:
 PT_CHUNKSIZE	access_tracing.cpp	31;"	d	file:
-PUTS	memory_hierarchy.h	/^    PUTS, \/\/ clean writeback (lower cache is evicting this line, line was not modified)$/;"	e	enum:__anon1
-PUTX	memory_hierarchy.h	/^    PUTX  \/\/ dirty writeback (lower cache is evicting this line, line was modified)$/;"	e	enum:__anon1
+PUTS	memory_hierarchy.h	/^    PUTS, \/\/ clean writeback (lower cache is evicting this line, line was not modified)$/;"	e	enum:__anon5
+PUTX	memory_hierarchy.h	/^    PUTX  \/\/ dirty writeback (lower cache is evicting this line, line was modified)$/;"	e	enum:__anon5
 PUTX_KEEPEXCL	memory_hierarchy.h	/^        PUTX_KEEPEXCL = (1<<4), \/\/Non-relinquishing PUTX. On a PUTX, maintain the requestor's E state instead of removing the sharer (i.e., this is a pure writeback)$/;"	e	enum:MemReq::Flag
 PackedAccessRecord	access_tracing.h	/^struct PackedAccessRecord {$/;"	s
 ParseList	config.cpp	/^template < typename T > std::vector < T > ParseList(const std::string & listStr, const char *delimiters) {$/;"	f
@@ -827,7 +829,7 @@ ProcExitStatus	zsim.h	/^enum ProcExitStatus {$/;"	g
 ProcInfo	zsim_harness.cpp	/^struct ProcInfo {$/;"	s	file:
 ProcStats	proc_stats.cpp	/^ ProcStats::ProcStats(AggregateStat * parentStat, AggregateStat * _coreStats):coreStats(_coreStats) {$/;"	f	class:ProcStats
 ProcStats	proc_stats.h	/^class ProcStats : public GlobAlloc {$/;"	c
-ProcStatus	zsim_harness.cpp	/^} ProcStatus;$/;"	t	typeref:enum:__anon7	file:
+ProcStatus	zsim_harness.cpp	/^} ProcStatus;$/;"	t	typeref:enum:__anon10	file:
 ProcessCounter	proc_stats.cpp	/^	ProcessCounter(ProcStats * _ps):Counter(), ps(_ps) {$/;"	f	class:ProcStats::ProcessCounter
 ProcessCounter	proc_stats.cpp	/^class ProcStats::ProcessCounter:public Counter {$/;"	c	class:ProcStats	file:
 ProcessGroupPartMapper	partition_mapper.h	/^        ProcessGroupPartMapper() {}$/;"	f	class:ProcessGroupPartMapper
@@ -874,16 +876,16 @@ RELEASE_MALLOC_GLOBAL_LOCK	g_heap/dlmalloc.h.c	2002;"	d	file:
 RELEASE_MALLOC_GLOBAL_LOCK	g_heap/dlmalloc.h.c	2006;"	d	file:
 REPL_POLICIES_H_	repl_policies.h	27;"	d
 RF_READS_PER_CYCLE	ooo_core.cpp	57;"	d	file:
-RF_READS_PER_CYCLE	smt_core.cpp	52;"	d	file:
+RF_READS_PER_CYCLE	smt_core.cpp	51;"	d	file:
 ROUTINE_TRACING	zsim.cpp	64;"	d	file:
 RTCHECK	g_heap/dlmalloc.h.c	2985;"	d	file:
 RTCHECK	g_heap/dlmalloc.h.c	2987;"	d	file:
 RTCHECK	g_heap/dlmalloc.h.c	2990;"	d	file:
 RTN_STAT	zsim.cpp	/^struct RTN_STAT {$/;"	s	file:
 RUNNING	barrier.h	/^        enum State {OFFLINE, WAITING, RUNNING, LEFT};$/;"	e	enum:Barrier::State
-RUNNING	core_recorder.h	/^            RUNNING, \/\/Scheduled. leave() --> DRAINING$/;"	e	enum:CoreRecorder::__anon5
+RUNNING	core_recorder.h	/^            RUNNING, \/\/Scheduled. leave() --> DRAINING$/;"	e	enum:CoreRecorder::__anon8
 RUNNING	ddr_mem.cpp	/^        enum State { IDLE, QUEUED, RUNNING, ANNULLED };$/;"	e	enum:SchedEvent::State	file:
-RUNNING	ooo_core_recorder.h	/^            RUNNING, \/\/Scheduled. leave() --> DRAINING$/;"	e	enum:OOOCoreRecorder::__anon12
+RUNNING	ooo_core_recorder.h	/^            RUNNING, \/\/Scheduled. leave() --> DRAINING$/;"	e	enum:OOOCoreRecorder::__anon11
 RUNNING	scheduler.h	/^            RUNNING, \/\/has cid assigned, managed by the phase barrier$/;"	e	enum:Scheduler::ThreadState
 RandReplPolicy	repl_policies.h	/^        explicit RandReplPolicy(uint32_t _numCands) : numCands(_numCands), rnd(0x23A5F + (uint64_t)this), candIdx(0) {$/;"	f	class:RandReplPolicy
 RandReplPolicy	repl_policies.h	/^class RandReplPolicy : public LegacyReplPolicy {$/;"	c
@@ -904,8 +906,8 @@ ReturnChannel	detailed_mem.cpp	/^uint64_t MemControllerBase::ReturnChannel(Addre
 Routine	zsim.cpp	/^static VOID Routine(RTN routine, VOID *v){$/;"	f	file:
 RoutineFinish	zsim.cpp	/^static VOID RoutineFinish(INT32 code, VOID *v){$/;"	f	file:
 RoutineStack	zsim.cpp	/^static RTN_STAT *RoutineStack = 0;$/;"	v	file:
-S	memory_hierarchy.h	/^    S, \/\/ shared (and clean)$/;"	e	enum:__anon3
-SAVE	mtrand.h	/^        enum { SAVE = N + 1 };  \/\/ length of array for save()$/;"	e	enum:MTRand::__anon10
+S	memory_hierarchy.h	/^    S, \/\/ shared (and clean)$/;"	e	enum:__anon7
+SAVE	mtrand.h	/^        enum { SAVE = N + 1 };  \/\/ length of array for save()$/;"	e	enum:MTRand::__anon2
 SCHEDULER_H_	scheduler.h	28;"	d
 SFF_ALWAYS	process_tree.h	/^    SFF_ALWAYS,$/;"	e	enum:SyncedFastForwardMode
 SFF_MULTIPROCESS	process_tree.h	/^    SFF_MULTIPROCESS,$/;"	e	enum:SyncedFastForwardMode
@@ -991,9 +993,9 @@ Stat	stats.h	/^        Stat() : _name(nullptr), _desc(nullptr) {}$/;"	f	class:St
 Stat	stats.h	/^class Stat : public GlobAlloc {$/;"	c
 StatSize	proc_stats.cpp	/^static uint64_t StatSize(Stat * s) {$/;"	f	file:
 State	barrier.h	/^        enum State {OFFLINE, WAITING, RUNNING, LEFT};$/;"	g	class:Barrier
-State	core_recorder.h	/^        } State;$/;"	t	class:CoreRecorder	typeref:enum:CoreRecorder::__anon5
+State	core_recorder.h	/^        } State;$/;"	t	class:CoreRecorder	typeref:enum:CoreRecorder::__anon8
 State	ddr_mem.cpp	/^        enum State { IDLE, QUEUED, RUNNING, ANNULLED };$/;"	g	class:SchedEvent	file:
-State	ooo_core_recorder.h	/^        } State;$/;"	t	class:OOOCoreRecorder	typeref:enum:OOOCoreRecorder::__anon12
+State	ooo_core_recorder.h	/^        } State;$/;"	t	class:OOOCoreRecorder	typeref:enum:OOOCoreRecorder::__anon11
 StatsBackend	stats.h	/^        StatsBackend() {}$/;"	f	class:StatsBackend
 StatsBackend	stats.h	/^class StatsBackend : public GlobAlloc {$/;"	c
 StlGlobAlloc	g_std/stl_galloc.h	/^        StlGlobAlloc() {}$/;"	f	class:StlGlobAlloc
@@ -1031,7 +1033,7 @@ TRY_LOCK	g_heap/dlmalloc.h.c	1917;"	d	file:
 TRY_LOCK	g_heap/dlmalloc.h.c	1949;"	d	file:
 TWO_SIZE_T_SIZES	g_heap/dlmalloc.h.c	1500;"	d	file:
 TakeBarrier	zsim.cpp	/^uint32_t TakeBarrier(uint32_t tid, uint32_t cid) {$/;"	f
-TerminationStatus	zsim_harness.cpp	/^} TerminationStatus;$/;"	t	typeref:enum:__anon6	file:
+TerminationStatus	zsim_harness.cpp	/^} TerminationStatus;$/;"	t	typeref:enum:__anon9	file:
 TextBackend	stats.h	/^class TextBackend : public StatsBackend {$/;"	c
 TextBackend	text_stats.cpp	/^TextBackend::TextBackend(const char *filename, AggregateStat * rootStat) {$/;"	f	class:TextBackend
 TextBackendImpl	text_stats.cpp	/^	TextBackendImpl(const char *_filename, AggregateStat * _rootStat):filename(_filename), rootStat(_rootStat) {$/;"	f	class:TextBackendImpl
@@ -1349,6 +1351,7 @@ bblAddress	smt_core.h	/^		Address bblAddress; \/\/ bbl location$/;"	m	class:BblC
 bblAndRecord	timing_core.cpp	/^void TimingCore::bblAndRecord(Address bblAddr, BblInfo* bblInfo) {$/;"	f	class:TimingCore
 bblApproxOpcodes	decoder.cpp	/^static std::vector < uint32_t > *bblApproxOpcodes[MAX_BBLS];$/;"	v	file:
 bblCount	decoder.cpp	/^static uint64_t bblCount[MAX_BBLS];$/;"	v	file:
+bblFetch	smt_core.h	/^		uint64_t bblFetch;$/;"	m	class:Contention
 bblIdx	decoder.cpp	/^static uint64_t bblIdx = 0;$/;"	v	file:
 bblIdx	decoder.h	/^    uint64_t bblIdx;$/;"	m	struct:DynBbl
 bblIdxLock	decoder.cpp	/^static lock_t bblIdxLock = 0;$/;"	v	file:
@@ -1384,6 +1387,7 @@ branchPc	ooo_core.h	/^        Address branchPc;  \/\/0 if last bbl was not a con
 branchPc	smt_core.h	/^		Address branchPc;  \/\/ 0 if last bbl was not a conditional branch$/;"	m	class:BblContext
 branchPred	ooo_core.h	/^        BranchPredictorPAg<11, 18, 14> branchPred;$/;"	m	class:OOOCore
 branchPred	smt_core.h	/^        BranchPredictorPAg<11, 18, 14> branchPred;$/;"	m	class:SMTCore
+branchPrediction	smt_core.h	/^		uint64_t branchPrediction;$/;"	m	class:Contention
 branchPtr	core.h	/^    void (*branchPtr)(THREADID, ADDRINT, BOOL, ADDRINT, ADDRINT);$/;"	m	struct:InstrFuncPtrs
 branchTaken	ooo_core.h	/^        bool branchTaken;$/;"	m	class:OOOCore
 branchTaken	smt_core.h	/^        bool branchTaken;$/;"	m	class:BblContext
@@ -1429,6 +1433,7 @@ cSimStart	ooo_core_recorder.cpp	/^uint64_t OOOCoreRecorder::cSimStart(uint64_t c
 cSimStart	smt_core.cpp	/^void SMTCore::cSimStart(){$/;"	f	class:SMTCore
 cSimStart	timing_core.h	/^        void cSimStart() {curCycle = cRec.cSimStart(curCycle);}$/;"	f	class:TimingCore
 cStore	trace_driver.h	/^            std::unordered_map<Address, MESIState> cStore; \/\/holds current sets of lines for each child. Needs to support an arbitrary set, hence the hash table$/;"	m	struct:TraceDriver::ChildInfo
+cache	smt_core.h	/^		uint64_t cache;$/;"	m	class:Contention
 cache	timing_cache.cpp	/^	TimingCache * cache;$/;"	m	class:HitEvent	file:
 cache	timing_cache.cpp	/^	TimingCache * cache;$/;"	m	class:MissResponseEvent	file:
 cache	timing_cache.cpp	/^	TimingCache * cache;$/;"	m	class:MissStartEvent	file:
@@ -1436,6 +1441,8 @@ cache	timing_cache.cpp	/^	TimingCache * cache;$/;"	m	class:MissWritebackEvent	fi
 cache	timing_cache.cpp	/^	TimingCache * cache;$/;"	m	class:ReplAccessEvent	file:
 cacheLineSize	detailed_mem.h	/^        uint32_t cacheLineSize;$/;"	m	class:MemControllerBase
 cacheLineSize	detailed_mem_params.h	/^        uint32_t cacheLineSize;$/;"	m	class:MemParam
+cacheReturnTime	smt_core.h	/^		g_unordered_map<pid_t, uint64_t> cacheReturnTime;$/;"	m	class:SmtWindow
+cacheTotal	smt_core.h	/^		uint64_t cacheTotal(pid_t pid){ return contentionMap[pid].contentionTotal() + cacheReturnTime[pid]; }$/;"	f	class:SmtWindow
 callCount	zsim.cpp	/^	UINT64 callCount, instrCount;$/;"	m	struct:RTN_STAT	file:
 callback	event_queue.h	/^        void callback() {$/;"	f	class:AdaptiveEvent
 callback	partitioner.h	/^                void callback() { part->partition(); }$/;"	f	class:Partitioner::PartitionEvent
@@ -1489,7 +1496,7 @@ check_top_chunk	g_heap/dlmalloc.h.c	2752;"	d	file:
 checkpoint	log.h	199;"	d
 child	g_heap/dlmalloc.h.c	/^  struct malloc_tree_chunk* child[2];$/;"	m	struct:malloc_tree_chunk	typeref:struct:malloc_tree_chunk::malloc_tree_chunk	file:
 child	prefetcher.h	/^        BaseCache* child;$/;"	m	class:StreamPrefetcher
-child	timing_event.h	/^            TimingEvent* child;$/;"	m	union:TimingEvent::__anon4
+child	timing_event.h	/^            TimingEvent* child;$/;"	m	union:TimingEvent::__anon12
 childId	access_tracing.h	/^    uint16_t childId;$/;"	m	struct:PackedAccessRecord
 childId	access_tracing.h	/^    uint32_t childId;$/;"	m	struct:AccessRecord
 childId	memory_hierarchy.h	/^    uint32_t childId;$/;"	m	struct:MemReq
@@ -1498,7 +1505,7 @@ childInfo	zsim_harness.cpp	/^ProcInfo childInfo[MAX_CHILDREN];$/;"	v
 childLock	memory_hierarchy.h	/^    lock_t* childLock;$/;"	m	struct:MemReq
 children	coherence_ctrls.h	/^        g_vector<BaseCache*> children;$/;"	m	class:MESITopCC
 children	process_tree.h	/^        g_vector<ProcessTreeNode*> children;$/;"	m	class:ProcessTreeNode
-children	timing_event.h	/^            TimingEventBlock* children;$/;"	m	union:TimingEvent::__anon4
+children	timing_event.h	/^            TimingEventBlock* children;$/;"	m	union:TimingEvent::__anon12
 children	trace_driver.h	/^        ChildInfo* children;$/;"	m	class:TraceDriver
 childrenRTTs	coherence_ctrls.h	/^        g_vector<uint32_t> childrenRTTs;$/;"	m	class:MESITopCC
 chipCapacity	detailed_mem_params.h	/^        uint32_t chipCapacity; \/\/ megabits$/;"	m	class:MemParam
@@ -1550,7 +1557,10 @@ constraints	detailed_mem_params.h	/^        int32_t constraints[4];$/;"	m	class:
 construct	g_std/stl_galloc.h	/^        void construct(_Up* __p, _Args&&... __args) { ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }$/;"	f	class:StlGlobAlloc
 construct	g_std/stl_galloc.h	/^        void construct(pointer p) { construct(p, value_type()); } \/\/required by gcc 4.6$/;"	f	class:StlGlobAlloc
 construct	g_std/stl_galloc.h	/^        void construct(pointer p, const T& val) { new (static_cast<T*>(p)) T(val); }$/;"	f	class:StlGlobAlloc
+contentionMap	smt_core.h	/^		g_unordered_map<pid_t, Contention> contentionMap;$/;"	m	class:SmtWindow
 contentionSim	zsim.h	/^    ContentionSim* contentionSim;$/;"	m	struct:GlobSimInfo
+contentionTotal	smt_core.h	/^		inline uint64_t contentionTotal(){$/;"	f	class:Contention
+contention_cycles	ooo_core.h	/^	uint64_t contention_cycles; \/\/OOOE: barak made this to compile$/;"	m	class:OOOCore
 contextSwitch	filter_cache.h	/^        void contextSwitch() {$/;"	f	class:FilterCache
 contextSwitch	null_core.cpp	/^void NullCore::contextSwitch(int32_t gid) {}$/;"	f	class:NullCore
 contextSwitch	ooo_core.cpp	/^void OOOCore::contextSwitch(int32_t gid) {$/;"	f	class:OOOCore
@@ -1595,7 +1605,6 @@ curBlock	prio_queue.h	/^    uint64_t curBlock;$/;"	m	class:PrioQueue
 curBts	part_repl_policies.h	/^            uint64_t curBts; \/\/per-partition coarse-grain timestamp (CurrentTS in paper)$/;"	m	struct:VantageReplPolicy::VantagePartInfo
 curBtsHits	part_repl_policies.h	/^            uint32_t curBtsHits; \/\/hits on current timestamp (AccessCounter in paper)$/;"	m	struct:VantageReplPolicy::VantagePartInfo
 curChildren	process_tree.h	/^        volatile uint32_t curChildren;$/;"	m	class:ProcessTreeNode
-curContext	smt_core.h	/^		BblContext *curContext = NULL, *prevContext = NULL;$/;"	m	class:SMTCore
 curCycle	contention_sim.h	/^            volatile uint64_t curCycle;$/;"	m	struct:ContentionSim::DomainData
 curCycle	dramsim_mem_ctrl.h	/^        uint64_t curCycle; \/\/processor cycle, used in callbacks$/;"	m	class:DRAMSimMemory
 curCycle	null_core.h	/^        uint64_t curCycle;$/;"	m	class:NullCore
@@ -1728,6 +1737,9 @@ dramCore	dramsim_mem_ctrl.h	/^        DRAMSim::MultiChannelMemorySystem* dramCor
 dropRegister	decoder.cpp	/^static bool dropRegister(uint32_t targetReg, uint32_t * regs, uint32_t & numRegs) {$/;"	f	file:
 dropStackRegister	decoder.cpp	/^void Decoder::dropStackRegister(Instr & instr) {$/;"	f	class:Decoder
 drv	trace_driver.h	/^        TraceDriver* drv;$/;"	m	class:TraceDriverProxyCache
+dualLoadQueue	smt_core.h	/^        g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualLoadQueue;$/;"	m	class:SMTCore
+dualRob	smt_core.h	/^		g_unordered_map<pid_t, ReorderBuffer<64, 4>> dualRob;$/;"	m	class:SMTCore
+dualStoreQueue	smt_core.h	/^        g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualStoreQueue;$/;"	m	class:SMTCore
 dump	access_tracing.cpp	/^void AccessTraceWriter::dump(bool cont) {$/;"	f	class:AccessTraceWriter
 dump	hdf5_stats.cpp	/^        void dump(bool buffered) {$/;"	f	class:HDF5BackendImpl
 dump	hdf5_stats.cpp	/^void HDF5Backend::dump(bool buffered) {$/;"	f	class:HDF5Backend
@@ -2442,7 +2454,7 @@ loadId	smt_core.h	/^		uint32_t loadId[NUM_VCORES];$/;"	m	class:SmtWindow
 loadOps	decoder.h	/^            uint32_t loadOps[MAX_INSTR_LOADS];$/;"	m	struct:Decoder::Instr
 loadPtr	core.h	/^    void (*loadPtr)(THREADID, ADDRINT);$/;"	m	struct:InstrFuncPtrs
 loadQueue	ooo_core.h	/^        ReorderBuffer<32, 4> loadQueue;$/;"	m	class:OOOCore
-loadQueue	smt_core.h	/^        ReorderBuffer<32, 4> loadQueue;$/;"	m	class:SMTCore
+loadSeparate	filter_cache.h	/^        inline uint64_t loadSeparate(Address vAddr, uint64_t curCycle, uint64_t* hitCycle, uint64_t* contentionCycle) {$/;"	f	class:FilterCache
 load_addr	parse_vdso.cpp	/^	uintptr_t load_addr;$/;"	m	struct:vdso_info	file:
 load_offset	parse_vdso.cpp	/^	uintptr_t load_offset;	\/* load_addr - recorded vaddr *\/$/;"	m	struct:vdso_info	file:
 loader	pin_cmd.h	/^            g_string loader;$/;"	m	struct:PinCmd::ProcCmdInfo
@@ -2520,6 +2532,10 @@ malloc_state	g_heap/dlmalloc.h.c	/^struct malloc_state {$/;"	s	file:
 malloc_tree_chunk	g_heap/dlmalloc.h.c	/^struct malloc_tree_chunk {$/;"	s	file:
 mapLineAddr	ddr_mem.cpp	/^DDRMemory::AddrLoc DDRMemory::mapLineAddr(Address lineAddr) {$/;"	f	class:DDRMemory
 mapper	part_repl_policies.h	/^        PartMapper* mapper;$/;"	m	class:PartReplPolicy
+markDone	core.h	/^		virtual void markDone() {}$/;"	f	class:Core
+markDone	ooo_core.cpp	/^void OOOCore::markDone() {$/;"	f	class:OOOCore
+markDone	simple_core.cpp	/^void SimpleCore::markDone(){$/;"	f	class:SimpleCore
+markDone	smt_core.cpp	/^void SMTCore::markDone() {$/;"	f	class:SMTCore
 markForSleep	scheduler.h	/^        volatile uint32_t* markForSleep(uint32_t pid, uint32_t tid, uint64_t wakeupPhase) {$/;"	f	class:Scheduler
 markLeave	ooo_core.h	/^        inline void markLeave(uint64_t leaveCycle) {$/;"	f	class:CycleQueue
 markRetire	ooo_core.h	/^        inline void markRetire(uint64_t minRetireCycle) {$/;"	f	class:ReorderBuffer
@@ -2585,7 +2601,7 @@ minStartCycle	timing_event.h	/^        uint64_t minStartCycle;$/;"	m	class:Timin
 minWrLatency	ddr_mem.h	/^        uint32_t minWrLatency;$/;"	m	class:DDRMemory
 minsize_for_tree_index	g_heap/dlmalloc.h.c	2857;"	d	file:
 mispredBranches	ooo_core.h	/^        uint64_t instrs, uops, bbls, approxInstrs, mispredBranches;$/;"	m	class:OOOCore
-mispredBranches	smt_core.h	/^		uint32_t mispredBranches;$/;"	m	class:SMTCore
+mispredBranches	smt_core.h	/^		uint64_t mispredBranches;$/;"	m	class:SMTCore
 missCache	partitioner.h	/^        mutable uint32_t* missCache;$/;"	m	class:UMonMonitor
 missCacheValid	partitioner.h	/^        mutable bool missCacheValid;$/;"	m	class:UMonMonitor
 mixBits	mtrand.h	/^        uint64_t mixBits(const uint64_t u, const uint64_t v) const { return hiBit(u) | loBits(v); }$/;"	f	class:MTRand
@@ -2750,6 +2766,7 @@ ok_next	g_heap/dlmalloc.h.c	2961;"	d	file:
 ok_next	g_heap/dlmalloc.h.c	2969;"	d	file:
 ok_pinuse	g_heap/dlmalloc.h.c	2965;"	d	file:
 ok_pinuse	g_heap/dlmalloc.h.c	2971;"	d	file:
+older	smt_core.h	/^		bool older;$/;"	m	class:BblQueue
 oooBbl	core.h	/^    DynBbl oooBbl[0]; \/\/0 bytes, but will be 1-sized when we have an element (and that element has variable size as well)$/;"	m	struct:BblInfo
 oooDecode	zsim.h	/^    bool oooDecode; \/\/if true, Decoder does OOO (instr->uop) decoding$/;"	m	struct:GlobSimInfo
 op	part_repl_policies.h	/^            uint32_t op; \/\/original partition id: same as partition id when in partition, but does not change when moved to FFA (unmanaged region)$/;"	m	struct:VantageReplPolicy::LineInfo
@@ -2883,7 +2900,7 @@ phaseEndCycle	timing_core.h	/^        uint64_t phaseEndCycle; \/\/phase 1 end cl
 phaseLength	zsim.h	/^    uint32_t phaseLength;$/;"	m	struct:GlobSimInfo
 pht	ooo_core.h	/^        uint8_t pht[1 << LB];$/;"	m	class:BranchPredictorPAg
 pid	g_heap/dlmalloc.h.c	/^    pid_t pid;$/;"	m	struct:threadid_t	file:
-pid	smt_core.h	/^		pid_t pid; \/\/ process id$/;"	m	class:BblContext
+pid	smt_core.h	/^		pid_t pid; \/\/ process id$/;"	m	class:BblQueue
 pid	zsim_harness.cpp	/^	int pid;$/;"	m	struct:ProcInfo	file:
 pids	arbitration.h	/^	std::vector<int> pids;$/;"	m	class:Arbitration
 pinCmd	zsim.h	/^    PinCmd* pinCmd; \/\/enables calls to exec() to modify Pin's calling arguments, see zsim.cpp$/;"	m	struct:GlobSimInfo
@@ -2944,7 +2961,7 @@ prepend_alloc	g_heap/dlmalloc.h.c	/^static void* prepend_alloc(mstate m, char* n
 prev	intrusive_list.h	/^    T* prev;$/;"	m	struct:InListNode
 prevActvPowerDownCycle	detailed_mem.h	/^        uint64_t prevActvPowerDownCycle;$/;"	m	class:MemRankBase
 prevBbl	ooo_core.h	/^        BblInfo* prevBbl;$/;"	m	class:OOOCore
-prevContext	smt_core.h	/^		BblContext *curContext = NULL, *prevContext = NULL;$/;"	m	class:SMTCore
+prevContext	smt_core.h	/^		BblContext *prevContext;$/;"	m	class:SMTCore
 prevContext	smt_core.h	/^		BblContext* prevContext [NUM_VCORES];$/;"	m	class:SmtWindow
 prevIdlePowerDownCycle	detailed_mem.h	/^        uint64_t prevIdlePowerDownCycle;$/;"	m	class:MemRankBase
 prevIdleStandbyCycle	detailed_mem.h	/^        uint64_t prevIdleStandbyCycle;$/;"	m	class:MemRankBase
@@ -2953,11 +2970,13 @@ prevRespEvent	core_recorder.h	/^        TimingEvent* prevRespEvent;$/;"	m	class:
 prev_chunk	g_heap/dlmalloc.h.c	2234;"	d	file:
 prev_foot	g_heap/dlmalloc.h.c	/^  size_t                    prev_foot;$/;"	m	struct:malloc_tree_chunk	file:
 prev_foot	g_heap/dlmalloc.h.c	/^  size_t               prev_foot;  \/* Size of previous chunk (if free).  *\/$/;"	m	struct:malloc_chunk	file:
+printBbl	smt_core.cpp	/^static inline void printBbl(BblContext& cntxt, pid_t pid) {$/;"	f	file:
+printContention	smt_core.cpp	/^inline void SMTCore::printContention(){$/;"	f	class:SMTCore
 printHeartbeat	zsim_harness.cpp	/^static void printHeartbeat(GlobSimInfo * zinfo) {$/;"	f	file:
 printProgress	sorttrace.cpp	/^void printProgress(uint64_t read, uint64_t written, uint64_t total) {$/;"	f
 printState	scheduler.h	/^        void printState() {$/;"	f	class:Scheduler
 printThreadState	scheduler.h	/^        void printThreadState(uint32_t pid, uint32_t tid) {$/;"	f	class:Scheduler
-printUop	smt_core.cpp	/^static inline void printUop(DynUop uop, BblContext& cntxt, uint8_t curQ, uint16_t numContextTot, uint32_t curUop) {$/;"	f	file:
+printUop	smt_core.cpp	/^static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t curQ, uint16_t numContextTot, uint32_t curUop) {$/;"	f	file:
 printWorkingSet	arbitration.cpp	/^void Arbitration::printWorkingSet(){$/;"	f	class:Arbitration
 prio	contention_sim.h	/^            uint32_t prio;$/;"	m	struct:ContentionSim::DomainData
 prioritizedAccessType	detailed_mem.h	/^        MemAccessType prioritizedAccessType;$/;"	m	class:MemSchedulerDefault
@@ -3223,7 +3242,6 @@ rnd	repl_policies.h	/^        MTRand rnd;$/;"	m	class:RandReplPolicy
 rnd	scheduler.h	/^        MTRand rnd;$/;"	m	class:Scheduler
 rng	part_repl_policies.h	/^        MTRand rng;$/;"	m	class:VantageReplPolicy
 rob	ooo_core.h	/^        ReorderBuffer<128, 4> rob;$/;"	m	class:OOOCore
-rob	smt_core.h	/^        ReorderBuffer<128, 4> rob;$/;"	m	class:SMTCore
 rootStat	hdf5_stats.cpp	/^        AggregateStat* rootStat;$/;"	m	class:HDF5BackendImpl	file:
 rootStat	text_stats.cpp	/^	AggregateStat *rootStat;$/;"	m	class:TextBackendImpl	file:
 rootStat	zsim.h	/^    AggregateStat* rootStat;$/;"	m	struct:GlobSimInfo
@@ -3242,12 +3260,12 @@ rp	ideal_arrays.h	/^        ProxyReplPolicy* rp;$/;"	m	class:IdealLRUArray
 rs	decoder.h	/^    uint16_t rs[MAX_UOP_SRC_REGS];$/;"	m	struct:DynUop
 run	timing_event.h	/^        inline void run(uint64_t startCycle) {$/;"	f	class:TimingEvent
 runBblStatUpdate	smt_core.cpp	/^void SMTCore::runBblStatUpdate(BblContext* bblContext){$/;"	f	class:SMTCore
-runFrontend	smt_core.cpp	/^void SMTCore::runFrontend(uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){$/;"	f	class:SMTCore
+runFrontend	smt_core.cpp	/^void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, uint64_t& lastCommitCycle, BblContext* bblContext){$/;"	f	class:SMTCore
 runList	barrier.h	/^        uint32_t* runList;$/;"	m	class:Barrier
 runListSize	barrier.h	/^        uint32_t runListSize;$/;"	m	class:Barrier
 runQueue	scheduler.h	/^        InList<ThreadInfo> runQueue;$/;"	m	class:Scheduler
 runQueueHist	scheduler.h	/^        VectorCounter occHist, runQueueHist;$/;"	m	class:Scheduler
-runUop	smt_core.cpp	/^void SMTCore::runUop(uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {$/;"	f	class:SMTCore
+runUop	smt_core.cpp	/^void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {$/;"	f	class:SMTCore
 runningThreads	barrier.h	/^        uint32_t runningThreads; \/\/threads in RUNNING state$/;"	m	class:Barrier
 rwmutex	mutex.h	/^        rwmutex() {$/;"	f	class:rwmutex
 rwmutex	mutex.h	/^class rwmutex : public GlobAlloc {$/;"	c
@@ -3471,7 +3489,7 @@ storeId	smt_core.h	/^		uint32_t storeId[NUM_VCORES];$/;"	m	class:SmtWindow
 storeOps	decoder.h	/^            uint32_t storeOps[MAX_INSTR_STORES];$/;"	m	struct:Decoder::Instr
 storePtr	core.h	/^    void (*storePtr)(THREADID, ADDRINT);$/;"	m	struct:InstrFuncPtrs
 storeQueue	ooo_core.h	/^        ReorderBuffer<32, 4> storeQueue;$/;"	m	class:OOOCore
-storeQueue	smt_core.h	/^        ReorderBuffer<32, 4> storeQueue;$/;"	m	class:SMTCore
+storeSeparate	filter_cache.h	/^        inline uint64_t storeSeparate(Address vAddr, uint64_t curCycle, uint64_t* hitCycle, uint64_t* contentionCycle) {$/;"	f	class:FilterCache
 stores	ooo_core.h	/^        uint32_t stores;$/;"	m	class:OOOCore
 stores	smt_core.h	/^        uint32_t loads, stores;	\/\/ number of loads and stores$/;"	m	class:BblContext
 str	ooo_core_recorder.cpp	/^        virtual std::string str() {$/;"	f	class:OOOIssueEvent
@@ -3552,6 +3570,7 @@ terminationConditionMet	zsim.h	/^    volatile bool terminationConditionMet;$/;"	
 testMode	part_repl_policies.h	/^        bool testMode;$/;"	m	class:WayPartReplPolicy
 textAddr	debug.h	/^    void* textAddr;$/;"	m	struct:LibInfo
 th	scheduler.h	/^            ThreadInfo* const th;$/;"	m	struct:Scheduler::FakeLeaveInfo
+thCompleted	smt_core.h	/^		bool thCompleted;$/;"	m	class:SmtWindow
 threadList	barrier.h	/^        ThreadSyncInfo threadList[MAX_THREADS];$/;"	m	class:Barrier
 threadTicket	contention_sim.h	/^        volatile uint32_t threadTicket; \/\/used only at init$/;"	m	class:ContentionSim
 threadTrampoline	scheduler.cpp	/^void Scheduler::threadTrampoline(void *arg) {$/;"	f	class:Scheduler
@@ -3571,6 +3590,7 @@ ticket_lock	locks.h	/^static inline void ticket_lock(volatile uint32_t* lock) {$
 ticket_trylock	locks.h	/^static inline int ticket_trylock(volatile uint32_t* lock) {$/;"	f
 ticket_unlock	locks.h	/^static inline void ticket_unlock(volatile uint32_t* lock) {$/;"	f
 tid	g_heap/dlmalloc.h.c	/^    pthread_t tid;$/;"	m	struct:threadid_t	file:
+tid	smt_core.h	/^		THREADID tid = 0;$/;"	m	class:SMTCore
 tid	virt/common.h	/^    uint32_t tid;$/;"	m	struct:PostPatchArgs
 tid	virt/common.h	/^    uint32_t tid;$/;"	m	struct:PrePatchArgs
 times	prefetcher.h	/^            AccessTimes times[64];$/;"	m	struct:StreamPrefetcher::Entry
@@ -3717,6 +3737,8 @@ waySize	part_repl_policies.h	/^        uint32_t waySize;$/;"	m	class:WayPartRepl
 ways	cache_arrays.h	/^        uint32_t ways;$/;"	m	class:ZArray
 ways	part_repl_policies.h	/^        uint32_t ways;$/;"	m	class:WayPartReplPolicy
 ways	timing_cache.h	/^        uint32_t tagLat, ways, cands;$/;"	m	class:TimingCache
+weave	smt_core.cpp	/^void SMTCore::weave() {$/;"	f	class:SMTCore
+weaveLock	smt_core.h	/^		lock_t windowLock, weaveLock;$/;"	m	class:SMTCore
 win32_acquire_lock	g_heap/dlmalloc.h.c	/^static FORCEINLINE int win32_acquire_lock (MLOCK_T *sl) {$/;"	f	file:
 win32_mlock_t	g_heap/dlmalloc.h.c	/^struct win32_mlock_t {$/;"	s	file:
 win32_release_lock	g_heap/dlmalloc.h.c	/^static FORCEINLINE void win32_release_lock (MLOCK_T *sl) {$/;"	f	file:
@@ -3724,7 +3746,7 @@ win32_try_lock	g_heap/dlmalloc.h.c	/^static FORCEINLINE int win32_try_lock (MLOC
 win32direct_mmap	g_heap/dlmalloc.h.c	/^static FORCEINLINE void* win32direct_mmap(size_t size) {$/;"	f	file:
 win32mmap	g_heap/dlmalloc.h.c	/^static FORCEINLINE void* win32mmap(size_t size) {$/;"	f	file:
 win32munmap	g_heap/dlmalloc.h.c	/^static FORCEINLINE int win32munmap(void* ptr, size_t size) {$/;"	f	file:
-windowLock	smt_core.h	/^		lock_t windowLock;$/;"	m	class:SMTCore
+windowLock	smt_core.h	/^		lock_t windowLock, weaveLock;$/;"	m	class:SMTCore
 wokenUp	scheduler.h	/^            uint32_t wokenUp;$/;"	m	struct:Scheduler::FutexJoinInfo
 wq	mutex.h	/^        mutex wq;$/;"	m	class:rwmutex
 wrAddr	filter_cache.h	/^            volatile Address wrAddr;$/;"	m	struct:FilterCache::FilterEntry

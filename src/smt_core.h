@@ -234,7 +234,7 @@ class SMTCore : public Core {
         //to not overlap more than 10 misses.
         g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualLoadQueue;
         g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualStoreQueue;
-		g_unordered_map<pid_t, ReorderBuffer<128, 4>> dualRob;
+		g_unordered_map<pid_t, ReorderBuffer<64, 4>> dualRob;
         uint32_t curCycleRFReads; //for RF read stalls
         uint32_t curCycleIssuedUops; //for uop issue limits
 
