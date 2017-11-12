@@ -50,6 +50,7 @@ extern GlobSimInfo* zinfo;
 #define ISSUES_PER_CYCLE 4
 #define RF_READS_PER_CYCLE 3
 
+//#define SMT_PRINT
 
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	: Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
@@ -655,9 +656,9 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		for (uint32_t i = 0; i < (5 * 64) / lineSize; i++) {
 			// TODO: Cache hit delays the entire pipeline somehow store the hti count and contention count
 			// and do not update the core count main (but somehow keep track of the different hit/miss counts)
-			uint64_t fetchLat = l1i->loadSeparate(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].branchPrediction);
-			cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
-			uint64_t respCycle = reqCycle;
+			uint64_t fetchLat = l1i->loadSeparate(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].branchPrediction) - curCycle;
+			cRec.record(curCycle, curCycle, curCycle + fetchLat);
+			uint64_t respCycle = reqCycle + fetchLat;
 			if (respCycle > lastCommitCycle) {
 				break;
 			}
@@ -678,9 +679,9 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		// We always call fetches with curCycle to avoid upsetting the weave
 		// models (but we could move to a fetch-centric recorder to avoid this)
 
-        uint64_t fetchLat = l1i->loadSeparate(fetchAddr, curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].bblFetch);
-        cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
-		//fetchCycle += fetchLat;
+        uint64_t fetchLat = l1i->loadSeparate(fetchAddr, curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].bblFetch) - curCycle;
+        cRec.record(curCycle, curCycle, curCycle + fetchLat);
+		fetchCycle += fetchLat;
 		//info("FetchCycle updated to: fetchCycle:%lu %ld from prevFetch:%lu", fetchCycle, fetchCycle, fetchCycle - fetchLat);
 	}
 
@@ -695,7 +696,10 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 #endif
 		decodeCycle = minFetchDecCycle;
 	}
+
+#ifdef SMT_PRINT
 	info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
+#endif
 }
 
 /* OOOE: runUop()
@@ -707,6 +711,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
     assert( bbl != nullptr );
     assert( uop != nullptr );
+#ifdef SMT_PRINT
 	info("\nOOOE: New UOP Pid:%d curCycle:%lu prevDecCycle:%d decodeCycle:%lu", smtWindow->bblQueue[presQ].pid, curCycle, prevDecCycle, decodeCycle);
     if ( uop->type == UOP_LOAD ){
 		info("LOAD");
@@ -717,11 +722,15 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 	else{
 		info("OTHER");
 	}
+#endif
 
     uint32_t decDiff = uop->decCycle - prevDecCycle;
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
 
+
+#ifdef SMT_PRINT
 	info("decodeCycle:%lu", decodeCycle);
+#endif
 
     if (decodeCycle > curCycle) {
         uint32_t cdDiff = decodeCycle - curCycle;
@@ -733,7 +742,9 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
         for (uint32_t i = 0; i < cdDiff; i++) insWindow.advancePos(curCycle);
     }
     
+#ifdef SMT_PRINT
 	info("curCycle:%lu", curCycle);
+#endif
 
     prevDecCycle = uop->decCycle;
     uopQueue.markLeave(curCycle);
@@ -747,7 +758,10 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
         insWindow.advancePos(curCycle);
     }
     curCycleIssuedUops++;
+
+#ifdef SMT_PRINT
 	info("curCycleIssuedUops:%d", curCycleIssuedUops);
+#endif
 
     // Kill dependences on invalid register
     // Using curCycle saves us two unpredictable branches in the RF read stalls code
@@ -764,7 +778,9 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
         curCycleIssuedUops = 0;  // or 1? that's probably a 2nd-order detail
         insWindow.advancePos(curCycle);
     }
+#ifdef SMT_PRINT
 	info("curCycleRFReads:%d", curCycleRFReads);
+#endif
 
     //Check to see if the current ROB is full
 	uint64_t c2 = dualRob[smtWindow->bblQueue[presQ].pid].minAllocCycle();
@@ -774,12 +790,17 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
     // Model RAT + ROB + RS delay between issue and dispatch
     uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
+
+#ifdef SMT_PRINT
 	info("dispatchCycle:%lu", dispatchCycle);
+#endif
 
     // NOTE: Schedule can adjust both cur and dispatch cycles
     insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
 
+#ifdef SMT_PRINT
 	info("curCycle:%lu dispatchCycle:%lu", curCycle, dispatchCycle);
+#endif
 
     // If we have advanced, we need to reset the curCycle counters
     if (curCycle > c3) {
@@ -817,7 +838,10 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
                 if (addr != ((Address)-1L)) {
                     /* TODO: Actually update the reqCycle since it is updating just the commit not the actual cycle count*/
                     reqSatisfiedCycle = l1d->loadSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
-                    cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
+                    cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
+
+                    //reqSatisfiedCycle = l1d->loadSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
+                    //cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
                 }
 
                 // Enforce st-ld forwarding
@@ -887,7 +911,9 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 			//info("FENCE: commitCycle:%lu", commitCycle);
     }
 
+#ifdef SMT_PRINT
     info("commitCycle:%lu", commitCycle);
+#endif
     // Mark retire at ROB
 	dualRob[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
 

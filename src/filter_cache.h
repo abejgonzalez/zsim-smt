@@ -115,7 +115,7 @@ class FilterCache : public Cache {
             Address vLineAddr = vAddr >> lineBits;
             uint32_t idx = vLineAddr & setMask;
             uint64_t availCycle = filterArray[idx].availCycle; //read before, careful with ordering to avoid timing races
-            info("CACHE curCycle:%lu availCycle:%lu", curCycle, availCycle);
+            //info("CACHE curCycle:%lu availCycle:%lu", curCycle, availCycle);
             if (vLineAddr == filterArray[idx].rdAddr) {
                 fGETSHit++;
                 *hitCycle += MAX(curCycle, availCycle) - curCycle;
@@ -155,7 +155,6 @@ class FilterCache : public Cache {
                 *hitCycle += MAX(curCycle, availCycle) - curCycle;
                 return MAX(curCycle, availCycle);
             } else {
-
                 uint64_t hold = replace(vLineAddr, idx, false, curCycle);
                 *contentionCycle += hold - curCycle;
                 return hold; 
