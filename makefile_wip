@@ -1,0 +1,106 @@
+#configure and build
+CONFIGURE = ./configure.sh
+SCONS = ${SCONSPATH}/bin/scons
+SCONSFLAGS = -j4 --d
+
+# testing
+TESTDIR = ./tests/config
+LOGDIR = ./log
+TRACEDIR = ./tests/traces
+PLOTDIR = ./tests/plots
+PLOTSCRIPT = visual.py
+TEST = $(TESTDIR)/smt.cfg
+TEST1 = $(TESTDIR)/ooo_branchgood.cfg
+TEST2 = $(TESTDIR)/ooo_misbranch.cfg
+TEST3 = $(TESTDIR)/ooo_data_cache_good.cfg
+TEST3 = $(TESTDIR)/ooo_data_cache_miss.cgg
+TEST5 = $(TESTDIR)/ooo_i_cache_good.cfg
+TEST5 = $(TESTDIR)/ooo_i_cache_miss.cfg
+TEST7 = $(TESTDIR)/ooo_rob_good.cfg
+TEST7 = $(TESTDIR)/ooo_rob_stall.cfg
+ZSIM = $(BUILDDIR)/debug/zsim
+
+# outputs
+BUILDDIR = build
+LIBDIR = lib/
+OUTPUT = heartbeat out.cfg *.out *.log* *.h5 .scons*
+
+# pin
+PINBIN = lib/pin2.14/intel64/bin/pinbin
+PIN = $(BUILDDIR)/debug/pin
+
+build: src/
+	$(CONFIGURE)
+	$(SCONS) $(SCONSFLAGS)
+	# ln -sf ~/zsim/build/opt/zsim ~/opt/bin/zsim
+
+clean:
+	$(RM) -rf  $(BUILDDIR)  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
+
+test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
+	$(ZSIM) $(TEST)	
+	mv *.log* log
+
+test1: $(TEST1) $(TRACEDIR) $(LOGDIR) $(PIN)
+	$(ZSIM) $(TEST1)	
+	mv *.log* log
+
+test2: $(TEST2) $(TRACEDIR) $(LOGDIR) $(PIN)
+	$(ZSIM) $(TEST2)	
+	mv *.log* log
+
+test3: $(TEST3) $(TRACEDIR) $(LOGDIR) $(PIN)
+	$(ZSIM) $(TEST3)	
+	mv *.log* log
+
+test4: $(TEST4) $(TRACEDIR) $(LOGDIR) $(PIN)
+	$(ZSIM) $(TEST4)	
+	mv *.log* log
+
+test5: $(TEST5) $(TRACEDIR) $(LOGDIR) $(PIN)
+	$(ZSIM) $(TEST5)	
+	mv *.log* log
+
+test6: $(TEST6) $(TRACEDIR) $(LOGDIR) $(PIN)
+	$(ZSIM) $(TEST6)	
+	mv *.log* log
+
+test7: $(TEST7) $(TRACEDIR) $(LOGDIR) $(PIN)
+	$(ZSIM) $(TEST7)	
+	mv *.log* log
+
+test8: $(TEST8) $(TRACEDIR) $(LOGDIR) $(PIN)
+	$(ZSIM) $(TEST8)	
+	mv *.log* log
+
+test-clean:
+	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
+
+log-clean:
+	$(RM) $(LOGDIR)/*
+
+trace-clean:
+	$(RM) -rf $(TRACEDIR)
+
+plot: $(PLOTDIR) $(TRACEDIR)
+	bash -c "cd tests && python $(PLOTSCRIPT)"
+
+$(PIN):
+	cp $(PINBIN) $(PIN)
+
+$(TRACEDIR):
+	mkdir -p $(TRACEDIR)
+
+$(PLOTDIR):
+	mkdir -p $(PLOTDIR)
+
+$(LOGDIR):
+	mkdir -p $(LOGDIR)
+
+############### unit tests ######################
+
+CC = g++
+CPPFLAGS = -Ibuild/opt -g -std=c++11
+
+testArbitration: tests/testArbitration.cpp build/opt/arbitration.o
+	$(CC) $(CPPFLAGS) -o $@ $?
