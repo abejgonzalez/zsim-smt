@@ -57,13 +57,15 @@ class BblContext {
 			branchTakenNpc = 0;
 			branchNotTakenNpc = 0;
 			bbl = nullptr;
+			bblInfo = nullptr;
 			loads = 0;
 			stores = 0;
 			bblAddress = 0;
 		}
 
 		Address bblAddress; // bbl location
-		BblInfo *bbl; // bbl object reference
+		BblInfo *bblInfo; // bbl wrapper object reference
+		DynBbl *bbl; // bbl object reference
 		
 		// Record load and store addresses
         Address loadAddrs[256], storeAddrs[256];

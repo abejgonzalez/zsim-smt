@@ -50,7 +50,7 @@ extern GlobSimInfo* zinfo;
 #define ISSUES_PER_CYCLE 4
 #define RF_READS_PER_CYCLE 3
 
-//#define SMT_PRINT
+#define SMT_PRINT
 
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	: Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
@@ -63,6 +63,7 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	smtWindow->vcore = 0;
 	curCycle = 0;
 	prevContext->bbl = nullptr;
+	prevContext->bblInfo = nullptr;
 	
 	// Taken from OOOE core
 	decodeCycle = DECODE_STAGE;  // allow subtracting from it
@@ -273,10 +274,10 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 
 /* OOOE: Refactored BBL function to store BBL's and not run them */
 void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
-	if ( !prevContext->bbl ) {
+	if ( !prevContext->bblInfo ) {
         // This is the 1st BBL since scheduled, nothing to simulate
-		prevContext->bbl = bblInfo;
-		prevContext->bblAddress = bblAddr;
+		prevContext->bblInfo = bblInfo;
+		//prevContext->bblAddress = bblAddr;
         // Kill lingering ops from previous BBL
 		prevContext->loads = prevContext->stores = 0;
         return;
@@ -316,8 +317,15 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		futex_lock(&windowLock);
 		
 		// construct and initialize new context from previous.
-		curContext->bbl = prevContext->bbl;
-		curContext->bblAddress = prevContext->bblAddress;
+		info("bbl:%p addr:%lu ld:%u st:%u brpc:%lu, brTk:%d brTkN:%lu brNTNpc:%lu",
+		    prevContext->bblInfo, bblAddr, prevContext->loads, prevContext->stores,
+		    prevContext->branchPc, prevContext->branchTaken, prevContext->branchTakenNpc,
+		    prevContext->branchNotTakenNpc);
+		//info("bytes:%u", prevContext->bblInfo->bytes);
+		curContext->bblInfo = bblInfo;
+		curContext->bbl = &(prevContext->bblInfo->oooBbl[0]);
+		//curContext->bblAddress = prevContext->bblAddress;
+		curContext->bblAddress = bblAddr;
 		curContext->loads = prevContext->loads;
 		curContext->stores = prevContext->stores;
 
@@ -331,8 +339,8 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		curContext->branchNotTakenNpc = prevContext->branchNotTakenNpc;
 		
 		// set previous context
-		prevContext->bbl = bblInfo;
-		prevContext->bblAddress = bblAddr;
+		prevContext->bblInfo = bblInfo;
+		//prevContext->bblAddress = bblAddr;
 		prevContext->loads = prevContext->stores = 0;
 
 		// update numContexts count.
@@ -438,6 +446,7 @@ void SMTCore::playback() {
 			runFrontend(curBblSwapQ, smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
 			/* OOOE: Clear the load/store indexes since Bbl finished */
 			smtWindow->loadId[curBblSwapQ] = smtWindow->storeId[curBblSwapQ] = 0;
+			prevDecCycle = 0;
 		}
 
 		/* OOOE: Always guaranteed to have a UOP with Bbl */
@@ -481,13 +490,13 @@ static inline void printUop(DynUop uop, BblContext& cntxt, pid_t pid, uint8_t cu
 	FILE *tfile = fopen(oss1.str().c_str(), "a+");
 	oss2 << "tests/traces/" << "itrace_verbose" << ".txt";
 	FILE *tfileVerb = fopen(oss2.str().c_str(), "a+");
-	fprintf(tfile, "%u, %u, %u, %u, %u, ", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
-	fprintf(tfileVerb, "PID:%u Q:%u BBL:%u UOP:%u/%u UOPTYPE:", pid, curQ, numContextTot, curUop, cntxt.bbl->oooBbl[0].uops);
-	if ( cntxt.bbl->oooBbl[0].uop[curUop].type == UOP_LOAD ){
+	fprintf(tfile, "%u, %u, %u, %u, %u, ", pid, curQ, numContextTot, curUop, cntxt.bbl->uops);
+	fprintf(tfileVerb, "PID:%u Q:%u BBL:%u UOP:%u/%u UOPTYPE:", pid, curQ, numContextTot, curUop, cntxt.bbl->uops);
+	if ( cntxt.bbl->uop[curUop].type == UOP_LOAD ){
 		fprintf(tfile, "LOAD\n");
 		fprintf(tfileVerb, "LOAD\n");
 	}
-	else if ( cntxt.bbl->oooBbl[0].uop[curUop].type == UOP_STORE ){
+	else if ( cntxt.bbl->uop[curUop].type == UOP_STORE ){
 		fprintf(tfile, "STORE\n");
 		fprintf(tfileVerb, "STORE\n");
 	}
@@ -518,11 +527,11 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 		if (smtWindow->bblQueue[curQ].back(&cntxt)){
 		    //info("CntxtPtr:%p BblInfoPtr:%p | OooBblPtr:%p #Instr:%u #Bytes:%u | #Uops:%u Addr:%lu #ApproxInstrs:%u\n", cntxt, cntxt->bbl, cntxt->bbl->oooBbl, cntxt->bbl->instrs, cntxt->bbl->bytes, cntxt->bbl->oooBbl[0].uops, cntxt->bbl->oooBbl[0].addr, cntxt->bbl->oooBbl[0].approxInstrs);
 			/* OOOE: Determine if a UOP is present */
-			if ( cntxt->bbl && smtWindow->uopIdx[curQ] < cntxt->bbl->oooBbl[0].uops ){
+			if ( cntxt->bblInfo && smtWindow->uopIdx[curQ] < cntxt->bbl->uops ){
 				/* OOOE: Get UOP and BblContext from current Q */
-				*uop = &(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]]);
+				*uop = &(cntxt->bbl->uop[smtWindow->uopIdx[curQ]]);
 				*bblContext = cntxt;
-				printUop(cntxt->bbl->oooBbl[0].uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
+				printUop(cntxt->bbl->uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
 				smtWindow->uopIdx[curQ] += 1;
 				return true;
 			} 
@@ -561,7 +570,7 @@ static inline void printBbl(BblContext& cntxt, pid_t pid) {
 	std::ostringstream oss1;
 	oss1 << "tests/traces/" << "bbl_trace" << ".csv";
 	FILE *tfile = fopen(oss1.str().c_str(), "a+");
-	fprintf(tfile, "%u, %u", pid, cntxt.bbl->oooBbl[0].uops);
+	fprintf(tfile, "%u, %u", pid, cntxt.bbl->uops);
 	fclose(tfile);
 }
 
@@ -573,15 +582,15 @@ static inline void printBbl(BblContext& cntxt, pid_t pid) {
 void SMTCore::runBblStatUpdate(BblContext* bblContext){
 	/* OOOE: TODO: Implement instrs */
 	//instrs += bblInstrs;
-	uops += bblContext->bbl->oooBbl[0].uops;
+	uops += bblContext->bbl->uops;
 	bbls++;
-	approxInstrs += bblContext->bbl->oooBbl[0].approxInstrs;
+	approxInstrs += bblContext->bbl->approxInstrs;
 	/* OOOE: Print end of BBL */
 	printBbl(*bblContext, getpid());
 
 #ifdef BBL_PROFILING
 	fprintf(stderr, "OOOE: BBlProfiling enabled\n");
-	if (approxInstrs) Decoder::profileBbl(bblContext->bbl->bblIdx);
+	if (approxInstrs) Decoder::profileBbl(bblContext->bblInfo->bblIdx);
 #endif
 }
 
@@ -612,6 +621,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 	uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
 	uint32_t lineSize = 1 << lineBits;
     pid_t curPid = smtWindow->bblQueue[presQ].pid;
+    //info("fetchCycle:%lu", fetchCycle);
 
 	// Simulate branch prediction (Misprediction)
 	if (bblContext->branchPc && !branchPred.predict(bblContext->branchPc, bblContext->branchTaken)) {
@@ -667,12 +677,14 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		}
 
 		fetchCycle = lastCommitCycle;
+		//info("fetchCycle mispred:%lu", fetchCycle);
 	}
 	
 	bblContext->branchPc = 0;  // clear for next BBL
 	
 	// Simulate current bbl instruction fetch
-	Address endAddr = bblContext->bblAddress + bblContext->bbl->bytes;
+	Address endAddr = bblContext->bblAddress + bblContext->bblInfo->bytes;
+	info("endAddr:%lu bblAddr:%lu bytes:%lu lineSize:%lu", endAddr, bblContext->bblAddress, bblContext->bblInfo->bytes, lineSize);
 	for (Address fetchAddr = bblContext->bblAddress; fetchAddr < endAddr; fetchAddr += lineSize) {
 		// The Nehalem frontend fetches instructions in 16-byte-wide accesses.
 		// Do not model fetch throughput limit here, decoder-generated stalls already include it
@@ -682,8 +694,10 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
         uint64_t fetchLat = l1i->loadSeparate(fetchAddr, curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].bblFetch) - curCycle;
         cRec.record(curCycle, curCycle, curCycle + fetchLat);
 		fetchCycle += fetchLat;
+		//info("adding to fetch:%lu", fetchLat);
 		//info("FetchCycle updated to: fetchCycle:%lu %ld from prevFetch:%lu", fetchCycle, fetchCycle, fetchCycle - fetchLat);
 	}
+    //info("fetchCycle+lat:%lu", fetchCycle);
 
 	// If fetch rules, take into account delay between fetch and decode;
 	// If decode rules, different BBLs make the decoders skip a cycle
@@ -697,9 +711,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		decodeCycle = minFetchDecCycle;
 	}
 
-#ifdef SMT_PRINT
 	info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
-#endif
 }
 
 /* OOOE: runUop()
@@ -708,7 +720,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
  * Output: None 
  */
 void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {
-    DynBbl* bbl = &(bblContext->bbl->oooBbl[0]);
+    DynBbl* bbl = (bblContext->bbl);
     assert( bbl != nullptr );
     assert( uop != nullptr );
 #ifdef SMT_PRINT
@@ -725,8 +737,14 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 #endif
 
     uint32_t decDiff = uop->decCycle - prevDecCycle;
+#ifdef SMT_PRINT
+    info("decDiff:%u", decDiff);
+#endif
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
 
+#ifdef SMT_PRINT
+    info("uopQueueminAlloc:%lu", uopQueue.minAllocCycle());
+#endif
 
 #ifdef SMT_PRINT
 	info("decodeCycle:%lu", decodeCycle);
@@ -867,6 +885,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
             {
                 // dispatchCycle = MAX(storeQueue.minAllocCycle(), dispatchCycle);
                 uint64_t sqCycle = dualStoreQueue[smtWindow->bblQueue[presQ].pid].minAllocCycle();
+                //info("sqCycle:%lu", sqCycle);
                 if (sqCycle > dispatchCycle) {
 #ifdef LSU_IW_BACKPRESSURE
                     insWindow.poisonRange(curCycle, sqCycle, 0x10 /*PORT_4, stores*/);
@@ -876,11 +895,14 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
                 // Wait for all previous store addresses to be resolved (not just ours :))
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
+                //info("dispatchCycle:%lu", dispatchCycle);
 
 				Address addr = bblContext->storeAddrs[storeIdx++];
+				//info("Addr:%lu", addr);
 
                 /* TODO: Actually update the reqCycle since it is updating just the commit not the actual cycle count*/
                 uint64_t reqSatisfiedCycle = l1d->storeSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
+                //info("reqSatisfiedCycl:%lu", reqSatisfiedCycle);
                 cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
 
                 // Fill the forwarding table
@@ -888,6 +910,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
                 commitCycle = reqSatisfiedCycle;
                 lastStoreCommitCycle = MAX(lastStoreCommitCycle, reqSatisfiedCycle);
+                //info("LastSCCycle:%lu", lastStoreCommitCycle);
 				//info("STORE: commitCycle:%lu", commitCycle);
                 dualStoreQueue[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
             }

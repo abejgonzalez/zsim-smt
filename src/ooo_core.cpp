@@ -56,6 +56,8 @@
 #define ISSUES_PER_CYCLE 4
 #define RF_READS_PER_CYCLE 3
 
+#define OOO_PRINT
+
 OOOCore::OOOCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name) : Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
     decodeCycle = DECODE_STAGE;  // allow subtracting from it
     curCycle = 0;
@@ -203,6 +205,11 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     DynBbl* bbl = &(prevBbl->oooBbl[0]);
     prevBbl = bblInfo;
 
+    info("bbl:%p addr:%lu ld:%u st:%u brpc:%lu, brTk:%d brTkN:%lu brNTNpc:%lu",
+            prevBbl, bblAddr, loads, stores, branchPc, branchTaken, branchTakenNpc,
+            branchNotTakenNpc);
+    //info("prevBbl->bytes:%u", prevBbl->bytes);
+
     uint32_t loadIdx = 0;
     uint32_t storeIdx = 0;
 
@@ -219,6 +226,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 	//printf("OOOE: AMTUOPS:%u\n", bbl->uops);
     for (uint32_t i = 0; i < bbl->uops; i++) {
         DynUop* uop = &(bbl->uop[i]);
+#ifdef OOO_PRINT
         info("\nOOOE: curCycle:%lu prevDecCycle:%d decodeCycle:%lu", curCycle, prevDecCycle, decodeCycle);
         if ( uop->type == UOP_LOAD ){
             info("LOAD");
@@ -229,6 +237,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         else{
             info("OTHER");
         }
+#endif
 
         /* OOOE: AG:
          * Does decCycle mean "arbitrary time associated with this uops decode?"
@@ -245,9 +254,21 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
          * Set when the prevDecCycle is the decode cycle count from the prev UOP */
         //info("OOOE: UOP#:%d UOPDECCYCLE:%d COREDECCYCLE:%lu", i, uop->decCycle, decodeCycle);
         uint32_t decDiff = uop->decCycle - prevDecCycle;
+#ifdef OOO_PRINT
+    info("decDiff:%u", decDiff);
+#endif
         /* OOOE: AG: uopQueue has amount of uops and when they are marked for retiring */
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
+
+#ifdef OOO_PRINT
+    info("uopQueueminAlloc:%lu", uopQueue.minAllocCycle());
+#endif
+
+
+
+#ifdef OOO_PRINT
         info("decodeCycle:%lu", decodeCycle);
+#endif
         /* OOOE: AG: curCycle is current issue cycle
          * Maybe decodeCycle is the decode cycle that is kept track of with the simulator
          * (when the decode is supposed to start?)
@@ -267,7 +288,9 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
             for (uint32_t i = 0; i < cdDiff; i++) insWindow.advancePos(curCycle);
         }
 
+#ifdef OOO_PRINT
         info("curCycle:%lu", curCycle);
+#endif
         prevDecCycle = uop->decCycle;
         /* OOOE: AG: Appends in the queue when this UOP should finish so that
          * in the next iteration of the for loop it has when this UOP should finish
@@ -287,8 +310,10 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
             insWindow.advancePos(curCycle);
         }
         curCycleIssuedUops++;
-        info("curCycleIssuedUops:%d", curCycleIssuedUops);
 
+#ifdef OOO_PRINT
+        info("curCycleIssuedUops:%d", curCycleIssuedUops);
+#endif
         // Kill dependences on invalid register
         // Using curCycle saves us two unpredictable branches in the RF read stalls code
         regScoreboard[0] = curCycle;
@@ -312,7 +337,9 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
             insWindow.advancePos(curCycle);
         }
 
+#ifdef OOO_PRINT
         info("curCycleRFReads:%d", curCycleRFReads);
+#endif
 
         uint64_t c2 = rob.minAllocCycle();
         uint64_t c3 = curCycle;
@@ -323,12 +350,18 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         // Model RAT + ROB + RS delay between issue and dispatch
         /* OOOE: AG: Estimating the delay to dispatch to the execution units */
         uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
+
+#ifdef OOO_PRINT
         info("dispatchCycle:%lu", dispatchCycle);
+#endif
 
         // info("IW 0x%lx %d %ld %ld %x", bblAddr, i, c2, dispatchCycle, uop->portMask);
         // NOTE: Schedule can adjust both cur and dispatch cycles
         insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
+
+#ifdef OOO_PRINT
         info("curCycle:%lu dispatchCycle:%lu", curCycle, dispatchCycle);
+#endif
 
         // If we have advanced, we need to reset the curCycle counters
         if (curCycle > c3) {
@@ -388,6 +421,10 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
                 {
                     // dispatchCycle = MAX(storeQueue.minAllocCycle(), dispatchCycle);
                     uint64_t sqCycle = storeQueue.minAllocCycle();
+
+#ifdef OOO_PRINT
+                    info("SqCycle:%lu", sqCycle);
+#endif
                     if (sqCycle > dispatchCycle) {
 #ifdef LSU_IW_BACKPRESSURE
                         insWindow.poisonRange(curCycle, sqCycle, 0x10 /*PORT_4, stores*/);
@@ -398,8 +435,16 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
                     // Wait for all previous store addresses to be resolved (not just ours :))
                     dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
+#ifdef OOO_PRINT
+                    info("disp:%lu", dispatchCycle);
+#endif
+
                     Address addr = storeAddrs[storeIdx++];
                     uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
+
+#ifdef OOO_PRINT
+                    info("reqSatCycle:%lu", reqSatisfiedCycle);
+#endif
                     cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
 
                     // Fill the forwarding table
@@ -407,6 +452,10 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 
                     commitCycle = reqSatisfiedCycle;
                     lastStoreCommitCycle = MAX(lastStoreCommitCycle, reqSatisfiedCycle);
+
+#ifdef OOO_PRINT
+                    info("LastScCycle:%lu", lastStoreCommitCycle);
+#endif
                     storeQueue.markRetire(commitCycle);
                 }
                 break;
@@ -429,7 +478,10 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         // Mark retire at ROB
         rob.markRetire(commitCycle);
 
+
+#ifdef OOO_PRINT
         info("commitCycle:%lu", commitCycle);
+#endif
         // Record dependences
         /* OOOE: AG: Seems like regscorebd puts the actual cycle # inside to
          * when it is ready to be issued or ready to be committed */
@@ -470,6 +522,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     // Model fetch-decode delay (fixed, weak predec/IQ assumption)
     uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
     uint32_t lineSize = 1 << lineBits;
+    //info("fetchCycle:%lu", fetchCycle);
 
     /* OOOE: AG: Branch prediction location */
     // Simulate branch prediction
@@ -526,6 +579,10 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         }
 
         fetchCycle = lastCommitCycle;
+
+#ifdef OOO_PRINT
+        info("fetchCycle mispred:%lu", fetchCycle);
+#endif
     }
     branchPc = 0;  // clear for next BBL
 
@@ -533,6 +590,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
      * (whether or not it was right or wrong */
     // Simulate current bbl ifetch
     Address endAddr = bblAddr + bblInfo->bytes;
+    info("endAddr:%lu bblAddr:%lu bytes:%lu lineSize:%lu", endAddr, bblAddr, bblInfo->bytes, lineSize);
     for (Address fetchAddr = bblAddr; fetchAddr < endAddr; fetchAddr += lineSize) {
         // The Nehalem frontend fetches instructions in 16-byte-wide accesses.
         // Do not model fetch throughput limit here, decoder-generated stalls already include it
@@ -542,7 +600,9 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         uint64_t fetchLat = l1i->load(fetchAddr, curCycle) - curCycle;
         cRec.record(curCycle, curCycle, curCycle + fetchLat);
         fetchCycle += fetchLat;
+        //info("Adding to fetch:%lu", fetchLat);
     }
+    //info("fetchCycle +lat:%lu", fetchCycle);
 
     // If fetch rules, take into account delay between fetch and decode;
     // If decode rules, different BBLs make the decoders skip a cycle
