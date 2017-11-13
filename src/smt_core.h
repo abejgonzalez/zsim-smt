@@ -327,7 +327,7 @@ class SMTCore : public Core {
 		void playback();
 		bool getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, bool &curBblSwap, uint8_t &curBblSwapQ);
         
-		void runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext * bblContext);
+		void runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t &prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext * bblContext);
 		void runBblStatUpdate(BblContext * bblContext);
 		void runFrontend(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint64_t &lastCommitCycle, BblContext * bblContext);
 

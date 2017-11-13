@@ -317,7 +317,7 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		futex_lock(&windowLock);
 		
 		// construct and initialize new context from previous.
-		info("bbl:%p addr:%lu ld:%u st:%u brpc:%lu, brTk:%d brTkN:%lu brNTNpc:%lu",
+		info("bbl:%p addr:%x ld:%u st:%u brpc:%x, brTk:%d brTkN:%x brNTNpc:%x",
 		    prevContext->bblInfo, bblAddr, prevContext->loads, prevContext->stores,
 		    prevContext->branchPc, prevContext->branchTaken, prevContext->branchTakenNpc,
 		    prevContext->branchNotTakenNpc);
@@ -396,6 +396,7 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 
 void SMTCore::weave() {
 	while (this->curCycle > this->phaseEndCycle) {
+		info("NEW PHASE");
 	      this->phaseEndCycle += zinfo->phaseLength;
 	
 	      uint32_t cid = getCid(tid);
@@ -446,7 +447,11 @@ void SMTCore::playback() {
 			runFrontend(curBblSwapQ, smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
 			/* OOOE: Clear the load/store indexes since Bbl finished */
 			smtWindow->loadId[curBblSwapQ] = smtWindow->storeId[curBblSwapQ] = 0;
+#ifdef SMT_PRINT
+			info("Cleared prevDecCycle and loastCommitCycle");
+#endif
 			prevDecCycle = 0;
+			lastCommitCycle = 0;
 		}
 
 		/* OOOE: Always guaranteed to have a UOP with Bbl */
@@ -677,14 +682,16 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		}
 
 		fetchCycle = lastCommitCycle;
-		//info("fetchCycle mispred:%lu", fetchCycle);
+#ifdef SMT_PRINT
+		info("fetchCycle mispred:%lu", fetchCycle);
+#endif
 	}
 	
 	bblContext->branchPc = 0;  // clear for next BBL
 	
 	// Simulate current bbl instruction fetch
 	Address endAddr = bblContext->bblAddress + bblContext->bblInfo->bytes;
-	info("endAddr:%lu bblAddr:%lu bytes:%lu lineSize:%lu", endAddr, bblContext->bblAddress, bblContext->bblInfo->bytes, lineSize);
+	info("endAddr:x%x bblAddr:x%x bytes:%lu lineSize:%lu", endAddr, bblContext->bblAddress, bblContext->bblInfo->bytes, lineSize);
 	for (Address fetchAddr = bblContext->bblAddress; fetchAddr < endAddr; fetchAddr += lineSize) {
 		// The Nehalem frontend fetches instructions in 16-byte-wide accesses.
 		// Do not model fetch throughput limit here, decoder-generated stalls already include it
@@ -719,7 +726,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
  * Input: Load/Store pointers for the current bblContext, previous Bbl commitcycle, and the current UOP/BblContext reference
  * Output: None 
  */
-void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {
+void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t &prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {
     DynBbl* bbl = (bblContext->bbl);
     assert( bbl != nullptr );
     assert( uop != nullptr );
@@ -738,15 +745,12 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
     uint32_t decDiff = uop->decCycle - prevDecCycle;
 #ifdef SMT_PRINT
-    info("decDiff:%u", decDiff);
+    info("decDiff:%u uop->decCycle:%lu prevDecCycle:%lu", decDiff, uop->decCycle, prevDecCycle);
 #endif
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
 
 #ifdef SMT_PRINT
     info("uopQueueminAlloc:%lu", uopQueue.minAllocCycle());
-#endif
-
-#ifdef SMT_PRINT
 	info("decodeCycle:%lu", decodeCycle);
 #endif
 
@@ -765,6 +769,9 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 #endif
 
     prevDecCycle = uop->decCycle;
+#ifdef SMT_PRINT
+	info("prevDecCycle assigned to:%lu", uop->decCycle);
+#endif
     uopQueue.markLeave(curCycle);
 
     if (curCycleIssuedUops >= ISSUES_PER_CYCLE) {
@@ -885,7 +892,10 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
             {
                 // dispatchCycle = MAX(storeQueue.minAllocCycle(), dispatchCycle);
                 uint64_t sqCycle = dualStoreQueue[smtWindow->bblQueue[presQ].pid].minAllocCycle();
-                //info("sqCycle:%lu", sqCycle);
+
+#ifdef SMT_PRINT
+                info("sqCycle:%lu", sqCycle);
+#endif
                 if (sqCycle > dispatchCycle) {
 #ifdef LSU_IW_BACKPRESSURE
                     insWindow.poisonRange(curCycle, sqCycle, 0x10 /*PORT_4, stores*/);
@@ -895,14 +905,17 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
                 // Wait for all previous store addresses to be resolved (not just ours :))
                 dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
-                //info("dispatchCycle:%lu", dispatchCycle);
+#ifdef SMT_PRINT
+                info("dispatchCycle:%lu", dispatchCycle);
+#endif
 
 				Address addr = bblContext->storeAddrs[storeIdx++];
-				//info("Addr:%lu", addr);
 
                 /* TODO: Actually update the reqCycle since it is updating just the commit not the actual cycle count*/
                 uint64_t reqSatisfiedCycle = l1d->storeSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
-                //info("reqSatisfiedCycl:%lu", reqSatisfiedCycle);
+#ifdef SMT_PRINT
+                info("reqSatisfiedCycle:%lu", reqSatisfiedCycle);
+#endif
                 cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
 
                 // Fill the forwarding table
@@ -910,8 +923,9 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
                 commitCycle = reqSatisfiedCycle;
                 lastStoreCommitCycle = MAX(lastStoreCommitCycle, reqSatisfiedCycle);
-                //info("LastSCCycle:%lu", lastStoreCommitCycle);
-				//info("STORE: commitCycle:%lu", commitCycle);
+#ifdef SMT_PRINT
+                info("LastScCycle:%lu", lastStoreCommitCycle);
+#endif
                 dualStoreQueue[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
             }
             break;

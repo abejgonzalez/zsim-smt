@@ -205,7 +205,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     DynBbl* bbl = &(prevBbl->oooBbl[0]);
     prevBbl = bblInfo;
 
-    info("bbl:%p addr:%lu ld:%u st:%u brpc:%lu, brTk:%d brTkN:%lu brNTNpc:%lu",
+    info("bbl:%p addr:%x ld:%u st:%u brpc:%x, brTk:%d brTkN:%x brNTNpc:%x",
             prevBbl, bblAddr, loads, stores, branchPc, branchTaken, branchTakenNpc,
             branchNotTakenNpc);
     //info("prevBbl->bytes:%u", prevBbl->bytes);
@@ -255,18 +255,13 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         //info("OOOE: UOP#:%d UOPDECCYCLE:%d COREDECCYCLE:%lu", i, uop->decCycle, decodeCycle);
         uint32_t decDiff = uop->decCycle - prevDecCycle;
 #ifdef OOO_PRINT
-    info("decDiff:%u", decDiff);
+		info("decDiff:%u uop->decCycle:%lu prevDecCycle:%lu", decDiff, uop->decCycle, prevDecCycle);
 #endif
         /* OOOE: AG: uopQueue has amount of uops and when they are marked for retiring */
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
 
 #ifdef OOO_PRINT
-    info("uopQueueminAlloc:%lu", uopQueue.minAllocCycle());
-#endif
-
-
-
-#ifdef OOO_PRINT
+		info("uopQueueminAlloc:%lu", uopQueue.minAllocCycle());
         info("decodeCycle:%lu", decodeCycle);
 #endif
         /* OOOE: AG: curCycle is current issue cycle
@@ -436,14 +431,14 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
                     dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
 
 #ifdef OOO_PRINT
-                    info("disp:%lu", dispatchCycle);
+                    info("dispatchCycle:%lu", dispatchCycle);
 #endif
 
                     Address addr = storeAddrs[storeIdx++];
                     uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
 
 #ifdef OOO_PRINT
-                    info("reqSatCycle:%lu", reqSatisfiedCycle);
+                    info("reqSatisfiedCycle:%lu", reqSatisfiedCycle);
 #endif
                     cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
 
@@ -590,7 +585,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
      * (whether or not it was right or wrong */
     // Simulate current bbl ifetch
     Address endAddr = bblAddr + bblInfo->bytes;
-    info("endAddr:%lu bblAddr:%lu bytes:%lu lineSize:%lu", endAddr, bblAddr, bblInfo->bytes, lineSize);
+    info("endAddr:x%x bblAddr:x%x bytes:%lu lineSize:%lu", endAddr, bblAddr, bblInfo->bytes, lineSize);
     for (Address fetchAddr = bblAddr; fetchAddr < endAddr; fetchAddr += lineSize) {
         // The Nehalem frontend fetches instructions in 16-byte-wide accesses.
         // Do not model fetch throughput limit here, decoder-generated stalls already include it
@@ -683,6 +678,7 @@ void OOOCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
     core->bbl(bblAddr, bblInfo);
 
     while (core->curCycle > core->phaseEndCycle) {
+		info("NEW PHASE");
         core->phaseEndCycle += zinfo->phaseLength;
 
         uint32_t cid = getCid(tid);
