@@ -16,7 +16,7 @@ for ((i=0; i < $1; i++)); do
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $curCycle2, thread2 $curCycle1 > tests/results.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results.csv
 	fi
 	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
@@ -35,7 +35,7 @@ for ((i=0; i < $1; i++)); do
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $curCycle2, thread2 $curCycle1 > tests/results1.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results1.csv
 	fi
 	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
@@ -54,7 +54,7 @@ for ((i=0; i < $1; i++)); do
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $curCycle2, thread2 $curCycle1 > tests/results2.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results2.csv
 	fi
 	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
@@ -73,7 +73,7 @@ for ((i=0; i < $1; i++)); do
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $curCycle2, thread2 $curCycle1 > tests/results3.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results3.csv
 	fi
 	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
@@ -92,7 +92,7 @@ for ((i=0; i < $1; i++)); do
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $curCycle2, thread2 $curCycle1 > tests/results4.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results4.csv
 	fi
 	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
@@ -111,7 +111,7 @@ for ((i=0; i < $1; i++)); do
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $curCycle2, thread2 $curCycle1 > tests/results5.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results5.csv
 	fi
 	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
@@ -130,7 +130,7 @@ for ((i=0; i < $1; i++)); do
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $curCycle2, thread2 $curCycle1 > tests/results6.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results6.csv
 	fi
 	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
@@ -149,7 +149,7 @@ for ((i=0; i < $1; i++)); do
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $curCycle2, thread2 $curCycle1 > tests/results7.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results7.csv
 	fi
 	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
@@ -168,7 +168,7 @@ for ((i=0; i < $1; i++)); do
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $curCycle2, thread2 $curCycle1 > tests/results8.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results8.csv
 	fi
 	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
