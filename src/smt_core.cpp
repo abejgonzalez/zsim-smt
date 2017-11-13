@@ -277,7 +277,6 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	if ( !prevContext->bblInfo ) {
         // This is the 1st BBL since scheduled, nothing to simulate
 		prevContext->bblInfo = bblInfo;
-		//prevContext->bblAddress = bblAddr;
         // Kill lingering ops from previous BBL
 		prevContext->loads = prevContext->stores = 0;
         return;
@@ -317,14 +316,14 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		futex_lock(&windowLock);
 		
 		// construct and initialize new context from previous.
+#ifdef SMT_PRINT
 		info("bbl:%p addr:%x ld:%u st:%u brpc:%x, brTk:%d brTkN:%x brNTNpc:%x",
+#endif
 		    prevContext->bblInfo, bblAddr, prevContext->loads, prevContext->stores,
 		    prevContext->branchPc, prevContext->branchTaken, prevContext->branchTakenNpc,
 		    prevContext->branchNotTakenNpc);
-		//info("bytes:%u", prevContext->bblInfo->bytes);
 		curContext->bblInfo = bblInfo;
 		curContext->bbl = &(prevContext->bblInfo->oooBbl[0]);
-		//curContext->bblAddress = prevContext->bblAddress;
 		curContext->bblAddress = bblAddr;
 		curContext->loads = prevContext->loads;
 		curContext->stores = prevContext->stores;
@@ -340,7 +339,6 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		
 		// set previous context
 		prevContext->bblInfo = bblInfo;
-		//prevContext->bblAddress = bblAddr;
 		prevContext->loads = prevContext->stores = 0;
 
 		// update numContexts count.
@@ -396,7 +394,6 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 
 void SMTCore::weave() {
 	while (this->curCycle > this->phaseEndCycle) {
-		info("NEW PHASE");
 	      this->phaseEndCycle += zinfo->phaseLength;
 	
 	      uint32_t cid = getCid(tid);
@@ -691,7 +688,9 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 	
 	// Simulate current bbl instruction fetch
 	Address endAddr = bblContext->bblAddress + bblContext->bblInfo->bytes;
+#ifdef SMT_PRINT
 	info("endAddr:x%x bblAddr:x%x bytes:%lu lineSize:%lu", endAddr, bblContext->bblAddress, bblContext->bblInfo->bytes, lineSize);
+#endif
 	for (Address fetchAddr = bblContext->bblAddress; fetchAddr < endAddr; fetchAddr += lineSize) {
 		// The Nehalem frontend fetches instructions in 16-byte-wide accesses.
 		// Do not model fetch throughput limit here, decoder-generated stalls already include it
@@ -718,7 +717,9 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		decodeCycle = minFetchDecCycle;
 	}
 
+#ifdef SMT_PRINT
 	info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
+#endif
 }
 
 /* OOOE: runUop()

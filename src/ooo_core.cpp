@@ -205,10 +205,11 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     DynBbl* bbl = &(prevBbl->oooBbl[0]);
     prevBbl = bblInfo;
 
+#ifdef OOO_PRINT
     info("bbl:%p addr:%x ld:%u st:%u brpc:%x, brTk:%d brTkN:%x brNTNpc:%x",
             prevBbl, bblAddr, loads, stores, branchPc, branchTaken, branchTakenNpc,
             branchNotTakenNpc);
-    //info("prevBbl->bytes:%u", prevBbl->bytes);
+#endif
 
     uint32_t loadIdx = 0;
     uint32_t storeIdx = 0;
@@ -585,7 +586,9 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
      * (whether or not it was right or wrong */
     // Simulate current bbl ifetch
     Address endAddr = bblAddr + bblInfo->bytes;
+#ifdef OOO_PRINT
     info("endAddr:x%x bblAddr:x%x bytes:%lu lineSize:%lu", endAddr, bblAddr, bblInfo->bytes, lineSize);
+#endif
     for (Address fetchAddr = bblAddr; fetchAddr < endAddr; fetchAddr += lineSize) {
         // The Nehalem frontend fetches instructions in 16-byte-wide accesses.
         // Do not model fetch throughput limit here, decoder-generated stalls already include it
@@ -609,7 +612,9 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 #endif
         decodeCycle = minFetchDecCycle;
     }
+#ifdef OOO_PRINT
 	info("FrontEnd Update: decodeCycle:%lu", decodeCycle);
+#endif
 }
 
 // Timing simulation code
@@ -678,7 +683,6 @@ void OOOCore::BblFunc(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
     core->bbl(bblAddr, bblInfo);
 
     while (core->curCycle > core->phaseEndCycle) {
-		info("NEW PHASE");
         core->phaseEndCycle += zinfo->phaseLength;
 
         uint32_t cid = getCid(tid);
