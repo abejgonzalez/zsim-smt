@@ -13,11 +13,11 @@ TEST = $(TESTDIR)/smt.cfg
 TEST1 = $(TESTDIR)/ooo_branchgood.cfg
 TEST2 = $(TESTDIR)/ooo_misbranch.cfg
 TEST3 = $(TESTDIR)/ooo_data_cache_good.cfg
-TEST3 = $(TESTDIR)/ooo_data_cache_miss.cgg
+TEST4 = $(TESTDIR)/ooo_data_cache_miss.cfg
 TEST5 = $(TESTDIR)/ooo_i_cache_good.cfg
-TEST5 = $(TESTDIR)/ooo_i_cache_miss.cfg
+TEST6 = $(TESTDIR)/ooo_i_cache_miss.cfg
 TEST7 = $(TESTDIR)/ooo_rob_good.cfg
-TEST7 = $(TESTDIR)/ooo_rob_stall.cfg
+TEST8 = $(TESTDIR)/ooo_rob_stall.cfg
 ZSIM = $(BUILDDIR)/debug/zsim
 
 # outputs
