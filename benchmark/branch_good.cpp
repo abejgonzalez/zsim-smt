@@ -18,7 +18,7 @@ int main()
     clock_t start = clock();
     long long sum = 0;
 
-    for (unsigned i = 0; i < 100000; ++i)
+    for (unsigned i = 0; i < 1000; ++i)
     {
         // Primary loop
         for (unsigned c = 0; c < arraySize; ++c)
