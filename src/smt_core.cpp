@@ -398,6 +398,7 @@ void SMTCore::BranchFunc(THREADID tid, ADDRINT pc, BOOL taken, ADDRINT takenNpc,
 }
 
 void SMTCore::weave() {
+    //printf("Entering weave\n");
 	while (this->curCycle > this->phaseEndCycle) {
 	      this->phaseEndCycle += zinfo->phaseLength;
 	
@@ -412,6 +413,7 @@ void SMTCore::weave() {
 	      // so we should just advance as needed and move on.
 	      if (newCid != cid) break;  /*context-switch, we do not own this context anymore*/
 	}
+	//printf("Exited weave\n");
 }
 
 
@@ -424,6 +426,7 @@ void SMTCore::playback() {
 	futex_lock(&windowLock);
     //info("OOOE: playback(%d) curCycle: %lu", getpid(), curCycle);
 	//info("OOOE: core(%p) window upon entry: ({%u,%u}, {%u,%u})\n", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
+	//printf("OOOE: core(%p) window upon entry: ({%u,%u}, {%u,%u})\n", this, smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
 
 	/* OOOE: Objects to keep track of UOP, Bbl's and if there was a move to the next Bbl in the same Q */
     DynUop* uop;
@@ -431,7 +434,7 @@ void SMTCore::playback() {
     uint8_t curQ = 0;
     bool curBblSwap = false; // OOOE: In the current Q, needed to move to the next Bbl
 	uint8_t curBblSwapQ = 0;
-    uint32_t prevDecCycle = 0;
+    uint32_t prevDecCycle[2] = {0,0};
     uint64_t lastCommitCycle = 0;  // used to find misprediction penalty
 
 	// OOOE: TODO: what should happen when we switch away from fair arbitration? 
@@ -452,7 +455,7 @@ void SMTCore::playback() {
 #ifdef SMT_PRINT
 			info("Cleared prevDecCycle and loastCommitCycle");
 #endif
-			prevDecCycle = 0;
+			prevDecCycle[curBblSwapQ] = 0;
 			lastCommitCycle = 0;
 		}
 
@@ -461,11 +464,12 @@ void SMTCore::playback() {
 		assert (bblContext != 0);
 
         /* OOOE: Run the uop here similar to bbl() */
-        runUop(curQ, smtWindow->loadId[curQ], smtWindow->storeId[curQ], prevDecCycle, lastCommitCycle, uop, bblContext);
+        runUop(curQ, smtWindow->loadId[curQ], smtWindow->storeId[curQ], prevDecCycle[curQ], lastCommitCycle, uop, bblContext);
 
 		/* OOOE: Keep the previous pointer to the last Bbl (on a per Q basis) */
 		smtWindow->prevContext[curQ] = bblContext;
 	}
+	//printf("Done with playback\n");
 	
     /* OOOE: Check if you need to run func's for a Bbl finishing */
     /* OOOE: Rerun after the while loop so that the last Bbl in both Q's has stats and the 
@@ -479,6 +483,8 @@ void SMTCore::playback() {
 		runFrontend(curBblSwapQ, smtWindow->loadId[curBblSwapQ], smtWindow->storeId[curBblSwapQ], lastCommitCycle, smtWindow->prevContext[curBblSwapQ]);
 		/* OOOE: Clear the load/store indexes since Bbl finished */
 		smtWindow->loadId[curBblSwapQ] = smtWindow->storeId[curBblSwapQ] = 0;
+        prevDecCycle[curBblSwapQ] = 0;
+        lastCommitCycle = 0;
 	}
 	
 	//info("OOOE: Exit Playback ({%d,%d}, {%d,%d})", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[0].pid, smtWindow->bblQueue[1].count(), smtWindow->bblQueue[1].pid);
@@ -528,6 +534,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 	/* OOOE: End: Arbitration section */
 	
 	//info("Q[0]:%d Q[1]:%d\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
+	//printf("Q[0]:%d Q[1]:%d\n", smtWindow->bblQueue[0].count(), smtWindow->bblQueue[1].count());
 	while ( true ){
 		/* OOOE: Determine if there is a valid context to read in the Q */
 		BblContext* cntxt;
@@ -540,6 +547,8 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				*bblContext = cntxt;
 				printUop(cntxt->bbl->uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
 				smtWindow->uopIdx[curQ] += 1;
+
+                //printf("Exit getUop()\n");
 				return true;
 			} 
 			else {
@@ -555,6 +564,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				
 				// check for early weave exit.
 				if (!this->smtWindow->thCompleted && (this->curCycle > this->phaseEndCycle)) {
+                    //printf("Exit getUop()\n");
 					this->weave();
 				}
 			}
@@ -563,6 +573,8 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 			/* OOOE: No Bbl are left in the current queue so exit */
 			smtWindow->uopIdx[curQ] = 0;
 			smtWindow->bblQueue[curQ].clear();
+
+            //printf("Exit getUop()\n");
 			return false;
 		}
 	}
@@ -760,17 +772,19 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 	}
 #endif
 
+    //printf("curCycle:%lu\n", curCycle);
+    //printf("decCycleuop:%lu prevDecCycle:%lu\n", uop->decCycle, prevDecCycle);
     uint32_t decDiff = uop->decCycle - prevDecCycle;
 #ifdef SMT_PRINT
     info("decDiff:%u uop->decCycle:%lu prevDecCycle:%lu", decDiff, uop->decCycle, prevDecCycle);
 #endif
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
 
-#ifdef SMT_PRINT
-    info("uopQueueminAlloc:%lu", uopQueue.minAllocCycle());
+#ifdef SMT_PRINT info("uopQueueminAlloc:%lu", uopQueue.minAllocCycle());
 	info("decodeCycle:%lu", decodeCycle);
 #endif
 
+	//printf("decodeCycle:%lu", decodeCycle);
     if (decodeCycle > curCycle) {
         uint32_t cdDiff = decodeCycle - curCycle;
 #ifdef SMT_STALL_STATS
@@ -785,6 +799,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 	info("curCycle:%lu", curCycle);
 #endif
 
+    //printf("Set prevDecCycle:%lu\n", uop->decCycle);
     prevDecCycle = uop->decCycle;
 
     uopQueue.markLeave(curCycle);
@@ -974,6 +989,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     regScoreboard[uop->rd[1]] = commitCycle;
 
     lastCommitCycle = commitCycle;
+    //printf("curCycle:%lu\n", curCycle);
 
     // info("0x%lx %3d [%3d %3d] -> [%3d %3d]  %8ld %8ld %8ld %8ld", bbl->addr, i, 
 	//   uop->rs[0], uop->rs[1], uop->rd[0], uop->rd[1], decCycle, c3, dispatchCycle, commitCycle);
