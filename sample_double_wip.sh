@@ -12,17 +12,17 @@ for ((i=0; i < $1; i++)); do
 	make test
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle1=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle2=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.1 ` 
-	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
+	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $TotalCycle2, thread2 $TotalCycle1 >> tests/results.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results.csv
 	fi
-	if [ "$TotalCycle2" -gt "$TotalCycle1" ]
+	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
-		echo thread1 $TotalCycle1, thread2 $TotalCycle2 >> tests/results.csv
+		echo thread1 $curCycle1, thread2 $curCycle2 >> tests/results.csv
 	fi
 
 done
@@ -31,17 +31,17 @@ for ((i=0; i < $1; i++)); do
 	make test1
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle1=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle2=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.1 ` 
-	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
+	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $TotalCycle2, thread2 $TotalCycle1 >> tests/results1.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results1.csv
 	fi
-	if [ "$TotalCycle2" -gt "$TotalCycle1" ]
+	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
-		echo thread1 $TotalCycle1, thread2 $TotalCycle2 >> tests/results1.csv
+		echo thread1 $curCycle1, thread2 $curCycle2 >> tests/results1.csv
 	fi
 
 done
@@ -50,17 +50,17 @@ for ((i=0; i < $1; i++)); do
 	make test2
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle1=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle2=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.1 ` 
-	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
+	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $TotalCycle2, thread2 $TotalCycle1 >> tests/results2.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results2.csv
 	fi
-	if [ "$TotalCycle2" -gt "$TotalCycle1" ]
+	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
-		echo thread1 $TotalCycle1, thread2 $TotalCycle2 >> tests/results2.csv
+		echo thread1 $curCycle1, thread2 $curCycle2 >> tests/results2.csv
 	fi
 
 done
@@ -69,17 +69,17 @@ for ((i=0; i < $1; i++)); do
 	make test3
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle1=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle2=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.1 ` 
-	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
+	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $TotalCycle2, thread2 $TotalCycle1 >> tests/results3.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results3.csv
 	fi
-	if [ "$TotalCycle2" -gt "$TotalCycle1" ]
+	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
-		echo thread1 $TotalCycle1, thread2 $TotalCycle2 >> tests/results3.csv
+		echo thread1 $curCycle1, thread2 $curCycle2 >> tests/results3.csv
 	fi
 
 done
@@ -88,17 +88,17 @@ for ((i=0; i < $1; i++)); do
 	make test4
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle1=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle2=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.1 ` 
-	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
+	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $TotalCycle2, thread2 $TotalCycle1 >> tests/results4.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results4.csv
 	fi
-	if [ "$TotalCycle2" -gt "$TotalCycle1" ]
+	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
-		echo thread1 $TotalCycle1, thread2 $TotalCycle2 >> tests/results4.csv
+		echo thread1 $curCycle1, thread2 $curCycle2 >> tests/results4.csv
 	fi
 
 done
@@ -107,17 +107,17 @@ for ((i=0; i < $1; i++)); do
 	make test5
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle1=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle2=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.1 ` 
-	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
+	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $TotalCycle2, thread2 $TotalCycle1 >> tests/results5.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results5.csv
 	fi
-	if [ "$TotalCycle2" -gt "$TotalCycle1" ]
+	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
-		echo thread1 $TotalCycle1, thread2 $TotalCycle2 >> tests/results5.csv
+		echo thread1 $curCycle1, thread2 $curCycle2 >> tests/results5.csv
 	fi
 
 done
@@ -126,17 +126,17 @@ for ((i=0; i < $1; i++)); do
 	make test6
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle1=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle2=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.1 ` 
-	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
+	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $TotalCycle2, thread2 $TotalCycle1 >> tests/results6.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results6.csv
 	fi
-	if [ "$TotalCycle2" -gt "$TotalCycle1" ]
+	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
-		echo thread1 $TotalCycle1, thread2 $TotalCycle2 >> tests/results6.csv
+		echo thread1 $curCycle1, thread2 $curCycle2 >> tests/results6.csv
 	fi
 
 done
@@ -145,17 +145,17 @@ for ((i=0; i < $1; i++)); do
 	make test7
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle1=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle2=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.1 ` 
-	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
+	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $TotalCycle2, thread2 $TotalCycle1 >> tests/results7.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results7.csv
 	fi
-	if [ "$TotalCycle2" -gt "$TotalCycle1" ]
+	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
-		echo thread1 $TotalCycle1, thread2 $TotalCycle2 >> tests/results7.csv
+		echo thread1 $curCycle1, thread2 $curCycle2 >> tests/results7.csv
 	fi
 
 done
@@ -164,17 +164,17 @@ for ((i=0; i < $1; i++)); do
 	make test8
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle1=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	curCycle2=`awk ' BEGIN { x = 0 } $5 ~ /curCycle/ { x = $6; } \
 		END { print x; }' log/zsim.log.1 ` 
-	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
+	if [ "$curCycle1" -gt "$curCycle2" ]
 	then
-		echo thread1 $TotalCycle2, thread2 $TotalCycle1 >> tests/results8.csv
+		echo thread1 $curCycle2, thread2 $curCycle1 >> tests/results8.csv
 	fi
-	if [ "$TotalCycle2" -gt "$TotalCycle1" ]
+	if [ "$curCycle2" -gt "$curCycle1" ]
 	then
-		echo thread1 $TotalCycle1, thread2 $TotalCycle2 >> tests/results8.csv
+		echo thread1 $curCycle1, thread2 $curCycle2 >> tests/results8.csv
 	fi
 
 done
