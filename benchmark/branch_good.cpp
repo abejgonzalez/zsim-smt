@@ -5,7 +5,7 @@
 int main()
 {
     // Generate data
-    const unsigned arraySize = 32768;
+    const unsigned arraySize = 10000;
     int data[arraySize];
 
     for (unsigned c = 0; c < arraySize; ++c)
@@ -28,8 +28,4 @@ int main()
         }
     }
 
-    double elapsedTime = static_cast<double>(clock() - start) / CLOCKS_PER_SEC;
-
-    std::cout << elapsedTime << std::endl;
-    std::cout << "sum = " << sum << std::endl;
 }
