@@ -1,5 +1,7 @@
 #!/bin/bash
 
+rm tests/results*
+
 if [ "$#" -eq 0 ]; then
 	echo "usage: $0 [num_samples]"
 	exit -1;
