@@ -57,6 +57,7 @@
 #define RF_READS_PER_CYCLE 3
 
 #define OOO_PRINT
+#define BR_PRINT
 
 OOOCore::OOOCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name) : Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
     decodeCycle = DECODE_STAGE;  // allow subtracting from it
@@ -206,10 +207,15 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     prevBbl = bblInfo;
 
 #ifdef OOO_PRINT
-    info("bbl:%p addr:%x ld:%u st:%u brpc:%x, brTk:%d brTkN:%x brNTNpc:%x",
+    info("bbl:%p addr:%lx ld:%u st:%u brpc:%lx, brTk:%d brTkN:%lx brNTNpc:%lx",
             prevBbl, bblAddr, loads, stores, branchPc, branchTaken, branchTakenNpc,
             branchNotTakenNpc);
 #endif
+
+#ifdef BR_PRINT
+    info("brPC:%lx, brTkn:%d brTknNPC:%lx brNTknNPC:%lx", branchPc, branchTaken, branchTakenNpc,  branchNotTakenNpc);
+#endif
+
 
     uint32_t loadIdx = 0;
     uint32_t storeIdx = 0;
@@ -348,7 +354,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
 
 #ifdef OOO_PRINT
-        info("dispatchCycle:%lu", dispatchCycle);
+        info("dispatchCycle:%lu curCycle:%lu", dispatchCycle, curCycle);
 #endif
 
         // info("IW 0x%lx %d %ld %ld %x", bblAddr, i, c2, dispatchCycle, uop->portMask);
@@ -356,7 +362,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
 
 #ifdef OOO_PRINT
-        info("curCycle:%lu dispatchCycle:%lu", curCycle, dispatchCycle);
+        info("curCycle:%lu dispatchCycle:%lu portMask:%d extraSlots:%d", curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
 #endif
 
         // If we have advanced, we need to reset the curCycle counters
@@ -378,12 +384,19 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
                 {
                     // dispatchCycle = MAX(loadQueue.minAllocCycle(), dispatchCycle);
                     uint64_t lqCycle = loadQueue.minAllocCycle();
+#ifdef OOO_PRINT
+                    info("lqCycle:%lu", lqCycle);
+#endif
                     if (lqCycle > dispatchCycle) {
 #ifdef LSU_IW_BACKPRESSURE
                         insWindow.poisonRange(curCycle, lqCycle, 0x4 /*PORT_2, loads*/);
 #endif
                         dispatchCycle = lqCycle;
                     }
+
+#ifdef OOO_PRINT
+                    info("dispatchCycle:%lu", dispatchCycle);
+#endif
 
                     // Wait for all previous store addresses to be resolved
                     dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
@@ -518,11 +531,18 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     // Model fetch-decode delay (fixed, weak predec/IQ assumption)
     uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
     uint32_t lineSize = 1 << lineBits;
-    //info("fetchCycle:%lu", fetchCycle);
+
+    bool check = !branchPred.predict(branchPc, branchTaken);
+#ifdef OOO_PRINT
+    info("fetchCycle:%lu", fetchCycle);
+#endif
+#ifdef BR_PRINT
+    info("branchPc:%lx branchPred.predict:%d, branchTaken:%d", branchPc, check, branchTaken);
+#endif
 
     /* OOOE: AG: Branch prediction location */
     // Simulate branch prediction
-    if (branchPc && !branchPred.predict(branchPc, branchTaken)) {
+    if (branchPc && check) {
         mispredBranches++;
         /* OOOE: AG:
          * Note: Here they start talking about BTB (a very basic form
@@ -580,6 +600,11 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         info("fetchCycle mispred:%lu", fetchCycle);
 #endif
     }
+
+
+#ifdef BR_PRINT 
+        info("brPC cleared");
+#endif
     branchPc = 0;  // clear for next BBL
 
     /* OOOE: AG: Getting the next instructions in the bbl based on the branch pred
@@ -587,7 +612,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     // Simulate current bbl ifetch
     Address endAddr = bblAddr + bblInfo->bytes;
 #ifdef OOO_PRINT
-    info("endAddr:x%x bblAddr:x%x bytes:%lu lineSize:%lu", endAddr, bblAddr, bblInfo->bytes, lineSize);
+    info("endAddr:x%lx bblAddr:x%lx bytes:%lu lineSize:%lu", endAddr, bblAddr, bblInfo->bytes, lineSize);
 #endif
     for (Address fetchAddr = bblAddr; fetchAddr < endAddr; fetchAddr += lineSize) {
         // The Nehalem frontend fetches instructions in 16-byte-wide accesses.

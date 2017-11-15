@@ -51,6 +51,7 @@ extern GlobSimInfo* zinfo;
 #define RF_READS_PER_CYCLE 3
 
 #define SMT_PRINT
+#define BR_PRINT
 
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 	: Core(_name), l1i(_l1i), l1d(_l1d), cRec(0, _name) {
@@ -317,11 +318,11 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		
 		// construct and initialize new context from previous.
 #ifdef SMT_PRINT
-		info("bbl:%p addr:%x ld:%u st:%u brpc:%x, brTk:%d brTkN:%x brNTNpc:%x",
-#endif
+		info("bbl:%p addr:%lx ld:%u st:%u brpc:%lx, brTk:%d brTkN:%lx brNTNpc:%lx",
 		    prevContext->bblInfo, bblAddr, prevContext->loads, prevContext->stores,
 		    prevContext->branchPc, prevContext->branchTaken, prevContext->branchTakenNpc,
 		    prevContext->branchNotTakenNpc);
+#endif
 		curContext->bblInfo = bblInfo;
 		curContext->bbl = &(prevContext->bblInfo->oooBbl[0]);
 		curContext->bblAddress = bblAddr;
@@ -332,7 +333,11 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		memcpy(curContext->loadAddrs, prevContext->loadAddrs, sizeof(curContext->loadAddrs));
 		memcpy(curContext->storeAddrs, prevContext->storeAddrs, sizeof(curContext->storeAddrs));
 
+#ifdef BR_PRINT
+        info("brPC:%lx brTkn:%d brTknNPN:%lx brNTknNPC:%lx", prevContext->branchPc, prevContext->branchTaken, prevContext->branchTakenNpc, prevContext->branchNotTakenNpc);
+#endif
 		curContext->branchPc = prevContext->branchPc;
+		prevContext->branchPc = 0; // After each BBl the branchPC should be cleared
 		curContext->branchTaken = prevContext->branchTaken;
 		curContext->branchTakenNpc = prevContext->branchTakenNpc;
 		curContext->branchNotTakenNpc = prevContext->branchNotTakenNpc;
@@ -623,10 +628,18 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 	uint64_t fetchCycle = decodeCycle - (DECODE_STAGE - FETCH_STAGE);
 	uint32_t lineSize = 1 << lineBits;
     pid_t curPid = smtWindow->bblQueue[presQ].pid;
-    //info("fetchCycle:%lu", fetchCycle);
+
+    bool check = !branchPred.predict(bblContext->branchPc, bblContext->branchTaken);
+#ifdef SMT_PRINT
+    info("fetchCycle:%lu", fetchCycle);
+#endif
+#ifdef BR_PRINT
+    info("branchPc:%lx branchPred.predict:%d branchTaken:%d", bblContext->branchPc, check, bblContext->branchTaken); 
+#endif
 
 	// Simulate branch prediction (Misprediction)
-	if (bblContext->branchPc && !branchPred.predict(bblContext->branchPc, bblContext->branchTaken)) {
+	if (bblContext->branchPc && check) {
+	    info("BRANCH MISS");
 		/* OOOE: AG:
 		 * Note: Here they start talking about BTB (a very basic branch pred) 
 		 * but the brach predictor object used here is a pAg predictor.
@@ -684,12 +697,15 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 #endif
 	}
 	
-	bblContext->branchPc = 0;  // clear for next BBL
+#ifdef BR_PRINT
+	//info("brPc cleared");
+#endif
+	//prevContext->branchPc = 0;  // clear for next BBL
 	
 	// Simulate current bbl instruction fetch
 	Address endAddr = bblContext->bblAddress + bblContext->bblInfo->bytes;
 #ifdef SMT_PRINT
-	info("endAddr:x%x bblAddr:x%x bytes:%lu lineSize:%lu", endAddr, bblContext->bblAddress, bblContext->bblInfo->bytes, lineSize);
+	info("endAddr:x%lx bblAddr:x%lx bytes:%lu lineSize:%lu", endAddr, bblContext->bblAddress, bblContext->bblInfo->bytes, lineSize);
 #endif
 	for (Address fetchAddr = bblContext->bblAddress; fetchAddr < endAddr; fetchAddr += lineSize) {
 		// The Nehalem frontend fetches instructions in 16-byte-wide accesses.
@@ -770,9 +786,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 #endif
 
     prevDecCycle = uop->decCycle;
-#ifdef SMT_PRINT
-	info("prevDecCycle assigned to:%lu", uop->decCycle);
-#endif
+
     uopQueue.markLeave(curCycle);
 
     if (curCycleIssuedUops >= ISSUES_PER_CYCLE) {
@@ -818,14 +832,14 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
 
 #ifdef SMT_PRINT
-	info("dispatchCycle:%lu", dispatchCycle);
+	info("dispatchCycle:%lu curCycle:%lu", dispatchCycle, curCycle);
 #endif
 
     // NOTE: Schedule can adjust both cur and dispatch cycles
     insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
 
 #ifdef SMT_PRINT
-	info("curCycle:%lu dispatchCycle:%lu", curCycle, dispatchCycle);
+	info("curCycle:%lu dispatchCycle:%lu portMask:%d extraSlots:%d", curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
 #endif
 
     // If we have advanced, we need to reset the curCycle counters
