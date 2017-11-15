@@ -169,7 +169,7 @@ class Contention {
 		}
 
 		inline uint64_t contentionTotal(){
-			return cache + branchPrediction + bblFetch;
+			return /*cache + */branchPrediction + bblFetch;
 		}
 };
 
