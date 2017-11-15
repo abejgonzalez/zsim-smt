@@ -115,15 +115,15 @@ class FilterCache : public Cache {
             Address vLineAddr = vAddr >> lineBits;
             uint32_t idx = vLineAddr & setMask;
             uint64_t availCycle = filterArray[idx].availCycle; //read before, careful with ordering to avoid timing races
-            //info("CACHE curCycle:%lu availCycle:%lu", curCycle, availCycle);
+            info("CACHE curCycle:%lu availCycle:%lu", curCycle, availCycle);
             if (vLineAddr == filterArray[idx].rdAddr) {
                 fGETSHit++;
                 *hitCycle += MAX(curCycle, availCycle) - curCycle;
                 return MAX(curCycle, availCycle);
             } else {
                 uint64_t hold = replace(vLineAddr, idx, true, curCycle);
-                //info("OOOE: Hold Cycles:%lu CurCycles:%lu Max Cycles:%lu", hold, curCycle, MAX(curCycle, availCycle));
-                //info("OOOE: ContentionCycles updated: %lu -> %lu with extra contention: %lu", *contention, *contention + hold - curCycle, hold - curCycle);
+                info("OOOE: Hold Cycles:%lu CurCycles:%lu Max Cycles:%lu", hold, curCycle, MAX(curCycle, availCycle));
+                info("OOOE: ContentionCycles updated: %lu -> %lu with extra contention: %lu", *contentionCycle, *contentionCycle + hold - curCycle, hold - curCycle);
                 *contentionCycle += hold - curCycle;
                 return hold;
             }
@@ -156,6 +156,8 @@ class FilterCache : public Cache {
                 return MAX(curCycle, availCycle);
             } else {
                 uint64_t hold = replace(vLineAddr, idx, false, curCycle);
+                info("OOOE: Hold Cycles:%lu CurCycles:%lu Max Cycles:%lu", hold, curCycle, MAX(curCycle, availCycle));
+                info("OOOE: ContentionCycles updated: %lu -> %lu with extra contention: %lu", *contentionCycle, *contentionCycle + hold - curCycle, hold - curCycle);
                 *contentionCycle += hold - curCycle;
                 return hold; 
             }
