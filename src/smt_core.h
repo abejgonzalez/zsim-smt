@@ -45,6 +45,7 @@
 #include "ooo_core.h"
 #include "pad.h"
 #include "zsim.h"
+#include "galloc.h"
 
 /** OOOE:
  * Context object container that holds BblInfo, 
@@ -209,29 +210,22 @@ class SmtWindow {
 template<uint32_t W>
 class DynamicReorderBuffer {
     private:
-        uint64_t *buf;
+		static const uint64_t MAX_ROB_SIZE = 6000;
+        uint64_t buf[MAX_ROB_SIZE];
 		uint64_t size;
         uint64_t curRetireCycle;
         uint32_t curCycleRetires;
         uint32_t idx;
 
     public:
-        // reads the config file value for reorder buffer size
-		DynamicReorderBuffer() {
-			this->size = zinfo->robSizes->at(procIdx);
-			this->buf = new uint64_t[size];
-			info("process %u: rob size: %lu", procIdx, size);
-
+		DynamicReorderBuffer() { DynamicReorderBuffer(128); }
+        DynamicReorderBuffer(int size) {
+			this->size = size;
             for (uint32_t i = 0; i < size; i++) buf[i] = 0;
             idx = 0;
             curRetireCycle = 0;
             curCycleRetires = 1;
         }
-		
-		~DynamicReorderBuffer() {
-			info("process %u: deleting rob.", procIdx);
-			delete buf;
-		}
 
         inline uint64_t minAllocCycle() {
             return buf[idx];
@@ -260,6 +254,8 @@ class DynamicReorderBuffer {
             if (idx == size) idx = 0;
         }
 };
+
+
 
 class SMTCore : public Core {
     private:

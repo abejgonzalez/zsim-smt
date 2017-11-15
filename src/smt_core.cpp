@@ -84,6 +84,15 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 
     for (uint32_t i = 0; i < FWD_ENTRIES; i++) fwdArray[i].set((Address)(-1L), 0);
 
+	for (uint32_t procIdx = 0; procIdx < zinfo->procPids->size(); procIdx++) {
+		int size = zinfo->robSizes->at(procIdx);
+		pid_t pid = zinfo->procPids->at(procIdx);
+		dualLoadQueue.emplace(pid, size);
+		dualStoreQueue.emplace(pid, size);
+		dualRob.emplace(pid, size);
+		info("process: %u, size: %d", procIdx, size);
+	}
+
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
@@ -770,7 +779,8 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 #endif
     decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
 
-#ifdef SMT_PRINT info("uopQueueminAlloc:%lu", uopQueue.minAllocCycle());
+#ifdef SMT_PRINT 
+	info("uopQueueminAlloc:%lu", uopQueue.minAllocCycle());
 	info("decodeCycle:%lu", decodeCycle);
 #endif
 

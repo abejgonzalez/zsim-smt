@@ -182,6 +182,7 @@ struct GlobSimInfo {
 	// Don't forget to update init.cpp
 	// declare memory for the global alloc vector
 	g_vector<uint32_t>* robSizes;
+	g_vector<int>* procPids;
 
     // Trace-driven simulation (no cores)
     bool traceDriven;

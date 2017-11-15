@@ -443,6 +443,7 @@ int main(int argc, char *argv[]) {
 			info("Attached to global heap");
 			for (uint32_t procIdx = 0; procIdx < numProcs; procIdx++) {
 				zinfo->robSizes->push_back(pinCmd->getRobSize(procIdx));
+				zinfo->procPids->push_back(childInfo[procIdx].pid);
 			}
 		}
 
