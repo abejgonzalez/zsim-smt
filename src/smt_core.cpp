@@ -149,7 +149,7 @@ void SMTCore::markDone() {
 		this->playback();
 	}
 	pid_t pid = getpid();
-	info("contentionTotal:%lu cacheReturnTime:%lu for pid:%d", smtWindow->contentionMap[pid].contentionTotal(), smtWindow->cacheReturnTime[pid], pid);
+	info("curCycle:%lu contentionTotal:%lu cacheReturnTime:%lu for pid:%d", curCycle, smtWindow->contentionMap[pid].contentionTotal(), smtWindow->cacheReturnTime[pid], pid);
 }
 
 void SMTCore::contextSwitch(int32_t gid) {
