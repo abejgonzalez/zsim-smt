@@ -150,8 +150,9 @@ void SMTCore::markDone() {
 	}
 
 	pid_t pid = getpid();
-	info("CurCycle:%lu HitTime:%lu", curCycle, smtWindow->cacheReturnTime[pid]);
-	info("AllContention:%lu ldSt:%lu brPred:%lu iFetch:%lu", smtWindow->contentionMap[pid].contentionTotal(), smtWindow->contentionMap[pid].cache, smtWindow->contentionMap[pid].branchPrediction, smtWindow->contentionMap[pid].bblFetch);
+	info("CurCycle: %lu HitTime: %lu", curCycle, smtWindow->cacheReturnTime[pid]);
+	info("AllContention: %lu ldSt: %lu brPred: %lu iFetch: %lu", smtWindow->contentionMap[pid].contentionTotal(), smtWindow->contentionMap[pid].cache, smtWindow->contentionMap[pid].branchPrediction, smtWindow->contentionMap[pid].bblFetch);
+	info("TotalCycle = %lu", smtWindow->contentionMap[pid].contentionTotal() + curCyle + smtWindow->cacheReturnTime[pid]); 
 }
 
 void SMTCore::contextSwitch(int32_t gid) {
