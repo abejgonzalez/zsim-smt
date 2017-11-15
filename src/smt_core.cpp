@@ -148,6 +148,8 @@ void SMTCore::markDone() {
 	else{
 		this->playback();
 	}
+	pid_t pid = getpid();
+	info("contentionTotal:%lu cacheReturnTime:%lu for pid:%d", smtWindow->contentionMap[pid].contentionTotal(), smtWindow->cacheReturnTime[pid], pid);
 }
 
 void SMTCore::contextSwitch(int32_t gid) {
@@ -651,7 +653,6 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 
 	// Simulate branch prediction (Misprediction)
 	if (bblContext->branchPc && check) {
-	    info("BRANCH MISS");
 		/* OOOE: AG:
 		 * Note: Here they start talking about BTB (a very basic branch pred) 
 		 * but the brach predictor object used here is a pAg predictor.
