@@ -150,7 +150,7 @@ void SMTCore::markDone() {
 	}
 	pid_t pid = getpid();
 	info("CurCycle:%lu HitTime:%lu", curCycle, smtWindow->cacheReturnTime[pid]);
-	info("AllContention:%lu ldSt:%lu brPred:%lu iFetch:%lu", smtWindow->contentionMap[pid].cache, smtWindow->contentionMap[pid].branchPrediction, smtWindow->contentionMap[pid].bblFetch);
+	info("AllContention:%lu ldSt:%lu brPred:%lu iFetch:%lu", smtWindow->contentionMap[pid].contentionTotal(), smtWindow->contentionMap[pid].cache, smtWindow->contentionMap[pid].branchPrediction, smtWindow->contentionMap[pid].bblFetch);
 }
 
 void SMTCore::contextSwitch(int32_t gid) {
@@ -182,12 +182,6 @@ void SMTCore::contextSwitch(int32_t gid) {
     }
 }
 
-/**
- * TODO:
- * What is a join? 
- * Is this called by the scheduler?
- * Can we update the virtual core number here?
- */
 void SMTCore::join() {
 	info("[%s] Joining, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
     uint64_t targetCycle = cRec.notifyJoin(curCycle);
@@ -197,12 +191,6 @@ void SMTCore::join() {
     info("[%s] Joined, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
 }
 
-/**
- * TODO:
- * What is a leave? 
- * Is this called by the scheduler?
- * Can we update the virtual core number here?
- */
 void SMTCore::leave() {
     info("[%s] Leaving, curCycle %ld phaseEnd %ld", name.c_str(), curCycle, phaseEndCycle);
     cRec.notifyLeave(curCycle);

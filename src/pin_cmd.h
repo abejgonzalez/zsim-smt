@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include "g_std/g_string.h"
 #include "g_std/g_vector.h"
+#include "g_std/g_unordered_map.h"
 #include "galloc.h"
 
 class Config;
@@ -44,6 +45,7 @@ class PinCmd : public GlobAlloc {
             g_string input;
             g_string loader;
             g_string env;
+			uint32_t rob;
         };
 
         g_vector<ProcCmdInfo> procInfo; //one entry for each process that the harness launches (not for child procs)
@@ -55,6 +57,7 @@ class PinCmd : public GlobAlloc {
         void setEnvVars(uint32_t procIdx);
 
         uint32_t getNumCmdProcs() {return procInfo.size();}
+		uint32_t getRobSize(uint32_t procIdx) {return procInfo[procIdx].rob;}
 };
 
 #endif  // PIN_CMD_H_

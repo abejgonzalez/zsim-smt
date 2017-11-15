@@ -178,6 +178,11 @@ struct GlobSimInfo {
     // Trace writers (stored globally because they need to be deleted when the simulation ends)
     g_vector<AccessTraceWriter*>* traceWriters;
 
+	// OOOE: resource allocation.
+	// Don't forget to update init.cpp
+	// declare memory for the global alloc vector
+	g_vector<uint32_t>* robSizes;
+
     // Trace-driven simulation (no cores)
     bool traceDriven;
     TraceDriver* traceDriver;

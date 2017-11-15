@@ -415,6 +415,7 @@ int main(int argc, char *argv[]) {
 	pinCmd = new PinCmd(&conf, configFile, outputDir, shmid, attachDebugger || enableDebugger);
 	uint32_t numProcs = pinCmd->getNumCmdProcs();
 
+
 	for (uint32_t procIdx = 0; procIdx < numProcs; procIdx++) {
 		LaunchProcess(procIdx);
 	}
@@ -440,6 +441,9 @@ int main(int argc, char *argv[]) {
 			zinfo = static_cast < GlobSimInfo * >(gm_get_glob_ptr());
 			globzinfo = zinfo;
 			info("Attached to global heap");
+			for (uint32_t procIdx = 0; procIdx < numProcs; procIdx++) {
+				zinfo->robSizes->push_back(pinCmd->getRobSize(procIdx));
+			}
 		}
 
 		printHeartbeat(zinfo);	// ensure we dump hostname etc on early crashes

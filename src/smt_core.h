@@ -44,6 +44,7 @@
 #include "ooo_core_recorder.h"
 #include "ooo_core.h"
 #include "pad.h"
+#include "zsim.h"
 
 /** OOOE:
  * Context object container that holds BblInfo, 
@@ -205,6 +206,61 @@ class SmtWindow {
 		uint64_t cacheTotal(pid_t pid){ return contentionMap[pid].contentionTotal() + cacheReturnTime[pid]; }
 };
 
+template<uint32_t W>
+class DynamicReorderBuffer {
+    private:
+        uint64_t *buf;
+		uint64_t size;
+        uint64_t curRetireCycle;
+        uint32_t curCycleRetires;
+        uint32_t idx;
+
+    public:
+        // reads the config file value for reorder buffer size
+		DynamicReorderBuffer() {
+			this->size = zinfo->robSizes->at(procIdx);
+			this->buf = new uint64_t[size];
+			info("process %u: rob size: %lu", procIdx, size);
+
+            for (uint32_t i = 0; i < size; i++) buf[i] = 0;
+            idx = 0;
+            curRetireCycle = 0;
+            curCycleRetires = 1;
+        }
+		
+		~DynamicReorderBuffer() {
+			info("process %u: deleting rob.", procIdx);
+			delete buf;
+		}
+
+        inline uint64_t minAllocCycle() {
+            return buf[idx];
+        }
+
+        inline void markRetire(uint64_t minRetireCycle) {
+            if (minRetireCycle <= curRetireCycle) {  // retire with bundle
+                if (curCycleRetires == W) {
+                    curRetireCycle++;
+                    curCycleRetires = 0;
+                } else {
+                    curCycleRetires++;
+                }
+
+                /* No branches version (careful, width should be power of 2...)
+                 * curRetireCycle += curCycleRetires/W;
+                 * curCycleRetires = (curCycleRetires + 1) % W;
+                 *  NOTE: After profiling, version with branch seems faster
+                 */
+            } else {  // advance
+                curRetireCycle = minRetireCycle;
+                curCycleRetires = 1;
+            }
+
+            buf[idx++] = curRetireCycle;
+            if (idx == size) idx = 0;
+        }
+};
+
 class SMTCore : public Core {
     private:
         FilterCache *l1i, *l1d;
@@ -234,9 +290,10 @@ class SMTCore : public Core {
         //buffers, but we split the associative component from the limited-size modeling.
         //NOTE: We do not model the 10-entry fill buffer here; the weave model should take care
         //to not overlap more than 10 misses.
-        g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualLoadQueue;
-        g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualStoreQueue;
-		g_unordered_map<pid_t, ReorderBuffer<128, 4>> dualRob;
+
+        g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualLoadQueue;
+        g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualStoreQueue;
+		g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualRob;
         uint32_t curCycleRFReads; //for RF read stalls
         uint32_t curCycleIssuedUops; //for uop issue limits
 
