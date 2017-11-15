@@ -12,9 +12,9 @@ for ((i=0; i < $1; i++)); do
 	make test1
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -31,9 +31,9 @@ for ((i=0; i < $1; i++)); do
 	make test2
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -50,9 +50,9 @@ for ((i=0; i < $1; i++)); do
 	make test3
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -69,9 +69,9 @@ for ((i=0; i < $1; i++)); do
 	make test4
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -88,9 +88,9 @@ for ((i=0; i < $1; i++)); do
 	make test5
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -107,9 +107,9 @@ for ((i=0; i < $1; i++)); do
 	make test6
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -126,9 +126,9 @@ for ((i=0; i < $1; i++)); do
 	make test7
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -145,9 +145,9 @@ for ((i=0; i < $1; i++)); do
 	make test8
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -164,9 +164,9 @@ for ((i=0; i < $1; i++)); do
 	make test9
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -183,9 +183,9 @@ for ((i=0; i < $1; i++)); do
 	make test10
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -202,9 +202,9 @@ for ((i=0; i < $1; i++)); do
 	make test11
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -221,9 +221,9 @@ for ((i=0; i < $1; i++)); do
 	make test12
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -240,9 +240,9 @@ for ((i=0; i < $1; i++)); do
 	make test13
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -259,9 +259,9 @@ for ((i=0; i < $1; i++)); do
 	make test14
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -278,9 +278,9 @@ for ((i=0; i < $1; i++)); do
 	make test15
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -297,9 +297,9 @@ for ((i=0; i < $1; i++)); do
 	make test16
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -316,9 +316,9 @@ for ((i=0; i < $1; i++)); do
 	make test17
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -335,9 +335,9 @@ for ((i=0; i < $1; i++)); do
 	make test18
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -354,9 +354,9 @@ for ((i=0; i < $1; i++)); do
 	make test19
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -373,9 +373,9 @@ for ((i=0; i < $1; i++)); do
 	make test20
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -392,9 +392,9 @@ for ((i=0; i < $1; i++)); do
 	make test21
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -411,9 +411,9 @@ for ((i=0; i < $1; i++)); do
 	make test22
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -430,9 +430,9 @@ for ((i=0; i < $1; i++)); do
 	make test23
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -449,9 +449,9 @@ for ((i=0; i < $1; i++)); do
 	make test24
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -468,9 +468,9 @@ for ((i=0; i < $1; i++)); do
 	make test25
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -487,9 +487,9 @@ for ((i=0; i < $1; i++)); do
 	make test26
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -506,9 +506,9 @@ for ((i=0; i < $1; i++)); do
 	make test27
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -525,9 +525,9 @@ for ((i=0; i < $1; i++)); do
 	make test28
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -544,9 +544,9 @@ for ((i=0; i < $1; i++)); do
 	make test29
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -563,9 +563,9 @@ for ((i=0; i < $1; i++)); do
 	make test30
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -582,9 +582,9 @@ for ((i=0; i < $1; i++)); do
 	make test31
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -601,9 +601,9 @@ for ((i=0; i < $1; i++)); do
 	make test32
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -620,9 +620,9 @@ for ((i=0; i < $1; i++)); do
 	make test33
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -639,9 +639,9 @@ for ((i=0; i < $1; i++)); do
 	make test34
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -658,9 +658,9 @@ for ((i=0; i < $1; i++)); do
 	make test35
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
@@ -677,9 +677,9 @@ for ((i=0; i < $1; i++)); do
 	make test36
 	cp log/zsim.log.0 log/trial${i}_t0
 	cp log/zsim.log.1 log/trial${i}_t1
-	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle1=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.0 ` 
-	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $4; } \
+	TotalCycle2=`awk ' BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } \
 		END { print x; }' log/zsim.log.1 ` 
 	if [ "$TotalCycle1" -gt "$TotalCycle2" ]
 	then
