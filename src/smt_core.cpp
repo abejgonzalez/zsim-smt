@@ -84,15 +84,6 @@ SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
 
     for (uint32_t i = 0; i < FWD_ENTRIES; i++) fwdArray[i].set((Address)(-1L), 0);
 
-	for (uint32_t procIdx = 0; procIdx < zinfo->procPids->size(); procIdx++) {
-		int size = zinfo->robSizes->at(procIdx);
-		pid_t pid = zinfo->procPids->at(procIdx);
-		dualLoadQueue.emplace(pid, size);
-		dualStoreQueue.emplace(pid, size);
-		dualRob.emplace(pid, size);
-		info("process: %u, size: %d", procIdx, size);
-	}
-
 }
 
 void SMTCore::initStats(AggregateStat* parentStat) {
@@ -275,6 +266,14 @@ inline void SMTCore::branch(Address pc, bool taken, Address takenNpc, Address no
 
 /* OOOE: Refactored BBL function to store BBL's and not run them */
 void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
+	// preinit dual maps. creates a dynamic buffer if it doesn't exist.
+	if (dualRob.find(getpid()) == dualRob.end()){
+		int size = zinfo->robSizes->at(procIdx);
+		dualLoadQueue.emplace(getpid(), size);
+		dualStoreQueue.emplace(getpid(), size);
+		dualRob.emplace(getpid(), size);
+	}
+
 	if ( !prevContext->bblInfo ) {
         // This is the 1st BBL since scheduled, nothing to simulate
 		prevContext->bblInfo = bblInfo;

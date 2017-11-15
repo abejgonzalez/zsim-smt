@@ -221,6 +221,7 @@ class DynamicReorderBuffer {
 		DynamicReorderBuffer() { DynamicReorderBuffer(128); }
         DynamicReorderBuffer(int size) {
 			this->size = size;
+			info("process: %d, size: %d", procIdx, size);	
             for (uint32_t i = 0; i < size; i++) buf[i] = 0;
             idx = 0;
             curRetireCycle = 0;
@@ -290,6 +291,9 @@ class SMTCore : public Core {
         g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualLoadQueue;
         g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualStoreQueue;
 		g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualRob;
+        // g_unordered_map<pid_t, ReorderBuffer<128, 4>> dualLoadQueue;
+        // g_unordered_map<pid_t, ReorderBuffer<128, 4>> dualStoreQueue;
+		// g_unordered_map<pid_t, ReorderBuffer<128, 4>> dualRob;
         uint32_t curCycleRFReads; //for RF read stalls
         uint32_t curCycleIssuedUops; //for uop issue limits
 

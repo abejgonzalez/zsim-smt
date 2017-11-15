@@ -34,6 +34,7 @@
 #include <sstream>
 #include <stdlib.h>
 #include <string>
+#include <stdio.h>
 #include <sys/personality.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -265,7 +266,6 @@ void LaunchProcess(uint32_t procIdx) {
 		for (unsigned int i = 0; i < args.size(); i++) {
 			trace(Harness, " arg%d = %s", i, args[i].c_str());
 			aptrs[i] = args[i].c_str();
-			/* OOOE: */
 			printf("%s ", aptrs[i]);
             //printf("(%d, %s) ", i, aptrs[i]);
 		}
@@ -415,7 +415,6 @@ int main(int argc, char *argv[]) {
 	pinCmd = new PinCmd(&conf, configFile, outputDir, shmid, attachDebugger || enableDebugger);
 	uint32_t numProcs = pinCmd->getNumCmdProcs();
 
-
 	for (uint32_t procIdx = 0; procIdx < numProcs; procIdx++) {
 		LaunchProcess(procIdx);
 	}
@@ -441,9 +440,8 @@ int main(int argc, char *argv[]) {
 			zinfo = static_cast < GlobSimInfo * >(gm_get_glob_ptr());
 			globzinfo = zinfo;
 			info("Attached to global heap");
-			for (uint32_t procIdx = 0; procIdx < numProcs; procIdx++) {
-				zinfo->robSizes->push_back(pinCmd->getRobSize(procIdx));
-				zinfo->procPids->push_back(childInfo[procIdx].pid);
+			for (uint32_t procIdx = 0; procIdx < numProcs; procIdx++) { 
+				zinfo->robSizes->push_back(pinCmd->getRobSize(procIdx)); 
 			}
 		}
 

@@ -990,8 +990,7 @@ void SimInit(const char *configFile, const char *outputDir, uint32_t shmid) {
 	zinfo->eventRecorders = gm_calloc < EventRecorder * >(zinfo->numCores);
 
 	zinfo->traceWriters = new g_vector < AccessTraceWriter * >();
-	zinfo->robSizes = new g_vector < uint32_t >();
-	zinfo->procPids = new g_vector < int >();
+	zinfo->robSizes = new g_vector < int >();
 
 	// Global simulation values
 	zinfo->numPhases = 0;

@@ -117,9 +117,9 @@ PinCmd::PinCmd(Config * conf, const char *configFile, const char *outputDir, uin
 		const char *env = conf->get < const char *>(p_ss.str() + ".env", "");
 		
 		// process resource allocation.
-		const uint32_t rob = conf->get < uint32_t > (p_ss.str() + ".rob", 64);
+		const int rob = (int) conf->get < uint32_t > (p_ss.str() + ".rob", 64);
 
-		ProcCmdInfo pi = { g_string(cmd), g_string(input), g_string(loader), g_string(env), (uint32_t) rob };
+		ProcCmdInfo pi = { g_string(cmd), g_string(input), g_string(loader), g_string(env), (int) rob };
 		procInfo.push_back(pi);
 	}
 }

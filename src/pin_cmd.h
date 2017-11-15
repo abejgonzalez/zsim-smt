@@ -45,7 +45,7 @@ class PinCmd : public GlobAlloc {
             g_string input;
             g_string loader;
             g_string env;
-			uint32_t rob;
+			int rob;
         };
 
         g_vector<ProcCmdInfo> procInfo; //one entry for each process that the harness launches (not for child procs)
@@ -57,7 +57,7 @@ class PinCmd : public GlobAlloc {
         void setEnvVars(uint32_t procIdx);
 
         uint32_t getNumCmdProcs() {return procInfo.size();}
-		uint32_t getRobSize(uint32_t procIdx) {return procInfo[procIdx].rob;}
+		int getRobSize(uint32_t procIdx) {return procInfo[procIdx].rob;}
 };
 
 #endif  // PIN_CMD_H_
