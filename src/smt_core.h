@@ -171,7 +171,7 @@ class Contention {
 		}
 
 		inline uint64_t contentionTotal(){
-			return cache + branchPrediction + bblFetch;
+			return /*cache + */branchPrediction + bblFetch;
 		}
 };
 
@@ -288,11 +288,11 @@ class SMTCore : public Core {
         //NOTE: We do not model the 10-entry fill buffer here; the weave model should take care
         //to not overlap more than 10 misses.
 
-        g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualLoadQueue;
-        g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualStoreQueue;
+        //g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualLoadQueue;
+        //g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualStoreQueue;
 		g_unordered_map<pid_t, DynamicReorderBuffer<4>> dualRob;
-        // g_unordered_map<pid_t, ReorderBuffer<128, 4>> dualLoadQueue;
-        // g_unordered_map<pid_t, ReorderBuffer<128, 4>> dualStoreQueue;
+        g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualLoadQueue;
+        g_unordered_map<pid_t, ReorderBuffer<32, 4>> dualStoreQueue;
 		// g_unordered_map<pid_t, ReorderBuffer<128, 4>> dualRob;
         uint32_t curCycleRFReads; //for RF read stalls
         uint32_t curCycleIssuedUops; //for uop issue limits
