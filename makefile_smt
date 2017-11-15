@@ -70,148 +70,149 @@ test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 	mv *.log* log
 
 test1: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST1)	
 	mv *.log* log
 
 test2: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST2)	
 	mv *.log* log
 
 test3: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST3)	
 	mv *.log* log
 
 test4: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST4)	
 	mv *.log* log
 
 test5: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST5)	
 	mv *.log* log
 
 test6: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST6)	
 	mv *.log* log
 
 test7: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST7)	
 	mv *.log* log
 
 test8: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST8)	
 	mv *.log* log
 
 test9: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST9)	
 	mv *.log* log
 
 test10: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST10)	
 	mv *.log* log
 
 test11: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST11)	
 	mv *.log* log
 
 test12: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST12)	
 	mv *.log* log
 
 test13: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST13)	
 	mv *.log* log
 
 test14: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST14)	
 	mv *.log* log
 
 test15: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST15)	
 	mv *.log* log
 
 test16: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST16)	
 	mv *.log* log
 
 test17: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST17)	
 	mv *.log* log
 
 test18: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST18)	
 	mv *.log* log
 
 test19: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST19)	
 	mv *.log* log
 
 test20: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST20)	
 	mv *.log* log
 
 test21: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST21)	
 	mv *.log* log
 
 test22: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST22)	
 	mv *.log* log
 
 test23: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST23)	
 	mv *.log* log
 
 test24: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST24)	
 	mv *.log* log
 
 test25: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST25)	
 	mv *.log* log
 
 test26: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST26)	
 	mv *.log* log
 
 test27: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST27)	
 	mv *.log* log
 
 test28: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST28)	
 	mv *.log* log
 
 test29: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST29)	
 	mv *.log* log
 
 test30: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST30)	
 	mv *.log* log
 
 test31: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST31)	
 	mv *.log* log
 
 test32: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST32)	
 	mv *.log* log
 
 test33: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST33)	
 	mv *.log* log
 
 test34: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST34)	
 	mv *.log* log
 
 test35: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST35)	
 	mv *.log* log
 
 test36: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
-	$(ZSIM) $(TEST)	
+	$(ZSIM) $(TEST36)	
 	mv *.log* log
+
 
 test-clean:
 	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
