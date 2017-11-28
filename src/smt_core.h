@@ -222,7 +222,7 @@ class DynamicReorderBuffer {
         DynamicReorderBuffer(int size) {
 			this->size = size;
 			info("process: %d, size: %d", procIdx, size);	
-            for (uint32_t i = 0; i < size; i++) buf[i] = 0;
+            for (int i = 0; i < size; i++) buf[i] = 0;
             idx = 0;
             curRetireCycle = 0;
             curCycleRetires = 1;

@@ -546,7 +546,9 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				/* OOOE: Get UOP and BblContext from current Q */
 				*uop = &(cntxt->bbl->uop[smtWindow->uopIdx[curQ]]);
 				*bblContext = cntxt;
+#ifdef SMT_PRINT
 				printUop(cntxt->bbl->uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
+#endif
 				smtWindow->uopIdx[curQ] += 1;
 
                 //printf("Exit getUop()\n");
@@ -606,8 +608,9 @@ void SMTCore::runBblStatUpdate(BblContext* bblContext){
 	bbls++;
 	approxInstrs += bblContext->bbl->approxInstrs;
 	/* OOOE: Print end of BBL */
+#ifdef SMT_PRINT
 	printBbl(*bblContext, getpid());
-
+#endif
 #ifdef BBL_PROFILING
 	fprintf(stderr, "OOOE: BBlProfiling enabled\n");
 	if (approxInstrs) Decoder::profileBbl(bblContext->bblInfo->bblIdx);
@@ -693,7 +696,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		for (uint32_t i = 0; i < (5 * 64) / lineSize; i++) {
 			// TODO: Cache hit delays the entire pipeline somehow store the hti count and contention count
 			// and do not update the core count main (but somehow keep track of the different hit/miss counts)
-			uint64_t fetchLat = l1i->loadSeparate(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].branchPrediction) - curCycle;
+			l1i->loadSeparate(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].branchPrediction);
 			cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
 			uint64_t respCycle = reqCycle;
 			if (respCycle > lastCommitCycle) {
@@ -725,7 +728,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 		// We always call fetches with curCycle to avoid upsetting the weave
 		// models (but we could move to a fetch-centric recorder to avoid this)
 
-        uint64_t fetchLat = l1i->loadSeparate(fetchAddr, curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].bblFetch) - curCycle;
+        l1i->loadSeparate(fetchAddr, curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].bblFetch);
         //info("Updating fetch by %lu", fetchLat);
         //info("bblFetchCycle:%lu", smtWindow->contentionMap[curPid].bblFetch);
         cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));

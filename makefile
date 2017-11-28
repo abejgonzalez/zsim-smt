@@ -21,6 +21,10 @@ OUTPUT = heartbeat out.cfg *.out *.log* *.h5 .scons*
 PINBIN = lib/pin2.14/intel64/bin/pinbin
 PIN = $(BUILDDIR)/debug/pin
 
+# sampling
+SAMPLE = ./sample.sh
+SMT_TEMPLATE = tests/config/smt_template.cfg
+
 build: src/
 	$(CONFIGURE)
 	$(SCONS) $(SCONSFLAGS)
@@ -32,6 +36,9 @@ clean:
 test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 	$(ZSIM) $(TEST)	
 	mv *.log* log
+
+sample: $(SAMPLE) $(SMT_TEMPLATE)
+	$(SAMPLE) $(SMT_TEMPLATE)
 
 test-clean:
 	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
