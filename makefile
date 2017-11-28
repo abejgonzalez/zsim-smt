@@ -22,6 +22,7 @@ PINBIN = lib/pin2.14/intel64/bin/pinbin
 PIN = $(BUILDDIR)/debug/pin
 
 # sampling
+UPLOAD = ./upload.sh
 SAMPLE = ./sample.sh
 SMT_TEMPLATE = tests/config/smt_template.cfg
 
@@ -39,6 +40,9 @@ test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 
 sample: $(SAMPLE) $(SMT_TEMPLATE)
 	$(SAMPLE) $(SMT_TEMPLATE)
+
+upload: $(UPLOAD)
+	$(UPLOAD)
 
 test-clean:
 	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
