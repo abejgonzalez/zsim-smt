@@ -163,15 +163,17 @@ class Contention {
 		uint64_t cache;
 		uint64_t branchPrediction;
 		uint64_t bblFetch;
+		uint64_t rob;
 
 		Contention() {
 			cache = 0;
 			branchPrediction = 0;
 			bblFetch = 0;
+			rob = 0;
 		}
 
 		inline uint64_t contentionTotal(){
-			return /*cache + */branchPrediction + bblFetch;
+			return /*cache + */branchPrediction + bblFetch + rob;
 		}
 };
 

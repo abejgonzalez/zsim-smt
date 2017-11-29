@@ -23,16 +23,22 @@ fi
 # test parameters (SMT, OOO)
 if [ "$sample_mode" == "smt" ]; then
 	header="id,reorderBuffer,cacheSize,thread1Cycles,thread2Cycles"
-	benchmarks=(branch_good branch_miss dcache_good dcache_miss icache_good icache_miss)
-	rob_sizes=(32,32 40,24 48,16 56,8)
-	cache_sizes=(8192 16384 32768)
+# benchmarks=(branch_good branch_miss dcache_good dcache_miss icache_good icache_miss)
+# rob_sizes=(32,32 40,24 48,16 56,8)
+# cache_sizes=(8192 16384 32768)
+    benchmarks=(dcache_good)
+	rob_sizes=(32,32 56,8)
+	cache_sizes=(32768)
 	cache_default=32768
 	id=1 # test id
 elif [ "$sample_mode" == "ooo" ]; then
 	header="id,reorderBuffer,cacheSize,oooCycles"
-	benchmarks=(branch_good branch_miss dcache_good dcache_miss icache_good icache_miss)
-	rob_sizes=(8 16 24 32 40 48 56)
-	cache_sizes=(8192 16384 32768)
+# benchmarks=(branch_good branch_miss dcache_good dcache_miss icache_good icache_miss)
+# 	rob_sizes=(8 16 24 32 40 48 56)
+# 	cache_sizes=(8192 16384 32768)
+	benchmarks=(dcache_good)
+	rob_sizes=(8 32 56)
+	cache_sizes=(32768)
 	cache_default=32768
 	id=1 # test id
 fi

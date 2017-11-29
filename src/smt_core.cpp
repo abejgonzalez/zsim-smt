@@ -50,7 +50,7 @@ extern GlobSimInfo* zinfo;
 #define ISSUES_PER_CYCLE 4
 #define RF_READS_PER_CYCLE 3
 
-#define SMT_PRINT
+//#define SMT_PRINT
 //#define BR_PRINT
 
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
@@ -151,7 +151,7 @@ void SMTCore::markDone() {
 
 	pid_t pid = getpid();
 	info("CurCycle: %lu HitTime: %lu", curCycle, smtWindow->cacheReturnTime[pid]);
-	info("AllContention: %lu ldSt: %lu brPred: %lu iFetch: %lu", smtWindow->contentionMap[pid].contentionTotal(), smtWindow->contentionMap[pid].cache, smtWindow->contentionMap[pid].branchPrediction, smtWindow->contentionMap[pid].bblFetch);
+	info("AllContention: %lu ldSt: %lu brPred: %lu iFetch: %lu rob: %lu", smtWindow->contentionMap[pid].contentionTotal(), smtWindow->contentionMap[pid].cache, smtWindow->contentionMap[pid].branchPrediction, smtWindow->contentionMap[pid].bblFetch, smtWindow->contentionMap[pid].rob);
 	info("TotalCycle = %lu", smtWindow->contentionMap[pid].contentionTotal() + curCycle + smtWindow->cacheReturnTime[pid]); 
 }
 
@@ -322,10 +322,10 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		
 		// construct and initialize new context from previous.
 #ifdef SMT_PRINT
-		info("bbl:%p addr:%lx ld:%u st:%u brpc:%lx, brTk:%d brTkN:%lx brNTNpc:%lx",
+		/*info("bbl:%p addr:%lx ld:%u st:%u brpc:%lx, brTk:%d brTkN:%lx brNTNpc:%lx",
 		    prevContext->bblInfo, bblAddr, prevContext->loads, prevContext->stores,
 		    prevContext->branchPc, prevContext->branchTaken, prevContext->branchTakenNpc,
-		    prevContext->branchNotTakenNpc);
+		    prevContext->branchNotTakenNpc);*/
 #endif
 		curContext->bblInfo = bblInfo;
 		curContext->bbl = &(prevContext->bblInfo->oooBbl[0]);
@@ -338,7 +338,7 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		memcpy(curContext->storeAddrs, prevContext->storeAddrs, sizeof(curContext->storeAddrs));
 
 #ifdef BR_PRINT
-        info("brPC:%lx brTkn:%d brTknNPN:%lx brNTknNPC:%lx", prevContext->branchPc, prevContext->branchTaken, prevContext->branchTakenNpc, prevContext->branchNotTakenNpc);
+        //info("brPC:%lx brTkn:%d brTknNPN:%lx brNTknNPC:%lx", prevContext->branchPc, prevContext->branchTaken, prevContext->branchTakenNpc, prevContext->branchNotTakenNpc);
 #endif
 		curContext->branchPc = prevContext->branchPc;
 		prevContext->branchPc = 0; // After each BBl the branchPC should be cleared
@@ -760,6 +760,8 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
  * Output: None 
  */
 void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint32_t &prevDecCycle, uint64_t &lastCommitCycle, DynUop * uop, BblContext *  bblContext) {
+    pid_t curPid = smtWindow->bblQueue[presQ].pid;
+
     DynBbl* bbl = (bblContext->bbl);
     assert( bbl != nullptr );
     assert( uop != nullptr );
@@ -852,7 +854,15 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     uint64_t cOps = MAX(c0, c1);
 
     // Model RAT + ROB + RS delay between issue and dispatch
-    uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
+    //uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
+    uint64_t dispatchCycle = MAX(cOps, MIN(c2,c3));
+
+    /* Rob contention */
+    if ( ( dispatchCycle == ( MIN(c2, c3) ) ) ) {
+        smtWindow->contentionMap[curPid].rob += int64_t(MAX(c2,c3) - MIN(c2,c3) - (DISPATCH_STAGE - ISSUE_STAGE));
+        info("AmtRob: %d Updated: %lu Added: %lu", dualRob.size(), smtWindow->contentionMap[curPid].rob, int32_t(MAX(c2,c3) - MIN(c2,c3) - (DISPATCH_STAGE - ISSUE_STAGE)));
+    }
+
 
 #ifdef SMT_PRINT
 	info("dispatchCycle:%lu curCycle:%lu", dispatchCycle, curCycle);
@@ -872,7 +882,6 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     }
 
     uint64_t commitCycle;
-    pid_t curPid = smtWindow->bblQueue[presQ].pid;
 
     // LSU simulation
     // NOTE: Ever-so-slightly faster than if-else if-else if-else
