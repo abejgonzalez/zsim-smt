@@ -50,7 +50,7 @@ extern GlobSimInfo* zinfo;
 #define ISSUES_PER_CYCLE 4
 #define RF_READS_PER_CYCLE 3
 
-//#define SMT_PRINT
+#define SMT_PRINT
 //#define BR_PRINT
 
 SMTCore::SMTCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name)
@@ -274,6 +274,9 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 		//dualLoadQueue.emplace(getpid(), size);
 		//dualStoreQueue.emplace(getpid(), size);
 		dualRob.emplace(getpid(), size);
+#ifdef SMT_PRINT
+		info("reorder buffer created. (pid, size): (%d, %d)", getpid(), size);
+#endif
 	}
 
 	if ( !prevContext->bblInfo ) {
@@ -546,9 +549,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				/* OOOE: Get UOP and BblContext from current Q */
 				*uop = &(cntxt->bbl->uop[smtWindow->uopIdx[curQ]]);
 				*bblContext = cntxt;
-#ifdef SMT_PRINT
-				printUop(cntxt->bbl->uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
-#endif
+				//printUop(cntxt->bbl->uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
 				smtWindow->uopIdx[curQ] += 1;
 
                 //printf("Exit getUop()\n");
@@ -608,9 +609,7 @@ void SMTCore::runBblStatUpdate(BblContext* bblContext){
 	bbls++;
 	approxInstrs += bblContext->bbl->approxInstrs;
 	/* OOOE: Print end of BBL */
-#ifdef SMT_PRINT
-	printBbl(*bblContext, getpid());
-#endif
+	//printBbl(*bblContext, getpid());
 #ifdef BBL_PROFILING
 	fprintf(stderr, "OOOE: BBlProfiling enabled\n");
 	if (approxInstrs) Decoder::profileBbl(bblContext->bblInfo->bblIdx);
@@ -845,6 +844,9 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
     //Check to see if the current ROB is full
 	uint64_t c2 = dualRob[smtWindow->bblQueue[presQ].pid].minAllocCycle();
+#ifdef SMT_PRINT
+	info("DualRob (pid, totalAmtRob, robSize): (%d, %d, %d)", smtWindow->bblQueue[presQ].pid, dualRob.size(), dualRob[smtWindow->bblQueue[presQ].pid].getSize());
+#endif
     uint64_t c3 = curCycle;
 
     uint64_t cOps = MAX(c0, c1);

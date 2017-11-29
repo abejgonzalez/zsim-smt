@@ -232,6 +232,8 @@ class DynamicReorderBuffer {
             return buf[idx];
         }
 
+        inline uint64_t getSize(){ return size; }
+
         inline void markRetire(uint64_t minRetireCycle) {
             if (minRetireCycle <= curRetireCycle) {  // retire with bundle
                 if (curCycleRetires == W) {
