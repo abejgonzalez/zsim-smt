@@ -546,7 +546,7 @@ bool SMTCore::getUop(uint8_t &curQ, DynUop ** uop, BblContext ** bblContext, boo
 				/* OOOE: Get UOP and BblContext from current Q */
 				*uop = &(cntxt->bbl->uop[smtWindow->uopIdx[curQ]]);
 				*bblContext = cntxt;
-				printUop(cntxt->bbl->uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
+				//printUop(cntxt->bbl->uop[smtWindow->uopIdx[curQ]], *cntxt, smtWindow->bblQueue[curQ].pid, curQ, smtWindow->bblQueue[curQ].count(), smtWindow->uopIdx[curQ]);
 				smtWindow->uopIdx[curQ] += 1;
 
                 //printf("Exit getUop()\n");
@@ -695,6 +695,7 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
 			// and do not update the core count main (but somehow keep track of the different hit/miss counts)
 			uint64_t fetchLat = l1i->loadSeparate(wrongPathAddr + (i * lineSize), curCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].branchPrediction) - curCycle;
 			cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
+			//uint64_t respCycle = reqCycle + fetchLat;
 			uint64_t respCycle = reqCycle;
 			if (respCycle > lastCommitCycle) {
 				break;
@@ -729,6 +730,10 @@ void SMTCore::runFrontend(uint8_t presQ, uint32_t& loadIdx, uint32_t& storeIdx, 
         //info("Updating fetch by %lu", fetchLat);
         //info("bblFetchCycle:%lu", smtWindow->contentionMap[curPid].bblFetch);
         cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
+
+        //uint64_t fetchLat = l1i->load(fetchAddr, curCycle) - curCycle;
+        //cRec.record(curCycle, curCycle, curCycle + fetchLat);
+
 		//fetchCycle += fetchLat;
 		//info("adding to fetch:%lu", fetchLat);
 		//info("FetchCycle updated to: fetchCycle:%lu %ld from prevFetch:%lu", fetchCycle, fetchCycle, fetchCycle - fetchLat);
@@ -901,8 +906,8 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
                     smtWindow->cacheReturnTime[curPid] = temp;
                     cRec.record(curCycle, dispatchCycle, curCycle + smtWindow->cacheTotal(curPid));
 
-                    //reqSatisfiedCycle = l1d->loadSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
-                    //cRec.record(curCycle, curCycle, curCycle + smtWindow->cacheTotal(curPid));
+                    //reqSatisfiedCycle = l1d->load(addr, dispatchCycle) + L1D_LAT;
+                    //cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
                 }
 
                 // Enforce st-ld forwarding
@@ -950,12 +955,14 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
                 uint64_t temp = smtWindow->cacheReturnTime[curPid];
                 /* TODO: Actually update the reqCycle since it is updating just the commit not the actual cycle count*/
                 uint64_t reqSatisfiedCycle = l1d->storeSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
+                //uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
                 smtWindow->cacheReturnTime[curPid] = temp;
  
 #ifdef SMT_PRINT
                 info("reqSatisfiedCycle:%lu", reqSatisfiedCycle);
 #endif
                 cRec.record(curCycle, dispatchCycle, curCycle + smtWindow->cacheTotal(curPid));
+                //cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
 
                 // Fill the forwarding table
                 fwdArray[(addr>>2) & (FWD_ENTRIES-1)].set(addr, reqSatisfiedCycle);

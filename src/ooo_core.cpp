@@ -262,7 +262,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
         //info("OOOE: UOP#:%d UOPDECCYCLE:%d COREDECCYCLE:%lu", i, uop->decCycle, decodeCycle);
         uint32_t decDiff = uop->decCycle - prevDecCycle;
 #ifdef OOO_PRINT
-		info("decDiff:%u uop->decCycle:%lu prevDecCycle:%lu", decDiff, uop->decCycle, prevDecCycle);
+		info("decDiff:%u uop->decCycle:%u prevDecCycle:%u", decDiff, uop->decCycle, prevDecCycle);
 #endif
         /* OOOE: AG: uopQueue has amount of uops and when they are marked for retiring */
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
@@ -612,7 +612,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     // Simulate current bbl ifetch
     Address endAddr = bblAddr + bblInfo->bytes;
 #ifdef OOO_PRINT
-    info("endAddr:x%lx bblAddr:x%lx bytes:%lu lineSize:%lu", endAddr, bblAddr, bblInfo->bytes, lineSize);
+    info("endAddr:x%lx bblAddr:x%lx bytes:%u lineSize:%u", endAddr, bblAddr, bblInfo->bytes, lineSize);
 #endif
     for (Address fetchAddr = bblAddr; fetchAddr < endAddr; fetchAddr += lineSize) {
         // The Nehalem frontend fetches instructions in 16-byte-wide accesses.
