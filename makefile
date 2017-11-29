@@ -24,7 +24,8 @@ PIN = $(BUILDDIR)/debug/pin
 # sampling
 UPLOAD = ./upload.sh
 SAMPLE = ./sample.sh
-SMT_TEMPLATE = tests/config/smt_template.cfg
+TEMPLATE_SMT = tests/config/smt_template.cfg
+TEMPLATE_OOO = tests/config/ooo_template.cfg
 
 build: src/
 	$(CONFIGURE)
@@ -38,11 +39,20 @@ test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 	$(ZSIM) $(TEST)	
 	mv *.log* log
 
-sample: $(SAMPLE) $(SMT_TEMPLATE)
-	$(SAMPLE) $(SMT_TEMPLATE)
+
+# sampling and uploading
 
 upload: $(UPLOAD)
 	$(UPLOAD)
+
+sample: sample-ooo sample-smt
+
+sample-smt: $(SAMPLE) $(TEMPLATE_SMT)
+	$(SAMPLE) $(TEMPLATE_SMT) smt
+
+sample-ooo: $(SAMPLE) $(TEMPLATE_OOO)
+	$(SAMPLE) $(TEMPLATE_OOO) ooo
+
 
 test-clean:
 	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
