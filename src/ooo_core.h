@@ -132,6 +132,7 @@ class WindowStructure {
 
 
         void schedule(uint64_t& curCycle, uint64_t& schedCycle, uint8_t portMask, uint32_t extraSlots = 0) {
+            info("ST: curCycle:%lu schedCycle:%lu", curCycle, schedCycle);
             if (!extraSlots) {
                 scheduleInternal<true, false>(curCycle, schedCycle, portMask);
             } else {
@@ -147,6 +148,7 @@ class WindowStructure {
                 }
             }
             assert(occupancy <= WSZ);
+            info("END: occ:%d curCycle:%lu schedCycle:%lu", occupancy, curCycle, schedCycle);
         }
 
         inline void advancePos(uint64_t& curCycle) {
@@ -208,12 +210,16 @@ class WindowStructure {
     private:
         template <bool touchOccupancy, bool recordPort>
         void scheduleInternal(uint64_t& curCycle, uint64_t& schedCycle, uint8_t portMask) {
+            //info("scheduleInternal: curCycle:%lu schedCycle:%lu", curCycle, schedCycle);
+
             // If the window is full, advance curPos until it's not
             while (touchOccupancy && occupancy == WSZ) {
+                //info("touchOcc:%d occ:%u", touchOccupancy, occupancy); 
                 advancePos(curCycle);
             }
 
             uint32_t delay = (schedCycle > curCycle)? (schedCycle - curCycle) : 0;
+            //info("delay:%u", delay);
 
             // Schedule, progressively increasing delay if we cannot find a slot
             uint32_t curWinPos = curPos + delay;
@@ -225,6 +231,7 @@ class WindowStructure {
                     curWinPos++;
                 }
             }
+            //info("curWinPos:%u schedCycle:%lu", curWinPos, schedCycle);
             if (curWinPos >= H) {
                 uint32_t nextWinPos = curWinPos - H;
                 while (nextWinPos < H) {
@@ -262,7 +269,10 @@ class WindowStructure {
                     // info("Scheduled event in unbounded window, cycle %ld", schedCycle);
                 }
             }
-            if (touchOccupancy) occupancy++;
+            if (touchOccupancy){
+                occupancy++;
+                //info("occ:%u", occupancy);
+            }
         }
 
         template <bool touchOccupancy, bool recordPort>
@@ -271,14 +281,14 @@ class WindowStructure {
             if (touchOccupancy) {
                 uint8_t availMask = (~wc.occUnits) & portMask;
                 if (availMask) {
-                    // info("PRE: occUnits=%x portMask=%x availMask=%x", wc.occUnits, portMask, availMask);
+                    //info("PRE: occUnits=%x portMask=%x availMask=%x", wc.occUnits, portMask, availMask);
                     uint8_t firstAvail = __builtin_ffs(availMask) - 1;
                     // NOTE: This is not fair across ports. I tried round-robin scheduling, and there is no measurable difference
                     // (in our case, fairness comes from following program order)
                     if (recordPort) lastPort = firstAvail;
                     wc.occUnits |= 1 << firstAvail;
                     wc.count++;
-                    // info("POST: occUnits=%x count=%x firstAvail=%d", wc.occUnits, wc.count, firstAvail);
+                    //info("POST: occUnits=%x count=%x firstAvail=%d", wc.occUnits, wc.count, firstAvail);
                 }
                 return availMask;
             } else {
@@ -398,7 +408,7 @@ class OOOCore : public Core {
 
         //Nehalem
         WindowStructure<1024, 36 /*size*/> insWindow; //NOTE: IW width is implicitly determined by the decoder, which sets the port masks according to uop type
-        ReorderBuffer<56, 4> rob;
+        ReorderBuffer<8, 4> rob;
 
         // Agner's guide says it's a 2-level pred and BHSR is 18 bits, so this is the config that makes sense;
         // in practice, this is probably closer to the Pentium M's branch predictor, (see Uzelac and Milenkovic,

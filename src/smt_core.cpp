@@ -271,8 +271,6 @@ void SMTCore::bbl(THREADID tid, Address bblAddr, BblInfo* bblInfo) {
 	// preinit dual maps. creates a dynamic buffer if it doesn't exist.
 	if (dualRob.find(getpid()) == dualRob.end()){
 		int size = zinfo->robSizes->at(procIdx);
-		//dualLoadQueue.emplace(getpid(), size);
-		//dualStoreQueue.emplace(getpid(), size);
 		dualRob.emplace(getpid(), size);
 #ifdef SMT_PRINT
 		info("reorder buffer created. (pid, size): (%d, %d)", getpid(), size);
@@ -766,7 +764,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     assert( bbl != nullptr );
     assert( uop != nullptr );
 #ifdef SMT_PRINT
-	info("\nOOOE: New UOP Pid:%d curCycle:%lu prevDecCycle:%d decodeCycle:%lu", smtWindow->bblQueue[presQ].pid, curCycle, prevDecCycle, decodeCycle);
+	info("\nOOOE: New UOP Pid:%d curCycle:%lu prevDecCycle:%d decodeCycle:%lu", curPid, curCycle, prevDecCycle, decodeCycle);
     if ( uop->type == UOP_LOAD ){
 		info("LOAD");
 	}
@@ -843,25 +841,32 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 #ifdef SMT_PRINT
 	info("curCycleRFReads:%d", curCycleRFReads);
 #endif
+    ////info("\n");
 
-    //Check to see if the current ROB is full
-	uint64_t c2 = dualRob[smtWindow->bblQueue[presQ].pid].minAllocCycle();
-#ifdef SMT_PRINT
-	info("DualRob (pid, totalAmtRob, robSize): (%d, %d, %d)", smtWindow->bblQueue[presQ].pid, dualRob.size(), dualRob[smtWindow->bblQueue[presQ].pid].getSize());
-#endif
+    //Check to see if the current ROB is full, give the cycle that it will be avail
+	uint64_t c2 = dualRob[curPid].minAllocCycle();
     uint64_t c3 = curCycle;
 
+    /* Wait until the curCycle updates past to take into account the rob stall */
+    if ( c3 >= smtWindow->prevRobStallCycle[curPid] ){
+        /* Note: Do we want to store this prevRobStallCycle in the smtWindow? */
+        if ( c2 > c3 ){
+            /* There was a reorder buffer stall */
+            ////info("robContent update by:%lu", c2 - c3); 
+            smtWindow->contentionMap[curPid].rob += c2 - c3;
+            smtWindow->prevRobStallCycle[curPid]= c2;
+        }
+    }
     uint64_t cOps = MAX(c0, c1);
 
     // Model RAT + ROB + RS delay between issue and dispatch
-    //uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
-    uint64_t dispatchCycle = MAX(cOps, MIN(c2,c3));
+    // uint64_t dispatchCycle = MAX(cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
+    uint64_t dispatchCycle = MAX(cOps, c3 + (DISPATCH_STAGE - ISSUE_STAGE));
 
-    /* Rob contention */
-    if ( ( dispatchCycle == ( MIN(c2, c3) ) ) ) {
-        smtWindow->contentionMap[curPid].rob += int64_t(MAX(c2,c3) - MIN(c2,c3) - (DISPATCH_STAGE - ISSUE_STAGE));
-        info("AmtRob: %d Updated: %lu Added: %lu", dualRob.size(), smtWindow->contentionMap[curPid].rob, int32_t(MAX(c2,c3) - MIN(c2,c3) - (DISPATCH_STAGE - ISSUE_STAGE)));
-    }
+	////info("pid: %d diff:%lu curCycle:%lu", curPid, dispatchCycle - curCycle, curCycle);
+	//info("cOps:%lu rob:%lu", cOps, MAX(c2, c3) + (DISPATCH_STAGE - ISSUE_STAGE));
+	////info("cOps:%lu rob:%lu", cOps, c3 + (DISPATCH_STAGE - ISSUE_STAGE));
+	////info("minAlloc:%lu robContent:%lu", c2, smtWindow->contentionMap[curPid].rob );
 
 
 #ifdef SMT_PRINT
@@ -869,6 +874,9 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 #endif
 
     // NOTE: Schedule can adjust both cur and dispatch cycles
+    /*Instruction window that is dynamically allocated. Uses the diff between
+      dispatchCycle and curCycle to figure out when the window should be done.
+      Then the instruction window is deallocated when advancePos is called*/
     insWindow.schedule(curCycle, dispatchCycle, uop->portMask, uop->extraSlots);
 
 #ifdef SMT_PRINT
@@ -894,7 +902,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
         case UOP_LOAD:
             {
                 // dispatchCycle = MAX(loadQueue.minAllocCycle(), dispatchCycle);
-                uint64_t lqCycle = dualLoadQueue[smtWindow->bblQueue[presQ].pid].minAllocCycle();
+                uint64_t lqCycle = dualLoadQueue[curPid].minAllocCycle();
                 if (lqCycle > dispatchCycle) {
 #ifdef LSU_IW_BACKPRESSURE
                     insWindow.poisonRange(curCycle, lqCycle, 0x4 /*PORT_2, loads*/);
@@ -934,14 +942,14 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 
                 commitCycle = reqSatisfiedCycle;
 				//info("LOAD: commitCycle:%lu", commitCycle);
-                dualLoadQueue[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
+                dualLoadQueue[curPid].markRetire(commitCycle);
             }
             break;
 
         case UOP_STORE:
             {
                 // dispatchCycle = MAX(storeQueue.minAllocCycle(), dispatchCycle);
-                uint64_t sqCycle = dualStoreQueue[smtWindow->bblQueue[presQ].pid].minAllocCycle();
+                uint64_t sqCycle = dualStoreQueue[curPid].minAllocCycle();
 
 #ifdef SMT_PRINT
                 info("sqCycle:%lu", sqCycle);
@@ -979,7 +987,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 #ifdef SMT_PRINT
                 info("LastScCycle:%lu", lastStoreCommitCycle);
 #endif
-                dualStoreQueue[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
+                dualStoreQueue[curPid].markRetire(commitCycle);
             }
             break;
 
@@ -1005,7 +1013,7 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
     info("commitCycle:%lu", commitCycle);
 #endif
     // Mark retire at ROB
-	dualRob[smtWindow->bblQueue[presQ].pid].markRetire(commitCycle);
+	dualRob[curPid].markRetire(commitCycle);
 
     // Record dependences
     regScoreboard[uop->rd[0]] = commitCycle;

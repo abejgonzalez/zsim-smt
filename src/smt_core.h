@@ -205,6 +205,7 @@ class SmtWindow {
 		// tracks contention cycles.
 		g_unordered_map<pid_t, Contention> contentionMap;
 		g_unordered_map<pid_t, uint64_t> cacheReturnTime;
+		g_unordered_map<pid_t, uint64_t> prevRobStallCycle;
 
 		uint64_t cacheTotal(pid_t pid){ return contentionMap[pid].contentionTotal() + cacheReturnTime[pid]; }
 };
@@ -254,7 +255,7 @@ class DynamicReorderBuffer {
                 curRetireCycle = minRetireCycle;
                 curCycleRetires = 1;
             }
-
+            
             buf[idx++] = curRetireCycle;
             if (idx == size) idx = 0;
         }
@@ -306,7 +307,7 @@ class SMTCore : public Core {
 
         //Nehalem
 		// OOOE: could be pretty useful. 
-		// 	may not have to reinvent the wheel for ins windows...
+		// may not have to reinvent the wheel for ins windows...
         WindowStructure<1024, 36 /*size*/> insWindow; 
 		////NOTE: IW width is implicitly determined by the decoder, which sets the port masks according to uop type
 
