@@ -23,22 +23,22 @@ fi
 # test parameters (SMT, OOO)
 if [ "$sample_mode" == "smt" ]; then
 	header="id,reorderBuffer,cacheSize,thread1Cycles,thread2Cycles"
-# benchmarks=(branch_good branch_miss dcache_good dcache_miss icache_good icache_miss)
-# rob_sizes=(32,32 40,24 48,16 56,8)
-# cache_sizes=(8192 16384 32768)
-    benchmarks=(dcache_good)
-	rob_sizes=(32,32 56,8)
-	cache_sizes=(32768)
+    benchmarks=(branch_good branch_miss dcache_good dcache_miss icache_good icache_miss)
+    rob_sizes=(32,32 40,24 48,16 56,8)
+    cache_sizes=(8192 16384 32768)
+#   benchmarks=(dcache_good)
+# 	rob_sizes=(32,32 56,8)
+# 	cache_sizes=(32768)
 	cache_default=32768
 	id=1 # test id
 elif [ "$sample_mode" == "ooo" ]; then
 	header="id,reorderBuffer,cacheSize,oooCycles"
-# benchmarks=(branch_good branch_miss dcache_good dcache_miss icache_good icache_miss)
-# 	rob_sizes=(8 16 24 32 40 48 56)
-# 	cache_sizes=(8192 16384 32768)
-	benchmarks=(dcache_good)
-	rob_sizes=(8 32 56)
-	cache_sizes=(32768)
+    benchmarks=(branch_good branch_miss dcache_good dcache_miss icache_good icache_miss)
+    rob_sizes=(8 16 24 32 40 48 56)
+    cache_sizes=(8192 16384 32768)
+# 	benchmarks=(dcache_good)
+# 	rob_sizes=(8 32 56)
+# 	cache_sizes=(32768)
 	cache_default=32768
 	id=1 # test id
 fi
@@ -61,8 +61,10 @@ function sample_smt {
 	# parse and write SMT cycle counts
 	cp log/zsim.log.0 log/smt${id}_t0
 	cp log/zsim.log.1 log/smt${id}_t1
-	t1_cycles=`awk 'BEGIN { x = 0 } $3 ~ /CurCycle/ { x = $4; } END { print x; }' log/zsim.log.0` 
-	t2_cycles=`awk 'BEGIN { x = 0 } $3 ~ /CurCycle/ { x = $4; } END { print x; }' log/zsim.log.1` 
+    t1_cycles=`awk 'BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } END { print x; }' log/zsim.log.0` 
+	t2_cycles=`awk 'BEGIN { x = 0 } $3 ~ /TotalCycle/ { x = $5; } END { print x; }' log/zsim.log.1` 
+    # t1_cycles=`awk 'BEGIN { x = 0 } $3 ~ /CurCycle/ { x = $4; } END { print x; }' log/zsim.log.0` 
+    # t2_cycles=`awk 'BEGIN { x = 0 } $3 ~ /CurCycle/ { x = $4; } END { print x; }' log/zsim.log.1` 
 	echo "$id,$rob1,$cache_size,$t1_cycles,$t2_cycles" >> $results_csv
 	let id+=1
 }

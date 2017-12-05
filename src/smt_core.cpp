@@ -919,8 +919,10 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
                     /* TODO: Actually update the reqCycle since it is updating just the commit not the actual cycle count*/
 
                     uint64_t temp = smtWindow->cacheReturnTime[curPid];
+                    uint64_t temp1 = smtWindow->contentionMap[curPid].cache;
                     reqSatisfiedCycle = l1d->loadSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
                     smtWindow->cacheReturnTime[curPid] = temp;
+                    smtWindow->contentionMap[curPid].cache = temp1;
                     cRec.record(curCycle, dispatchCycle, curCycle + smtWindow->cacheTotal(curPid));
 
                     //reqSatisfiedCycle = l1d->loadSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
@@ -970,9 +972,11 @@ void SMTCore::runUop(uint8_t presQ, uint32_t &loadIdx, uint32_t &storeIdx, uint3
 				Address addr = bblContext->storeAddrs[storeIdx++];
 
                 uint64_t temp = smtWindow->cacheReturnTime[curPid];
+                uint64_t temp1 = smtWindow->contentionMap[curPid].cache;
                 /* TODO: Actually update the reqCycle since it is updating just the commit not the actual cycle count*/
                 uint64_t reqSatisfiedCycle = l1d->storeSeparate(addr, dispatchCycle, &smtWindow->cacheReturnTime[curPid], &smtWindow->contentionMap[curPid].cache) + L1D_LAT;
                 smtWindow->cacheReturnTime[curPid] = temp;
+                smtWindow->contentionMap[curPid].cache = temp1;
  
 #ifdef SMT_PRINT
                 info("reqSatisfiedCycle:%lu", reqSatisfiedCycle);
