@@ -22,8 +22,8 @@ PINBIN = lib/pin2.14/intel64/bin/pinbin
 PIN = $(BUILDDIR)/debug/pin
 
 # sampling
-UPLOAD = ./upload.sh
-SAMPLE = ./sample.sh
+UPLOAD = ./benchmark/upload.sh
+SAMPLE = ./benchmark/sample.sh
 TEMPLATE_SMT = tests/config/smt_template.cfg
 TEMPLATE_OOO = tests/config/ooo_template.cfg
 
@@ -32,9 +32,6 @@ build: src/
 	$(SCONS) $(SCONSFLAGS)
 	# ln -sf ~/zsim/build/opt/zsim ~/opt/bin/zsim
 
-clean:
-	$(RM) -rf  $(BUILDDIR)  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
-
 test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 	$(ZSIM) $(TEST)	
 	mv *.log* log
@@ -42,17 +39,34 @@ test: $(TEST) $(TRACEDIR) $(LOGDIR) $(PIN)
 
 # sampling and uploading
 
+BENCH_DIR = benchmark
+SIM_DIR = $(BENCH_DIR)/zsim
+BENCH = \
+	$(SIM_DIR)/branch_good \
+	$(SIM_DIR)/branch_miss \
+	$(SIM_DIR)/dcache_good \
+	$(SIM_DIR)/dcache_miss \
+	$(SIM_DIR)/icache_good \
+	$(SIM_DIR)/icache_miss 
+
+$(BENCH):
+	make -C $(BENCH_DIR) zsim
+
 upload: $(UPLOAD)
 	$(UPLOAD)
 
-sample: sample-ooo sample-smt
+sample: sample-smt sample-ooo
 
-sample-smt: $(SAMPLE) $(TEMPLATE_SMT)
+sample-smt: $(BENCH) $(SAMPLE) $(TEMPLATE_SMT)
 	$(SAMPLE) $(TEMPLATE_SMT) smt
 
-sample-ooo: $(SAMPLE) $(TEMPLATE_OOO)
+sample-ooo: $(BENCH) $(SAMPLE) $(TEMPLATE_OOO)
 	$(SAMPLE) $(TEMPLATE_OOO) ooo
 
+# cleaning
+
+clean:
+	$(RM) -rf  $(BUILDDIR)  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
 
 test-clean:
 	$(RM) -rf  $(OUTPUT) $(TRACEDIR) $(LOGDIR)
@@ -77,11 +91,3 @@ $(PLOTDIR):
 
 $(LOGDIR):
 	mkdir -p $(LOGDIR)
-
-############### unit tests ######################
-
-CC = g++
-CPPFLAGS = -Ibuild/opt -g -std=c++11
-
-testArbitration: tests/testArbitration.cpp build/opt/arbitration.o
-	$(CC) $(CPPFLAGS) -o $@ $?
