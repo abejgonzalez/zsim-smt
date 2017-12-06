@@ -14,8 +14,6 @@ fi
 # create results dir
 RESULTDIR=benchmark/results
 if [ -d "$RESULTDIR" ]; then
-	rm -rf $RESULTDIR/*
-else
 	mkdir -p $RESULTDIR
 fi
 
