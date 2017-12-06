@@ -20,7 +20,7 @@ else
 fi
 
 # # test parameters (SMT, OOO)
-source benchmark/sample.cfg
+source benchmark/bench.cfg
 # if [ "$sample_mode" == "smt" ]; then
 # 	header="id,reorderBuffer,cacheSize,thread1Cycles,thread2Cycles"
 #     benchmarks=(branch_good branch_miss dcache_good dcache_miss icache_good icache_miss)

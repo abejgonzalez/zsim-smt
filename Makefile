@@ -57,10 +57,10 @@ upload: $(UPLOAD)
 
 sample: sample-smt sample-ooo
 
-sample-smt: $(BENCH) $(SAMPLE) $(TEMPLATE_SMT)
+sample-smt: build $(BENCH) $(SAMPLE) $(TEMPLATE_SMT)
 	$(SAMPLE) $(TEMPLATE_SMT) smt
 
-sample-ooo: $(BENCH) $(SAMPLE) $(TEMPLATE_OOO)
+sample-ooo: build $(BENCH) $(SAMPLE) $(TEMPLATE_OOO)
 	$(SAMPLE) $(TEMPLATE_OOO) ooo
 
 # cleaning
