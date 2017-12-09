@@ -1,0 +1,7 @@
+bench
+zsim/branch_good
+zsim/branch_miss
+zsim/dcache_good
+zsim/dcache_miss
+zsim/icache_good
+zsim/icache_miss

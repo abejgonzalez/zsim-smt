@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = --std=c++11 -w
+CFLAGS = --std=c++11 -w -O0
 DEBUG_FLAGS = -DDEBUG_H
 SIM_FLAGS = -DSIM_H
 LINK = -lpthread

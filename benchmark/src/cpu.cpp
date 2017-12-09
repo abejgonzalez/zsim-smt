@@ -57,6 +57,8 @@ int main(int argc, char ** argv) {
 	if (argc <= optind) {
 		printf("usage: %s [-s] benchmark\n", argv[0]);
 		exit(1);
+	} else if (!strcmp(argv[optind], "branch_good")) {
+		benchmark = dcache_good;
 	} else if (!strcmp(argv[optind], "branch_miss")) {
 		benchmark = dcache_good;
 	} else if (!strcmp(argv[optind], "dcache_good")) {
@@ -64,6 +66,8 @@ int main(int argc, char ** argv) {
 	} else if (!strcmp(argv[optind], "dcache_miss")) {
 		benchmark = dcache_good;
 	} else if (!strcmp(argv[optind], "icache_good")) {
+		benchmark = dcache_good;
+	} else if (!strcmp(argv[optind], "icache_miss")) {
 		benchmark = dcache_good;
 	} else {
 		printf("usage: %s [-s] [branch_[good|miss]|dcache_[good|miss]|icache_[good|miss]]\n", argv[0]);

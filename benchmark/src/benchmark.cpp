@@ -13,7 +13,7 @@
 // #define DEBUG_H // print debugging
 // #define SIM_H // zsim simulation
 
-#define MAX_SIZE 1000000
+#define MAX_SIZE 1 * 1024 * 1024
 #define HYPER_THREADS 2
 
 #ifdef DEBUG_H
