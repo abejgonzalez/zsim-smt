@@ -1,5 +1,0 @@
-Use <g++ -std=c++11 smt.cpp -o run> to compile
-Use <./run> to run
-You will input how many cores, input 2 or 4
-You will be asked for the priority of the main thread, input a number between 0 and 1
-You will be asked for a cycle count, input any number (keep in mind it will output that many lines)
