@@ -1,23 +1,3 @@
-Install Directions
-==========================
-
-These are instructions for installing the custom oooe zsim branch.  
-The nonstandard libraries required to run the simulator have been isolated to run within the repository directory.  
-
-Recommended environment:  
-4.6 <= gcc < 6.0  
-2.6 <= linux kernel <= 4.1  
-python 2.7  
-
-### building zsim
-
-```
-source configure.sh && make
-```  
-
-"make" attempts a library install and build.  
-run `make clean` to clean up library and build directories.  
-
 zsim
 ====
 
@@ -33,6 +13,32 @@ zsim is organized to scale well (almost linearly) with simulated core count.
 You can find more details about zsim in our ISCA 2013 paper:
 http://people.csail.mit.edu/sanchez/papers/2013.zsim.isca.pdf.
 
+Getting Started
+==========================
+
+These are instructions for installing the custom oooe zsim branch.  
+The nonstandard libraries required to run the simulator have been isolated to run within the repository directory.  
+
+Recommended environment:  
+
+```
+4.6 <= gcc < 6.0  
+2.6 <= linux kernel <= 4.1  
+python 2.7.x 
+```
+
+### building zsim
+
+```
+source configure.sh && make
+```  
+
+"make" attempts a library install and build.  
+run `make clean` to clean up library and build directories.  
+
+### make directives
+build: compiles the simulator.
+test: runs the simulator according to the $(TEST) variable. [tests/config/smt.cfg]
 
 License & Copyright
 -------------------
