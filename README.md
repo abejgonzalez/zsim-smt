@@ -22,14 +22,16 @@ The nonstandard libraries required to run the simulator have been isolated to ru
 ### Recommended environment:  
 
 ZSIM builds well out of the box on Ubuntu 12.04, 14.04, and Debian 8.  
-It may also build well other linux operating systems of similar support periods.
+It may also build well other linux operating systems of similar support periods.  
+Note: All the optional dependencies are built by `configure.sh`, thus there is no need to explicitly install them.   
 
 ```
+Required:
 4.6 <= gcc < 6.0  
 2.6 <= linux kernel <= 4.1  
 python 2.7.x 
 
-optional:
+Optional:
 2.8 <= pin <= 2.14
 scons >= 2.5
 libconfig >= 1.5
@@ -39,7 +41,7 @@ libhd5 >= 1.8.4
 
 ### Building ZSIM
 
-We've consolidated the configuration and build process into one command:
+We've consolidated the configuration and build process into one command.
 
 ```
 source configure.sh && make
