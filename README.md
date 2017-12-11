@@ -1,4 +1,4 @@
-zsim
+ZSIM
 ====
 
 zsim is a fast x86-64 simulator. It was originally written to evaluate ZCache
@@ -19,47 +19,101 @@ Getting Started
 These are instructions for installing the custom oooe zsim branch.  
 The nonstandard libraries required to run the simulator have been isolated to run within the repository directory.  
 
-Recommended environment:  
+### Recommended environment:  
+
+ZSIM builds well out of the box on Ubuntu 12.04, 14.04, and Debian 8.  
+It may also build well other linux operating systems of similar support periods.
 
 ```
 4.6 <= gcc < 6.0  
 2.6 <= linux kernel <= 4.1  
 python 2.7.x 
+
+optional:
+2.8 <= pin <= 2.14
+scons >= 2.5
+libconfig >= 1.5
+libelfg0 >= 0.8.13
+libhd5 >= 1.8.4
 ```
 
-### building zsim
+### Building ZSIM
+
+We've consolidated the configuration and build process into one command:
 
 ```
 source configure.sh && make
 ```  
 
-"make" attempts a library install and build.  
+`make` attempts a library install and build.  
 run `make clean` to clean up library and build directories.  
+`source configure.sh` only must be run once upon entering the project directory.
 
-### make directives
-build: compiles the simulator.
-test: runs the simulator according to the $(TEST) variable. [tests/config/smt.cfg]
+### Make Directives
+`build`: compiles the simulator.   
+`test`: runs the simulator according to the $(TEST) variable. by default, it is `tests/config/smt.cfg`  
+`clean`: removes unecessary compiler and simulator output. cleans the build/ and log. directories.   
+`sample`: collects samples of benchmarks from simulator execution.  
+
+### Project Structure
+* `benchmark/`
+	container for running simulation / hardware sampling. contains source for microbenchmarks.
+* `misc/`
+	miscellaneous python and bash scripts for experimentation. contains some sample hooks
+* `tar/`
+	tar balls for various libraries required to run zsim. used to configure a containerized build environment.
+* `tests/`
+	various configuration files for executing tests on the simulator.
+* `src/`
+	C++ source files and SConscript file. (modify for adding new modules)
+* `lib/` (generated)
+	library files for running zsim. generated locally by running `source configure.sh`
+* `configure.sh`
+	bootstrap script for attempted autoconfiguration of a working zsim environment.
+* `SConstruct`
+	python-based construction script for building the simulator. configures low level compilation directives.
+* `Makefile`
+	facade around the build and execution process. implements automatic directives for ease-of-use execution and compilation.
 
 Collecting some Samples
 =======================
 
 We've consolidated the sampling process into a simple make directive.
-
-### Break down into end to end tests
-
-Explain what these tests test and why
-
 ```
-Give an example
+make sample
 ```
+The sampling process can be configured by editing `benchmark/bench.cfg`  
+The csv results of sampling are generated in `benchmark/results/`  
 
-### And coding style tests
+### benchmarks
+* dcache\_good:
+	characteristic workload with a high data cache hit rate.
+* dcache\_miss:
+	stressful workload with a low data cache hit rate.
+* icache\_good:
+	characteristic workload with a high instruction cache hit rate.
+* icache\_miss:
+	stressful workload with a low instruction cache hit rate.
+* branch\_good:
+	characteristic workload with a high branch prediction success rate.
+* branch\_miss:
+	stressful worklaod with a low branch prediction success rate.
 
-Explain what these tests test and why
+OOOE Authors
+============
+* [Abraham Gonzalez](mailto:abiegonza96@gmail.com)  
+* [Ronald Macmaster](mailto:ronnymacmaster@gmail.com)  
+* [Justin Nguyen](mailto:2014justinnguyen@gmail.com)  
+* [Barak Lidsky](mailto:baraklids@gmail.com)  
+* [Ryan Syed](mailto:ryansyed@utexas.edu)  
 
-```
-Give an example
-```
+Acknowledgments
+==================
+* Dr. Mattan Erez \(University of Texas, Austin\)
+* Haishan Zhou \(Univeristy of Texas, Austin\)
+
+-------------------
+-------------------
 
 License & Copyright
 ===================
@@ -88,8 +142,8 @@ Simulation of Thousand-Core Systems", Sanchez and Kozyrakis, ISCA-40, June
 software, and that you send us a citation of your work.
 
 
-Setup
------
+Classic Setup
+-------------
 
 External dependencies: `gcc >=4.6, pin, scons, libconfig, libhdf5, libelfg0`
 
