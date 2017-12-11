@@ -40,8 +40,29 @@ run `make clean` to clean up library and build directories.
 build: compiles the simulator.
 test: runs the simulator according to the $(TEST) variable. [tests/config/smt.cfg]
 
+Collecting some Samples
+=======================
+
+We've consolidated the sampling process into a simple make directive.
+
+### Break down into end to end tests
+
+Explain what these tests test and why
+
+```
+Give an example
+```
+
+### And coding style tests
+
+Explain what these tests test and why
+
+```
+Give an example
+```
+
 License & Copyright
--------------------
+===================
 
 zsim is free software; you can redistribute it and/or modify it under the terms
 of the GNU General Public License as published by the Free Software Foundation,
