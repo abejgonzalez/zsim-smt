@@ -53,7 +53,7 @@ run `make clean` to clean up library and build directories.
 
 ### Make Directives
 `build`: compiles the simulator.   
-`test`: runs the simulator according to the $(TEST) variable. by default, it is `tests/config/smt.cfg`  
+`test`: runs the simulator according to the $(TEST) variable. by default, it is `tests/config/simple.cfg`  
 `clean`: removes unecessary compiler and simulator output. cleans the build/ and log. directories.   
 `sample`: collects samples of benchmarks from simulator execution.  
 
